@@ -1,0 +1,3220 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>connec+a — 出会いが、まちを変えていく。</title>
+<meta name="description" content="在日外国人留学生と日本人をつなぐ、参加型の国際交流プラットフォーム。">
+
+<!-- OGP -->
+<meta property="og:title" content="connec+a — 一般社団法人">
+<meta property="og:description" content="在日外国人留学生と日本人をつなぐ、参加型の国際交流プラットフォーム。">
+<meta property="og:type" content="website">
+
+<!-- フォント -->
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Geist:wght@300;400;500;600;700&family=Zen+Kaku+Gothic+New:wght@300;400;500;700;900&family=Noto+Serif+JP:wght@400;500;700;900&family=JetBrains+Mono:wght@400;500;600&family=Cormorant+Garamond:ital,wght@0,400;0,500;0,600;1,400&display=swap" rel="stylesheet">
+
+<!-- React + Babel -->
+<script src="https://unpkg.com/react@18.3.1/umd/react.development.js" crossorigin></script>
+<script src="https://unpkg.com/react-dom@18.3.1/umd/react-dom.development.js" crossorigin></script>
+<script src="https://unpkg.com/@babel/standalone@7.29.0/babel.min.js" crossorigin></script>
+
+<style>
+:root {
+  /* SKY BLUE PALETTE - 空の青基調 */
+  --sky-50:      #f0f7ff;   /* 朝の空 */
+  --sky-100:     #d8eaff;   /* 薄空 */
+  --sky-200:     #b8dcff;   /* 春の空 */
+  --sky-300:     #8cc5ff;   /* 真昼の空 */
+  --sky-400:     #5ba8f5;   /* ミッドブルー */
+  --sky-500:     #2c89e8;   /* メインブルー */
+  --sky-600:     #1c6dd0;   /* 深い青 */
+  --sky-700:     #1656b0;   /* 黄昏 navy */
+  --sky-800:     #103e85;   /* 夕暮れ */
+  --sky-900:     #0a2960;   /* 夜空 */
+
+  /* 互換: 旧変数を新色にマップ */
+  --navy:        var(--sky-700);
+  --navy-deep:   var(--sky-900);
+  --navy-soft:   var(--sky-500);
+  --navy-bright: var(--sky-500);
+
+  --coral:       #ff7a59;
+  --coral-soft:  #ffd5c6;
+
+  --ink-rich:    #0a1628;
+  --paper:       #ffffff;
+  --paper-2:     var(--sky-50);
+  --paper-warm:  var(--sky-50);
+
+  --line:        var(--sky-100);
+  --line-strong: var(--sky-200);
+  --ink:         var(--sky-900);
+  --ink-mute:    var(--sky-700);
+  --ink-faint:   var(--sky-500);
+
+  --sans: 'Geist', ui-sans-serif, system-ui, -apple-system, sans-serif;
+  --jp:   'Zen Kaku Gothic New', 'Hiragino Sans', 'Yu Gothic', sans-serif;
+  --jp-serif: 'Noto Serif JP', 'Yu Mincho', 'Hiragino Mincho ProN', serif;
+  --serif: 'Cormorant Garamond', 'Noto Serif JP', Georgia, serif;
+  --mono: 'JetBrains Mono', ui-monospace, Menlo, monospace;
+  --r-sm: 4px;
+  --r-md: 12px;
+  --r-lg: 24px;
+  --r-xl: 32px;
+
+  /* 空のグラデーション */
+  --sky-grad: linear-gradient(180deg, var(--sky-50) 0%, var(--sky-100) 30%, var(--sky-200) 65%, var(--sky-300) 100%);
+  --sky-grad-deep: linear-gradient(180deg, var(--sky-300) 0%, var(--sky-500) 50%, var(--sky-700) 100%);
+  --sky-grad-soft: linear-gradient(180deg, #ffffff 0%, var(--sky-50) 100%);
+}
+
+* { box-sizing: border-box; }
+html, body { margin: 0; padding: 0; }
+body { background: var(--paper); color: var(--ink); font-family: var(--sans); }
+a { color: inherit; text-decoration: none; }
+button { font-family: inherit; cursor: pointer; }
+
+@keyframes cca-rise { from { opacity: 0; transform: translateY(20px) } to { opacity: 1; transform: none } }
+@keyframes cca-slide-left { from { opacity: 0; transform: translateX(-40px) } to { opacity: 1; transform: none } }
+@keyframes cca-fade { from { opacity: 0 } to { opacity: 1 } }
+@keyframes cca-scroll-line {
+  0%, 100% { transform: scaleY(1); }
+  50% { transform: scaleY(0.4); }
+}
+@keyframes cca-pulse {
+  0%, 100% { opacity: 1; transform: scale(1); }
+  50% { opacity: 0.5; transform: scale(1.4); }
+}
+
+/* スクロールビルドイン: 下から上にせり上がる */
+@keyframes cca-build-in {
+  from { opacity: 0; transform: translateY(60px) scale(0.96); filter: blur(8px); }
+  to { opacity: 1; transform: translateY(0) scale(1); filter: blur(0); }
+}
+@keyframes cca-build-in-big {
+  from { opacity: 0; transform: translateY(80px); filter: blur(12px); }
+  to { opacity: 1; transform: translateY(0); filter: blur(0); }
+}
+
+/* 雲のようなふわふわ */
+@keyframes cca-float {
+  0%, 100% { transform: translate(0, 0) scale(1); }
+  33% { transform: translate(20px, -15px) scale(1.05); }
+  66% { transform: translate(-10px, 10px) scale(0.98); }
+}
+@keyframes cca-float-slow {
+  0%, 100% { transform: translate(0, 0); }
+  50% { transform: translate(-30px, 20px); }
+}
+
+/* グラデーション流れる */
+@keyframes cca-gradient-flow {
+  0% { background-position: 0% 50%; }
+  50% { background-position: 100% 50%; }
+  100% { background-position: 0% 50%; }
+}
+
+/* スプリング感のあるバウンス */
+@keyframes cca-bounce-in {
+  0% { opacity: 0; transform: scale(0.85); }
+  60% { opacity: 1; transform: scale(1.04); }
+  100% { transform: scale(1); }
+}
+
+/* Ken Burnsエフェクト */
+@keyframes cca-ken-burns {
+  0% { transform: scale(1) translate(0, 0); }
+  100% { transform: scale(1.1) translate(-2%, -1%); }
+}
+
+@keyframes cca-marker {
+  0% { transform: scaleX(0); transform-origin: left; }
+  100% { transform: scaleX(1); transform-origin: left; }
+}
+
+/* ===== スクロール連動ビルドイン ===== */
+.build-in {
+  opacity: 0;
+  transform: translateY(50px);
+  transition: opacity .9s cubic-bezier(.2, .8, .2, 1),
+              transform .9s cubic-bezier(.2, .8, .2, 1),
+              filter .9s ease;
+  filter: blur(6px);
+  will-change: opacity, transform, filter;
+}
+.build-in.visible {
+  opacity: 1;
+  transform: translateY(0);
+  filter: blur(0);
+}
+.build-in-d1 { transition-delay: 0.08s; }
+.build-in-d2 { transition-delay: 0.16s; }
+.build-in-d3 { transition-delay: 0.24s; }
+.build-in-d4 { transition-delay: 0.32s; }
+.build-in-d5 { transition-delay: 0.40s; }
+.build-in-d6 { transition-delay: 0.48s; }
+
+/* ===== Flip ボタン (白↔青の色反転) ===== */
+.btn-flip {
+  position: relative;
+  display: inline-flex;
+  align-items: center;
+  gap: 12px;
+  padding: 18px 36px;
+  background: var(--paper);
+  color: var(--sky-700);
+  border: 2px solid var(--sky-700);
+  font-family: var(--jp);
+  font-size: 16px;
+  font-weight: 700;
+  border-radius: 999px;
+  cursor: pointer;
+  overflow: hidden;
+  transition: color .35s ease, border-color .35s ease, transform .25s ease, box-shadow .35s ease;
+  z-index: 1;
+  text-decoration: none;
+}
+.btn-flip::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  background: var(--sky-700);
+  transform: translateY(100%);
+  transition: transform .45s cubic-bezier(.4, 0, .2, 1);
+  z-index: -1;
+}
+.btn-flip:hover {
+  color: var(--paper);
+  transform: translateY(-3px);
+  box-shadow: 0 14px 32px -8px rgba(22, 86, 176, 0.5);
+}
+.btn-flip:hover::before {
+  transform: translateY(0);
+}
+
+.btn-flip-inverse {
+  background: var(--sky-700);
+  color: var(--paper);
+  border-color: var(--sky-700);
+}
+.btn-flip-inverse::before {
+  background: var(--paper);
+}
+.btn-flip-inverse:hover {
+  color: var(--sky-700);
+}
+
+/* ===== Lift Card (持ち上がり + 色反転) ===== */
+.lift-card {
+  transition: transform .4s cubic-bezier(.2, .8, .2, 1),
+              box-shadow .4s ease,
+              background-color .4s ease,
+              color .4s ease,
+              border-color .4s ease;
+  cursor: pointer;
+}
+.lift-card:hover {
+  transform: translateY(-10px);
+  box-shadow: 0 24px 50px -16px rgba(22, 86, 176, 0.3);
+}
+
+.lift-card-flip {
+  transition: transform .4s cubic-bezier(.2, .8, .2, 1),
+              box-shadow .4s ease,
+              background-color .45s ease,
+              color .45s ease,
+              border-color .4s ease;
+  cursor: pointer;
+}
+.lift-card-flip:hover {
+  transform: translateY(-10px);
+  background: var(--sky-700) !important;
+  border-color: var(--sky-700) !important;
+  box-shadow: 0 24px 50px -14px rgba(22, 86, 176, 0.5);
+}
+.lift-card-flip:hover,
+.lift-card-flip:hover * {
+  color: var(--paper) !important;
+}
+
+/* ===== リンクの下線スライドアニメ ===== */
+.link-slide {
+  position: relative;
+  text-decoration: none;
+  color: inherit;
+  display: inline-block;
+}
+.link-slide::after {
+  content: '';
+  position: absolute;
+  left: 0; bottom: -3px;
+  width: 100%;
+  height: 2px;
+  background: currentColor;
+  transform: scaleX(0);
+  transform-origin: right;
+  transition: transform .45s cubic-bezier(.65, 0, .35, 1);
+}
+.link-slide:hover::after {
+  transform: scaleX(1);
+  transform-origin: left;
+}
+
+/* ===== 写真エフェクト ===== */
+.photo-mono {
+  filter: contrast(1.05) saturate(1.05);
+  position: relative;
+  overflow: hidden;
+}
+.photo-kenburns {
+  animation: cca-ken-burns 24s ease-in-out infinite alternate;
+  transform-origin: center;
+}
+
+/* ===== 下線アクセント (空色) ===== */
+.accent-underline {
+  background: linear-gradient(transparent 62%, var(--sky-300) 62%, var(--sky-300) 88%, transparent 88%);
+  padding: 0 4px;
+}
+
+/* ===== 雲SVGの動き ===== */
+.cloud-float-1 { animation: cca-float 18s ease-in-out infinite; }
+.cloud-float-2 { animation: cca-float-slow 22s ease-in-out infinite; }
+.cloud-float-3 { animation: cca-float 26s ease-in-out infinite; }
+
+/* ===== モバイル対応 ===== */
+@media (max-width: 880px) {
+  .hero-grid {
+    grid-template-columns: 1fr !important;
+  }
+  .upcoming-grid {
+    grid-template-columns: 1fr !important;
+  }
+  .hero-side-blur {
+    width: 100% !important;
+    background: linear-gradient(180deg, rgba(10, 41, 96, 0.7) 0%, rgba(10, 41, 96, 0.4) 70%, transparent 100%) !important;
+  }
+}
+
+/* 写真プレースホルダー (placeholder 画像なし時のフォールバック) */
+.photo {
+  background:
+    repeating-linear-gradient(
+      135deg,
+      oklch(0.92 0.02 260) 0 14px,
+      oklch(0.96 0.01 260) 14px 28px
+    );
+  position: relative;
+  overflow: hidden;
+}
+.photo--navy {
+  background:
+    linear-gradient(135deg, oklch(0.30 0.13 260), oklch(0.18 0.08 260)),
+    repeating-linear-gradient(45deg, rgba(255,255,255,0.04) 0 2px, transparent 2px 12px);
+}
+.photo--coral {
+  background:
+    linear-gradient(135deg, oklch(0.75 0.18 35), oklch(0.55 0.20 30));
+}
+
+/* ボタン */
+.btn-primary {
+  background: var(--coral);
+  color: #fff;
+  border: 0;
+  padding: 14px 22px;
+  border-radius: 999px;
+  font-size: 14px;
+  font-weight: 600;
+  letter-spacing: 0.02em;
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  transition: transform .2s ease, box-shadow .2s ease;
+}
+.btn-primary:hover { transform: translateY(-1px); box-shadow: 0 10px 30px -10px var(--coral); }
+.btn-ghost {
+  background: rgba(255,255,255,0.10);
+  color: #fff;
+  border: 0;
+  padding: 14px 22px;
+  border-radius: 999px;
+  font-size: 14px;
+  font-weight: 500;
+  backdrop-filter: blur(8px);
+  transition: background .2s ease;
+}
+.btn-ghost:hover { background: rgba(255,255,255,0.18); }
+.btn-outline {
+  background: transparent;
+  color: var(--ink);
+  border: 1px solid var(--line);
+  padding: 12px 20px;
+  border-radius: 999px;
+  font-size: 13px;
+  font-weight: 500;
+  transition: all .2s;
+}
+.btn-outline:hover { background: var(--ink); color: var(--paper); border-color: var(--ink); }
+
+/* レスポンシブ: スマホ */
+@media (max-width: 767px) {
+  .desktop-only { display: none !important; }
+}
+@media (min-width: 768px) {
+  .mobile-only { display: none !important; }
+}
+</style>
+</head>
+<body>
+<div id="root">
+  <!-- フォールバック: スクリプトが読み込まれない、JS無効、エラー時に表示 -->
+  <div id="fallback" style="padding:60px 24px;font-family:system-ui;color:#333;text-align:center;">
+    <h1 style="font-size:24px;margin-bottom:12px;">connec+a</h1>
+    <p style="color:#666;font-size:14px;">読み込み中...</p>
+    <noscript>
+      <p style="color:#d44;margin-top:20px;">JavaScript を有効にしてください。</p>
+    </noscript>
+  </div>
+</div>
+
+<!-- グローバルエラーハンドラ -->
+<script>
+window.addEventListener('error', function(e) {
+  console.error('[Global Error]', e.message, e.filename, e.lineno);
+  var fallback = document.getElementById('fallback');
+  if (fallback) {
+    fallback.innerHTML = '<h1 style="color:#d44;font-size:20px;margin-bottom:12px;">エラーが発生しました</h1>'
+      + '<p style="color:#666;font-size:13px;margin-bottom:8px;">' + (e.message || '不明なエラー') + '</p>'
+      + '<p style="color:#999;font-size:11px;font-family:monospace;">' + (e.filename || '') + ':' + (e.lineno || '') + '</p>'
+      + '<p style="color:#666;font-size:13px;margin-top:20px;">ブラウザのキャッシュをクリアして再度お試しください。</p>';
+  }
+});
+</script>
+
+<script type="text/babel" data-presets="react">
+// Base64画像 (connec+a 公式素材)
+const ASSET_LOGO = './assets/logo-white.png';
+const ASSET_GROUP_PHOTO = './assets/group-photo-web.jpg';
+const ASSET_SKY_NIGHT = './assets/sky-night-web.jpg';
+const ASSET_SKY_STARS = './assets/sky-stars-web.jpg';
+const ASSET_CITYSCAPE = './assets/cityscape-web.jpg';
+
+const { useState, useEffect, useRef, useMemo } = React;
+
+// ============================================================================
+// CONFIG
+// ============================================================================
+const CONFIG = {
+  GAS_URL: 'https://script.google.com/macros/s/AKfycbxCJQ6miz5JecF7W_W0bc2QogrJFKuZ_aNZ0crQmJFm9o7I7GsjVQZ3knlzbNCx7aw5/exec',
+  ORG: {
+    name: 'connec+a',
+    nameEn: 'connec+a · Tokyo NPO',
+    members: 2840,
+    events: 186,
+    countries: 42,
+    satisfaction: 98,
+  },
+};
+
+// ============================================================================
+// I18N
+// ============================================================================
+const I18N = {
+  ja: {
+    nav: { events: 'イベント', about: '私たちについて', news: 'ニュース', contact: 'お問い合わせ', login: 'ログイン', signup: '会員登録' },
+    hero: {
+      eyebrow: '一般社団法人 connec+a',
+      title: '出会いが、\nまちを変えていく。',
+      sub: '在日外国人留学生と日本人をつなぐ、参加型の国際交流プラットフォーム。',
+      cta1: '直近のイベントを見る',
+      cta2: '私たちについて',
+    },
+    sections: { upcoming: '近日開催のイベント', news: 'お知らせ', viewAll: 'すべて見る →', tagline: '出会いと、対話と、文化の交差点。', allEvents: 'イベント一覧' },
+    card: { spots: '残席', register: '申込む', closed: '受付終了', new: 'NEW', full: '満員' },
+    stats: { members: '会員数', events: '開催イベント', countries: '参加国', satisfaction: '満足度' },
+    filter: { all: 'すべて', category: 'カテゴリ' },
+    detail: {
+      back: '← イベント一覧へ',
+      about: 'このイベントについて',
+      meta: { date: '日時', venue: '会場', capacity: '定員', fee: '参加費', online: 'オンライン開催', regClose: '申込締切' },
+      requirements: '参加要件',
+      cancelPolicy: 'キャンセルポリシー',
+      payment: '支払い方法',
+      sessions: '開催スケジュール',
+      sessionSelect: 'セッションを選んでください',
+      sessionRegister: 'このセッションに申込む',
+      free: '無料',
+      notFound: 'イベントが見つかりません',
+      registerSoon: '申込機能は準備中です。Phase 4 で実装予定。',
+      issue: 'ISSUE',
+      eventLog: 'EVENT LOG',
+      info: 'INFORMATION',
+      openInMaps: 'Google Mapsで開く',
+      openInZoom: 'Zoomで開く',
+      tags: { date: '日時', venue: '会場', capacity: '定員', fee: '参加費' },
+      registerNow: 'いま申し込む',
+      seatsRemaining: '残り',
+      ofTotal: 'のうち',
+      seats: '席',
+      day: '日目',
+      eventClosed: 'このイベントは満員です',
+    },
+    footer: { newsletter: 'ニュースレター', email: 'メールアドレス', subscribe: '登録', rights: '© 2026 一般社団法人 connec+a' },
+    lang: { ja: '日本語', easy: 'やさしい日本語', en: 'English' },
+    words: ['出会い', '対話', '文化', '仲間'],
+    loading: '読み込み中...',
+    error: '読み込みエラー',
+    noEvents: '現在、開催予定のイベントはありません。',
+  },
+  easy: {
+    nav: { events: 'イベント', about: 'わたしたちのこと', news: 'おしらせ', contact: 'といあわせ', login: 'ログイン', signup: 'とうろく' },
+    hero: {
+      eyebrow: 'connec+a（コネクタ）',
+      title: 'であいで、\nまちが かわる。',
+      sub: 'にほんに すんでいる がいこく人 と にほん人 が、いっしょに たのしむ ばしょ です。',
+      cta1: 'イベントを みる',
+      cta2: 'わたしたちのこと',
+    },
+    sections: { upcoming: 'これからの イベント', news: 'おしらせ', viewAll: 'もっと みる →', tagline: 'であい・はなし・ぶんかが まじわる ばしょ。', allEvents: 'イベント いちらん' },
+    card: { spots: 'のこり', register: 'もうしこむ', closed: 'おわりました', new: 'あたらしい', full: 'まんいん' },
+    stats: { members: 'メンバー', events: 'イベント', countries: 'くに', satisfaction: 'まんぞく' },
+    filter: { all: 'ぜんぶ', category: 'カテゴリ' },
+    detail: {
+      back: '← イベント いちらんへ',
+      about: 'この イベントについて',
+      meta: { date: 'ひにち', venue: 'ばしょ', capacity: 'ていいん', fee: 'おかね', online: 'オンライン', regClose: 'もうしこみ しめきり' },
+      requirements: 'さんかの じょうけん',
+      cancelPolicy: 'キャンセルの ルール',
+      payment: 'おかねの はらいかた',
+      sessions: 'ひにちと じかん',
+      sessionSelect: 'にちじを えらんでください',
+      sessionRegister: 'これに もうしこむ',
+      free: 'むりょう',
+      notFound: 'イベントが ありません',
+      registerSoon: 'もうしこむ きのうは じゅんびちゅうです。',
+      issue: 'ばんごう',
+      eventLog: 'イベントの きろく',
+      info: 'くわしいこと',
+      openInMaps: 'Googleマップで みる',
+      openInZoom: 'Zoomで ひらく',
+      tags: { date: 'ひにち', venue: 'ばしょ', capacity: 'にんずう', fee: 'おかね' },
+      registerNow: 'いま もうしこむ',
+      seatsRemaining: 'のこり',
+      ofTotal: 'のうち',
+      seats: 'にん',
+      day: 'にちめ',
+      eventClosed: 'いっぱい です',
+    },
+    footer: { newsletter: 'ニュースレター', email: 'メール', subscribe: 'とうろく', rights: '© 2026 connec+a' },
+    lang: { ja: '日本語', easy: 'やさしい日本語', en: 'English' },
+    words: ['であい', 'はなし', 'ぶんか', 'なかま'],
+    loading: 'よみこみちゅう...',
+    error: 'エラー',
+    noEvents: 'いまは イベントが ありません。',
+  },
+  en: {
+    nav: { events: 'Events', about: 'About', news: 'News', contact: 'Contact', login: 'Log in', signup: 'Sign up' },
+    hero: {
+      eyebrow: 'connec+a · Tokyo NPO',
+      title: 'Where meetings\nreshape the city.',
+      sub: 'A participatory cross-cultural platform connecting international students living in Japan with locals.',
+      cta1: 'See upcoming events',
+      cta2: 'About us',
+    },
+    sections: { upcoming: 'Upcoming events', news: 'News', viewAll: 'View all →', tagline: 'Where meeting, dialogue, and cultures intersect.', allEvents: 'All events' },
+    card: { spots: 'spots left', register: 'Register', closed: 'Closed', new: 'NEW', full: 'Full' },
+    stats: { members: 'Members', events: 'Events held', countries: 'Countries', satisfaction: 'Satisfaction' },
+    filter: { all: 'All', category: 'Category' },
+    detail: {
+      back: '← Back to events',
+      about: 'About this event',
+      meta: { date: 'Date', venue: 'Venue', capacity: 'Capacity', fee: 'Fee', online: 'Online event', regClose: 'Registration closes' },
+      requirements: 'Requirements',
+      cancelPolicy: 'Cancellation policy',
+      payment: 'Payment method',
+      sessions: 'Schedule',
+      sessionSelect: 'Choose a session',
+      sessionRegister: 'Register for this session',
+      free: 'Free',
+      notFound: 'Event not found',
+      registerSoon: 'Registration is coming soon (Phase 4).',
+      issue: 'ISSUE',
+      eventLog: 'EVENT LOG',
+      info: 'INFORMATION',
+      openInMaps: 'Open in Google Maps',
+      openInZoom: 'Open in Zoom',
+      tags: { date: 'Date', venue: 'Venue', capacity: 'Capacity', fee: 'Fee' },
+      registerNow: 'Register now',
+      seatsRemaining: 'remaining',
+      ofTotal: 'of',
+      seats: 'seats',
+      day: 'Day',
+      eventClosed: 'This event is full',
+    },
+    footer: { newsletter: 'Newsletter', email: 'Email address', subscribe: 'Subscribe', rights: '© 2026 connec+a · Tokyo NPO' },
+    lang: { ja: '日本語', easy: 'やさしい日本語', en: 'English' },
+    words: ['MEETING', 'DIALOGUE', 'CULTURE', 'CARE'],
+    loading: 'Loading...',
+    error: 'Error',
+    noEvents: 'No upcoming events.',
+  },
+};
+
+// ============================================================================
+// API & DATA UTILS
+// ============================================================================
+async function fetchEvents() {
+  // 15秒タイムアウト: GAS応答が極端に遅い場合でも永久loadingを防ぐ
+  const controller = new AbortController();
+  const timeoutId = setTimeout(() => controller.abort(), 15000);
+  try {
+    const url = `${CONFIG.GAS_URL}?action=listEvents&_t=${Date.now()}`;
+    console.log('[Participants] fetchEvents: requesting', url);
+    const res = await fetch(url, { signal: controller.signal });
+    clearTimeout(timeoutId);
+    console.log('[Participants] fetchEvents: HTTP', res.status, res.ok ? 'OK' : 'FAIL');
+    if (!res.ok) {
+      console.error('[Participants] fetchEvents HTTP error:', res.status);
+      return [];
+    }
+    const json = await res.json();
+    console.log('[Participants] fetchEvents: response shape', {
+      hasOk: 'ok' in json,
+      ok: json.ok,
+      hasData: 'data' in json,
+      dataIsArray: Array.isArray(json.data),
+      dataLength: Array.isArray(json.data) ? json.data.length : 'N/A',
+      keys: Object.keys(json),
+    });
+    // GAS標準レスポンス形状: { ok: true, data: [...], user: {...} }
+    if (json && json.ok && Array.isArray(json.data)) {
+      console.log(`[Participants] fetchEvents: ${json.data.length} events received`);
+      return json.data;
+    }
+    // 互換: 直接配列が返るパターンも許容
+    if (Array.isArray(json)) {
+      console.log(`[Participants] fetchEvents: ${json.length} events received (legacy shape)`);
+      return json;
+    }
+    console.warn('[Participants] unexpected response shape:', json);
+    return [];
+  } catch (err) {
+    clearTimeout(timeoutId);
+    if (err.name === 'AbortError') {
+      console.error('[Participants] fetchEvents timeout (15s)');
+    } else {
+      console.error('[Participants] fetchEvents error:', err);
+    }
+    return [];
+  }
+}
+
+// 単一イベント取得 (詳細ページ用)
+async function fetchEvent(eventId) {
+  const controller = new AbortController();
+  const timeoutId = setTimeout(() => controller.abort(), 15000);
+  try {
+    const params = encodeURIComponent(JSON.stringify({ eventId }));
+    const url = `${CONFIG.GAS_URL}?action=getEvent&params=${params}&_t=${Date.now()}`;
+    const res = await fetch(url, { signal: controller.signal });
+    clearTimeout(timeoutId);
+    if (!res.ok) return null;
+    const json = await res.json();
+    if (json && json.ok && json.data) return json.data;
+    return null;
+  } catch (err) {
+    clearTimeout(timeoutId);
+    console.error('[Participants] fetchEvent error:', err);
+    return null;
+  }
+}
+
+// セッション一覧取得 (multi イベント用)
+async function fetchEventSessions(eventId) {
+  const controller = new AbortController();
+  const timeoutId = setTimeout(() => controller.abort(), 15000);
+  try {
+    const params = encodeURIComponent(JSON.stringify({ eventId }));
+    const url = `${CONFIG.GAS_URL}?action=listEventSessions&params=${params}&_t=${Date.now()}`;
+    const res = await fetch(url, { signal: controller.signal });
+    clearTimeout(timeoutId);
+    if (!res.ok) return [];
+    const json = await res.json();
+    if (json && json.ok && Array.isArray(json.data)) return json.data;
+    return [];
+  } catch (err) {
+    clearTimeout(timeoutId);
+    console.error('[Participants] fetchEventSessions error:', err);
+    return [];
+  }
+}
+
+// 日付を YYYY.MM.DD DAY 形式に
+function formatEventDate(dateStr) {
+  if (!dateStr) return '';
+  const d = new Date(dateStr);
+  if (isNaN(d.getTime())) return dateStr;
+  const dayNames = ['SUN', 'MON', 'TUE', 'WED', 'THU', 'FRI', 'SAT'];
+  return `${d.getFullYear()}.${String(d.getMonth() + 1).padStart(2, '0')}.${String(d.getDate()).padStart(2, '0')} ${dayNames[d.getDay()]}`;
+}
+
+// 公開イベントのフィルタ (表記揺れに強い実装)
+function filterPublicEvents(events) {
+  if (!Array.isArray(events)) {
+    console.warn('[Participants] filterPublicEvents: events is not array', events);
+    return [];
+  }
+  // 公開状態とみなすステータス値 (表記揺れ吸収)
+  const PUBLIC_STATUSES = ['公開中', '満員', '公開', 'published', 'public', 'open'];
+  const filtered = events.filter(e => PUBLIC_STATUSES.includes(e.status));
+  // デバッグログ: 受信件数とフィルタ後件数を表示
+  console.log(`[Participants] filterPublicEvents: ${events.length} received → ${filtered.length} public`);
+  if (events.length > 0 && filtered.length === 0) {
+    // 受信したのに全部フィルタで落ちる場合、ステータス値を一覧表示
+    const statuses = [...new Set(events.map(e => e.status))];
+    console.warn('[Participants] all events filtered out. Found statuses:', statuses);
+    console.warn('[Participants] expected one of:', PUBLIC_STATUSES);
+  }
+  return filtered;
+}
+
+// ============================================================================
+// LANG HOOK (localStorage 保存)
+// ============================================================================
+function useLang() {
+  const [lang, setLangState] = useState(() => {
+    const saved = localStorage.getItem('cca-lang');
+    return saved && ['ja', 'easy', 'en'].includes(saved) ? saved : 'ja';
+  });
+  const setLang = (l) => {
+    setLangState(l);
+    localStorage.setItem('cca-lang', l);
+  };
+  return [lang, setLang];
+}
+
+// ============================================================================
+// ROUTING (hash-based)
+// ============================================================================
+function useRoute() {
+  const [hash, setHash] = useState(window.location.hash || '#/');
+  useEffect(() => {
+    const handler = () => {
+      setHash(window.location.hash || '#/');
+      window.scrollTo(0, 0);
+    };
+    window.addEventListener('hashchange', handler);
+    return () => window.removeEventListener('hashchange', handler);
+  }, []);
+  return hash.replace(/^#/, '') || '/';
+}
+
+// ============================================================================
+// UTM TRACKING (Phase 1: 取得 + localStorage 保存のみ。送信は次セッション)
+// ============================================================================
+function captureUTM() {
+  const params = new URLSearchParams(window.location.search);
+  const utm = {
+    source: params.get('utm_source') || '',
+    medium: params.get('utm_medium') || '',
+    campaign: params.get('utm_campaign') || '',
+    referrer: document.referrer || '',
+    capturedAt: new Date().toISOString(),
+  };
+  if (utm.source || utm.medium || utm.campaign) {
+    localStorage.setItem('cca-utm-first', JSON.stringify(utm));
+    console.log('[UTM] captured:', utm);
+  }
+  // セッションIDを発行
+  if (!localStorage.getItem('cca-session-id')) {
+    localStorage.setItem('cca-session-id', 'S-' + Math.random().toString(36).slice(2, 14));
+  }
+  return utm;
+}
+
+// ============================================================================
+// MOTION COMPONENTS
+// ============================================================================
+function Reveal({ delay = 0, children, y = 30, blur = true, style = {}, ...rest }) {
+  const ref = useRef(null);
+  const [shown, setShown] = useState(false);
+  useEffect(() => {
+    const el = ref.current;
+    if (!el) return;
+    const io = new IntersectionObserver(
+      (entries) => entries.forEach((e) => {
+        if (e.isIntersecting) setShown(true);
+      }),
+      { threshold: 0.12, rootMargin: '0px 0px -60px 0px' }
+    );
+    io.observe(el);
+    return () => io.disconnect();
+  }, []);
+  return (
+    <div ref={ref} style={{
+      opacity: shown ? 1 : 0,
+      transform: shown ? 'none' : `translateY(${y}px) scale(${shown ? 1 : 0.97})`,
+      filter: shown ? 'blur(0)' : (blur ? 'blur(8px)' : 'none'),
+      transition: `opacity .9s ${delay}ms cubic-bezier(.2,.8,.2,1), transform .9s ${delay}ms cubic-bezier(.2,.8,.2,1), filter .9s ${delay}ms ease`,
+      willChange: 'opacity, transform, filter',
+      ...style,
+    }} {...rest}>{children}</div>
+  );
+}
+
+// 大型ビルドイン (ヒーロー、主要セクション用)
+function BuildIn({ delay = 0, children, y = 80, style = {}, ...rest }) {
+  const ref = useRef(null);
+  const [shown, setShown] = useState(false);
+  useEffect(() => {
+    const el = ref.current;
+    if (!el) return;
+    const io = new IntersectionObserver(
+      (entries) => entries.forEach((e) => {
+        if (e.isIntersecting) setShown(true);
+      }),
+      { threshold: 0.05, rootMargin: '0px 0px -100px 0px' }
+    );
+    io.observe(el);
+    return () => io.disconnect();
+  }, []);
+  return (
+    <div ref={ref} style={{
+      opacity: shown ? 1 : 0,
+      transform: shown ? 'none' : `translateY(${y}px)`,
+      filter: shown ? 'blur(0)' : 'blur(12px)',
+      transition: `opacity 1.1s ${delay}ms cubic-bezier(.16,.84,.32,1), transform 1.1s ${delay}ms cubic-bezier(.16,.84,.32,1), filter 1s ${delay}ms ease`,
+      willChange: 'opacity, transform, filter',
+      ...style,
+    }} {...rest}>{children}</div>
+  );
+}
+
+// 方向指定ビルドイン (left/right/up/down)
+function BuildInDir({ delay = 0, dir = 'up', distance = 80, children, style = {}, ...rest }) {
+  const ref = useRef(null);
+  const [shown, setShown] = useState(false);
+  useEffect(() => {
+    const el = ref.current;
+    if (!el) return;
+    const io = new IntersectionObserver(
+      (entries) => entries.forEach((e) => { if (e.isIntersecting) setShown(true); }),
+      { threshold: 0.05, rootMargin: '0px 0px -80px 0px' }
+    );
+    io.observe(el);
+    return () => io.disconnect();
+  }, []);
+  const offset = {
+    up:    `translateY(${distance}px)`,
+    down:  `translateY(-${distance}px)`,
+    left:  `translateX(${distance}px)`,
+    right: `translateX(-${distance}px)`,
+  }[dir];
+  return (
+    <div ref={ref} style={{
+      opacity: shown ? 1 : 0,
+      transform: shown ? 'none' : offset,
+      filter: shown ? 'blur(0)' : 'blur(10px)',
+      transition: `opacity 1.0s ${delay}ms cubic-bezier(.16,.84,.32,1), transform 1.0s ${delay}ms cubic-bezier(.16,.84,.32,1), filter .9s ${delay}ms ease`,
+      willChange: 'opacity, transform, filter',
+      ...style,
+    }} {...rest}>{children}</div>
+  );
+}
+
+function CountUp({ to, suffix = '', duration = 1400 }) {
+  const [n, setN] = useState(0);
+  const ref = useRef(null);
+  useEffect(() => {
+    const el = ref.current;
+    if (!el) return;
+    const io = new IntersectionObserver(
+      (entries) => {
+        if (entries[0].isIntersecting) {
+          const start = performance.now();
+          const step = (now) => {
+            const t = Math.min(1, (now - start) / duration);
+            const eased = 1 - Math.pow(1 - t, 3);
+            setN(Math.round(to * eased));
+            if (t < 1) requestAnimationFrame(step);
+          };
+          requestAnimationFrame(step);
+          io.disconnect();
+        }
+      },
+      { threshold: 0.5 }
+    );
+    io.observe(el);
+    return () => io.disconnect();
+  }, [to]);
+  return <span ref={ref}>{n.toLocaleString()}{suffix}</span>;
+}
+
+// インライン版 (style 対応、ヒーロー埋め込み用)
+function CountUpInline({ to, suffix = '', duration = 1400, style = {} }) {
+  const [n, setN] = useState(0);
+  const ref = useRef(null);
+  useEffect(() => {
+    const el = ref.current;
+    if (!el) return;
+    const io = new IntersectionObserver(
+      (entries) => {
+        if (entries[0].isIntersecting) {
+          const start = performance.now();
+          const step = (now) => {
+            const t = Math.min(1, (now - start) / duration);
+            const eased = 1 - Math.pow(1 - t, 3);
+            setN(Math.round(to * eased));
+            if (t < 1) requestAnimationFrame(step);
+          };
+          requestAnimationFrame(step);
+          io.disconnect();
+        }
+      },
+      { threshold: 0.3 }
+    );
+    io.observe(el);
+    return () => io.disconnect();
+  }, [to]);
+  return <span ref={ref} style={style}>{n.toLocaleString()}{suffix}</span>;
+}
+
+// ============================================================================
+// NAV
+// ============================================================================
+function Nav({ lang, setLang, t, transparent }) {
+  const [menuOpen, setMenuOpen] = useState(false);
+  const [scrolled, setScrolled] = useState(false);
+
+  useEffect(() => {
+    const onScroll = () => setScrolled(window.scrollY > 50);
+    window.addEventListener('scroll', onScroll);
+    return () => window.removeEventListener('scroll', onScroll);
+  }, []);
+
+  return (
+    <React.Fragment>
+      <nav style={{
+        position: 'fixed', top: 0, left: 0, right: 0, zIndex: 100,
+        background: 'rgba(255,255,255,0.85)',
+        backdropFilter: 'blur(20px) saturate(180%)',
+        WebkitBackdropFilter: 'blur(20px) saturate(180%)',
+        borderBottom: scrolled ? '1px solid var(--sky-100)' : '1px solid transparent',
+        boxShadow: scrolled ? '0 4px 30px -10px rgba(28,86,176,0.08)' : 'none',
+        transition: 'all .3s',
+      }}>
+        <div style={{
+          maxWidth: 1440, margin: '0 auto',
+          padding: '18px 36px',
+          display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 20,
+        }}>
+          {/* Logo */}
+          <a href="#/" style={{
+            display: 'flex', alignItems: 'center', gap: 10,
+            color: 'var(--sky-900)',
+            fontSize: 20, fontWeight: 700, letterSpacing: '-0.02em',
+            textDecoration: 'none',
+          }}>
+            <span style={{
+              display: 'inline-flex', alignItems: 'center', justifyContent: 'center',
+              width: 34, height: 34,
+              background: 'var(--sky-700)',
+              color: '#fff',
+              borderRadius: 10,
+              fontSize: 14, fontWeight: 800, letterSpacing: '-0.05em',
+              boxShadow: '0 4px 12px -2px rgba(28,86,176,0.3)',
+            }}>+a</span>
+            connec+a
+          </a>
+
+          {/* Desktop nav */}
+          <div className="desktop-only" style={{ display: 'flex', gap: 32, alignItems: 'center' }}>
+            <a href="#/events" className="link-slide" style={{ color: 'var(--sky-800)', fontSize: 14, fontWeight: 600, fontFamily: 'var(--jp)' }}>{t.nav.events}</a>
+            <a href="#/about" className="link-slide" style={{ color: 'var(--sky-800)', fontSize: 14, fontWeight: 600, fontFamily: 'var(--jp)' }}>{t.nav.about}</a>
+            <a href="#/news" className="link-slide" style={{ color: 'var(--sky-800)', fontSize: 14, fontWeight: 600, fontFamily: 'var(--jp)' }}>{t.nav.news}</a>
+            <a href="#/contact" className="link-slide" style={{ color: 'var(--sky-800)', fontSize: 14, fontWeight: 600, fontFamily: 'var(--jp)' }}>{t.nav.contact}</a>
+
+            {/* Lang picker */}
+            <LangPicker lang={lang} setLang={setLang} t={t} transparent={false} />
+
+            <a href="#/login" className="btn-flip" style={{
+              padding: '10px 22px', fontSize: 13,
+            }}>{t.nav.login}</a>
+            <a href="#/signup" style={{
+              background: 'var(--coral)',
+              color: '#fff',
+              fontSize: 13, fontWeight: 700,
+              padding: '11px 22px',
+              borderRadius: 999,
+              textDecoration: 'none',
+              transition: 'all .25s',
+              boxShadow: '0 4px 14px -2px rgba(255,122,89,0.4)',
+            }}
+            onMouseEnter={(e) => { e.target.style.transform = 'translateY(-2px)'; e.target.style.boxShadow = '0 8px 22px -4px rgba(255,122,89,0.6)'; }}
+            onMouseLeave={(e) => { e.target.style.transform = 'none'; e.target.style.boxShadow = '0 4px 14px -2px rgba(255,122,89,0.4)'; }}>{t.nav.signup}</a>
+          </div>
+
+          {/* Mobile menu button */}
+          <button className="mobile-only" onClick={() => setMenuOpen(true)} style={{
+            background: 'transparent', border: 0, color: 'var(--sky-800)',
+            width: 40, height: 40, display: 'flex', alignItems: 'center', justifyContent: 'center',
+          }}>
+            <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round">
+              <path d="M4 6h16M4 12h16M4 18h16"/>
+            </svg>
+          </button>
+        </div>
+      </nav>
+
+      {/* Mobile menu drawer */}
+      {menuOpen && (
+        <div style={{
+          position: 'fixed', inset: 0, zIndex: 200,
+          background: 'rgba(0,0,0,0.5)',
+        }} onClick={() => setMenuOpen(false)}>
+          <div style={{
+            position: 'absolute', top: 0, right: 0, bottom: 0,
+            width: '85%', maxWidth: 360,
+            background: 'var(--paper)',
+            padding: '24px',
+            display: 'flex', flexDirection: 'column', gap: 20,
+            animation: 'cca-slide-left .3s reverse',
+          }} onClick={(e) => e.stopPropagation()}>
+            <button onClick={() => setMenuOpen(false)} style={{
+              alignSelf: 'flex-end', background: 'transparent', border: 0, fontSize: 22, color: 'var(--ink)',
+            }}>×</button>
+            {[
+              { href: '#/events', label: t.nav.events },
+              { href: '#/about', label: t.nav.about },
+              { href: '#/news', label: t.nav.news },
+              { href: '#/contact', label: t.nav.contact },
+            ].map(item => (
+              <a key={item.href} href={item.href} onClick={() => setMenuOpen(false)} style={{
+                fontSize: 22, fontWeight: 700, color: 'var(--ink)', padding: '8px 0',
+                fontFamily: 'var(--jp)',
+              }}>{item.label}</a>
+            ))}
+            <div style={{ height: 1, background: 'var(--line)', margin: '16px 0' }} />
+            <LangPicker lang={lang} setLang={setLang} t={t} transparent={false} mobile />
+            <div style={{ marginTop: 16, display: 'flex', flexDirection: 'column', gap: 10 }}>
+              <a href="#/login" onClick={() => setMenuOpen(false)} style={{
+                padding: '12px 20px', textAlign: 'center',
+                border: '1px solid var(--line)', borderRadius: 999, fontSize: 14,
+              }}>{t.nav.login}</a>
+              <a href="#/signup" onClick={() => setMenuOpen(false)} style={{
+                padding: '12px 20px', textAlign: 'center',
+                background: 'var(--coral)', color: '#fff', borderRadius: 999, fontSize: 14, fontWeight: 600,
+              }}>{t.nav.signup}</a>
+            </div>
+          </div>
+        </div>
+      )}
+    </React.Fragment>
+  );
+}
+
+function LangPicker({ lang, setLang, t, transparent, mobile }) {
+  const [open, setOpen] = useState(false);
+  const langs = [
+    { code: 'ja', label: '日本語', short: 'JA' },
+    { code: 'easy', label: 'やさしい にほんご', short: 'EZ' },
+    { code: 'en', label: 'English', short: 'EN' },
+  ];
+  const current = langs.find(l => l.code === lang) || langs[0];
+
+  if (mobile) {
+    return (
+      <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
+        <div style={{ fontSize: 11, color: 'var(--ink-mute)', fontFamily: 'var(--mono)', letterSpacing: '0.1em' }}>LANGUAGE</div>
+        <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap' }}>
+          {langs.map(l => (
+            <button key={l.code} onClick={() => setLang(l.code)} style={{
+              padding: '8px 14px',
+              borderRadius: 999,
+              border: `1px solid ${lang === l.code ? 'var(--ink)' : 'var(--line)'}`,
+              background: lang === l.code ? 'var(--ink)' : 'transparent',
+              color: lang === l.code ? 'var(--paper)' : 'var(--ink)',
+              fontSize: 12, fontWeight: 500,
+            }}>{l.label}</button>
+          ))}
+        </div>
+      </div>
+    );
+  }
+
+  return (
+    <div style={{ position: 'relative' }}>
+      <button onClick={() => setOpen(!open)} style={{
+        background: transparent ? 'rgba(255,255,255,0.10)' : 'var(--paper-2)',
+        color: transparent ? '#fff' : 'var(--ink)',
+        border: 0,
+        padding: '7px 14px',
+        borderRadius: 999,
+        fontSize: 11, fontWeight: 500, letterSpacing: '0.05em',
+        fontFamily: 'var(--mono)',
+        backdropFilter: transparent ? 'blur(8px)' : 'none',
+      }}>{current.short} ▾</button>
+      {open && (
+        <div style={{
+          position: 'absolute', top: 'calc(100% + 8px)', right: 0,
+          background: '#fff',
+          border: '1px solid var(--line)',
+          borderRadius: 12,
+          padding: 6,
+          minWidth: 200,
+          boxShadow: '0 10px 30px rgba(0,0,0,0.12)',
+          zIndex: 50,
+        }}>
+          {langs.map(l => (
+            <button key={l.code} onClick={() => { setLang(l.code); setOpen(false); }} style={{
+              display: 'block', width: '100%',
+              padding: '10px 14px',
+              border: 0,
+              background: lang === l.code ? 'var(--paper-2)' : 'transparent',
+              color: 'var(--ink)',
+              textAlign: 'left',
+              fontSize: 13, fontWeight: lang === l.code ? 600 : 400,
+              borderRadius: 8,
+              fontFamily: 'var(--jp)',
+            }}>{l.label}</button>
+          ))}
+        </div>
+      )}
+    </div>
+  );
+}
+
+// ============================================================================
+// EVENT CARD
+// ============================================================================
+function EventCard({ ev, lang, t, big }) {
+  const cap = ev.capacity || 0;
+  const reg = ev.registered || 0;
+  const spotsLeft = Math.max(0, cap - reg);
+  const isFull = ev.status === '満員' || (cap > 0 && spotsLeft === 0);
+
+  const date = formatEventDate(ev.date);
+
+  return (
+    <a href={`#/events/${ev.id}`} className="lift-card" style={{
+      display: 'block',
+      background: 'var(--paper)',
+      borderRadius: 'var(--r-xl)',
+      overflow: 'hidden',
+      border: '1px solid var(--sky-100)',
+      textDecoration: 'none',
+      color: 'inherit',
+    }}>
+      {/* Cover */}
+      <div className={`photo ${ev.category === 'IFT' ? 'photo--navy' : 'photo--coral'}`} style={{
+        height: big ? 320 : 240,
+        position: 'relative',
+      }}>
+        {/* Category badge */}
+        <div style={{
+          position: 'absolute', top: 16, left: 16,
+          background: 'rgba(255,255,255,0.95)',
+          color: 'var(--ink)',
+          fontFamily: 'var(--mono)',
+          fontSize: 10,
+          fontWeight: 600,
+          letterSpacing: '0.1em',
+          padding: '5px 10px',
+          borderRadius: 4,
+        }}>{(ev.category || 'EVENT').toUpperCase()}</div>
+
+        {/* Status badge */}
+        {isFull && (
+          <div style={{
+            position: 'absolute', top: 16, right: 16,
+            background: 'var(--coral)',
+            color: '#fff',
+            fontFamily: 'var(--mono)',
+            fontSize: 10,
+            fontWeight: 700,
+            letterSpacing: '0.1em',
+            padding: '5px 10px',
+            borderRadius: 4,
+          }}>{t.card.full.toUpperCase()}</div>
+        )}
+      </div>
+
+      {/* Body */}
+      <div style={{ padding: big ? '28px 28px 24px' : '20px 22px 22px' }}>
+        <div style={{
+          fontFamily: 'var(--mono)',
+          fontSize: 11,
+          color: 'var(--ink-mute)',
+          letterSpacing: '0.08em',
+          marginBottom: 12,
+        }}>{date}</div>
+        <h3 style={{
+          fontFamily: 'var(--jp)',
+          fontSize: big ? 24 : 18,
+          fontWeight: 700,
+          margin: '0 0 12px',
+          lineHeight: 1.4,
+          color: 'var(--ink)',
+        }}>{ev.title}</h3>
+        <div style={{
+          fontSize: 13,
+          color: 'var(--ink-mute)',
+          marginBottom: 16,
+          display: 'flex', flexDirection: 'column', gap: 4,
+        }}>
+          <span>📍 {ev.venue || '会場未定'}</span>
+          {ev.time && <span>🕐 {ev.time}</span>}
+        </div>
+        <div style={{
+          display: 'flex', alignItems: 'center', justifyContent: 'space-between',
+          paddingTop: 14,
+          borderTop: '1px solid var(--line)',
+        }}>
+          <div style={{ fontSize: 13, color: 'var(--ink-mute)' }}>
+            {isFull ? t.card.closed : (
+              <React.Fragment>{t.card.spots}: <b style={{ color: 'var(--ink)' }}>{spotsLeft}</b>/{cap || '∞'}</React.Fragment>
+            )}
+          </div>
+          <div style={{
+            fontSize: 13, fontWeight: 600,
+            color: isFull ? 'var(--ink-faint)' : 'var(--coral)',
+          }}>{isFull ? '—' : `${t.card.register} →`}</div>
+        </div>
+      </div>
+    </a>
+  );
+}
+
+// 大判イチオシイベントカード
+function FeaturedEventCard({ ev, lang, t }) {
+  const cap = ev.capacity || 0;
+  const reg = ev.registered || 0;
+  const spotsLeft = Math.max(0, cap - reg);
+  const isFull = ev.status === '満員' || (cap > 0 && spotsLeft === 0);
+  const date = formatEventDate(ev.date);
+
+  // 日付パース
+  const dateObj = ev.date ? new Date(ev.date + 'T00:00:00') : null;
+  const dd = dateObj ? String(dateObj.getDate()).padStart(2, '0') : '';
+  const mmShort = dateObj ? ['JAN','FEB','MAR','APR','MAY','JUN','JUL','AUG','SEP','OCT','NOV','DEC'][dateObj.getMonth()] : '';
+  const dayShort = dateObj ? ['SUN','MON','TUE','WED','THU','FRI','SAT'][dateObj.getDay()] : '';
+
+  return (
+    <a href={`#/events/${ev.id}`} className="lift-card" style={{
+      display: 'flex',
+      flexDirection: 'column',
+      background: '#fff',
+      borderRadius: 'clamp(20px, 2.5vw, 32px)',
+      overflow: 'hidden',
+      border: '1px solid var(--sky-100)',
+      textDecoration: 'none',
+      color: 'inherit',
+      height: '100%',
+      minHeight: 480,
+    }}>
+      {/* 大判カバー */}
+      <div className={`photo ${ev.category === 'IFT' ? 'photo--navy' : 'photo--coral'}`} style={{
+        flex: '1 1 auto',
+        minHeight: 280,
+        position: 'relative',
+        overflow: 'hidden',
+      }}>
+        {/* 日付ブロック (左上、白カード) */}
+        <div style={{
+          position: 'absolute',
+          top: 'clamp(16px, 2vw, 24px)',
+          left: 'clamp(16px, 2vw, 24px)',
+          background: '#fff',
+          borderRadius: 14,
+          padding: '12px 16px',
+          textAlign: 'center',
+          minWidth: 64,
+          boxShadow: '0 8px 20px -8px rgba(10, 41, 96, 0.3)',
+          zIndex: 2,
+        }}>
+          <div style={{
+            fontFamily: 'var(--mono)',
+            fontSize: 10,
+            fontWeight: 700,
+            color: 'var(--coral)',
+            letterSpacing: '0.15em',
+            marginBottom: 2,
+          }}>{mmShort}</div>
+          <div style={{
+            fontFamily: 'var(--sans)',
+            fontSize: 28,
+            fontWeight: 800,
+            color: 'var(--sky-900)',
+            lineHeight: 1,
+          }}>{dd}</div>
+          <div style={{
+            fontFamily: 'var(--mono)',
+            fontSize: 9,
+            fontWeight: 600,
+            color: 'var(--sky-700)',
+            letterSpacing: '0.18em',
+            marginTop: 4,
+          }}>{dayShort}</div>
+        </div>
+
+        {/* カテゴリ + ステータスバッジ (右上) */}
+        <div style={{
+          position: 'absolute',
+          top: 'clamp(16px, 2vw, 24px)',
+          right: 'clamp(16px, 2vw, 24px)',
+          display: 'flex',
+          gap: 8,
+          flexDirection: 'column',
+          alignItems: 'flex-end',
+          zIndex: 2,
+        }}>
+          <span style={{
+            background: 'rgba(255,255,255,0.95)',
+            color: 'var(--sky-900)',
+            fontFamily: 'var(--mono)',
+            fontSize: 11,
+            fontWeight: 700,
+            letterSpacing: '0.12em',
+            padding: '6px 12px',
+            borderRadius: 999,
+            backdropFilter: 'blur(8px)',
+          }}>{(ev.category || 'EVENT').toUpperCase()}</span>
+          {isFull && (
+            <span style={{
+              background: 'var(--coral)',
+              color: '#fff',
+              fontFamily: 'var(--mono)',
+              fontSize: 10,
+              fontWeight: 700,
+              letterSpacing: '0.1em',
+              padding: '5px 10px',
+              borderRadius: 999,
+            }}>{t.card.full.toUpperCase()}</span>
+          )}
+        </div>
+
+        {/* 「FEATURED」リボン (右下) */}
+        <div style={{
+          position: 'absolute',
+          bottom: 'clamp(16px, 2vw, 24px)',
+          right: 'clamp(16px, 2vw, 24px)',
+          background: 'var(--sky-700)',
+          color: '#fff',
+          fontFamily: 'var(--mono)',
+          fontSize: 10,
+          fontWeight: 700,
+          letterSpacing: '0.18em',
+          padding: '7px 14px',
+          borderRadius: 999,
+          zIndex: 2,
+          boxShadow: '0 6px 16px -4px rgba(22, 86, 176, 0.5)',
+        }}>★ FEATURED</div>
+      </div>
+
+      {/* 本文 */}
+      <div style={{
+        padding: 'clamp(24px, 3vw, 36px)',
+        display: 'flex',
+        flexDirection: 'column',
+        gap: 16,
+      }}>
+        <h3 style={{
+          fontFamily: 'var(--jp)',
+          fontSize: 'clamp(22px, 2.4vw, 30px)',
+          fontWeight: 800,
+          margin: 0,
+          lineHeight: 1.35,
+          letterSpacing: '-0.02em',
+          color: 'var(--sky-900)',
+        }}>{ev.title}</h3>
+
+        {ev.summary && (
+          <p style={{
+            fontFamily: 'var(--jp)',
+            fontSize: 14,
+            color: 'var(--sky-800)',
+            lineHeight: 1.7,
+            margin: 0,
+            opacity: 0.85,
+            display: '-webkit-box',
+            WebkitLineClamp: 2,
+            WebkitBoxOrient: 'vertical',
+            overflow: 'hidden',
+          }}>{ev.summary.split('\n')[0]}</p>
+        )}
+
+        {/* メタ情報 */}
+        <div style={{
+          display: 'flex',
+          gap: 20,
+          flexWrap: 'wrap',
+          fontSize: 13,
+          color: 'var(--sky-700)',
+          fontFamily: 'var(--jp)',
+          fontWeight: 500,
+        }}>
+          {ev.time && (
+            <span style={{ display: 'inline-flex', alignItems: 'center', gap: 6 }}>
+              <span style={{ color: 'var(--coral)' }}>●</span>
+              {ev.time}
+            </span>
+          )}
+          {ev.venue && (
+            <span style={{ display: 'inline-flex', alignItems: 'center', gap: 6 }}>
+              <span style={{ color: 'var(--coral)' }}>●</span>
+              {ev.venue}
+            </span>
+          )}
+        </div>
+
+        {/* 下部CTA */}
+        <div style={{
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'space-between',
+          paddingTop: 16,
+          borderTop: '1px solid var(--sky-100)',
+          marginTop: 4,
+        }}>
+          <div style={{ fontSize: 13, color: 'var(--sky-700)', fontFamily: 'var(--jp)' }}>
+            {isFull ? (
+              <span style={{ color: 'var(--coral)', fontWeight: 700 }}>{t.card.closed}</span>
+            ) : (
+              <span>{t.card.spots}: <b style={{ color: 'var(--sky-900)', fontSize: 16 }}>{spotsLeft}</b>/{cap || '∞'}</span>
+            )}
+          </div>
+          <span style={{
+            fontFamily: 'var(--jp)',
+            fontSize: 14,
+            fontWeight: 700,
+            color: isFull ? 'var(--ink-faint)' : 'var(--coral)',
+            display: 'inline-flex',
+            alignItems: 'center',
+            gap: 6,
+          }}>
+            {isFull ? '—' : '詳細を見る'}
+            <span style={{ fontSize: 16 }}>→</span>
+          </span>
+        </div>
+      </div>
+    </a>
+  );
+}
+
+// コンパクトイベントカード (横長サブ)
+function CompactEventCard({ ev, lang, t }) {
+  const cap = ev.capacity || 0;
+  const reg = ev.registered || 0;
+  const spotsLeft = Math.max(0, cap - reg);
+  const isFull = ev.status === '満員' || (cap > 0 && spotsLeft === 0);
+
+  const dateObj = ev.date ? new Date(ev.date + 'T00:00:00') : null;
+  const dd = dateObj ? String(dateObj.getDate()).padStart(2, '0') : '';
+  const mmShort = dateObj ? ['JAN','FEB','MAR','APR','MAY','JUN','JUL','AUG','SEP','OCT','NOV','DEC'][dateObj.getMonth()] : '';
+
+  return (
+    <a href={`#/events/${ev.id}`} className="lift-card" style={{
+      display: 'flex',
+      gap: 0,
+      background: '#fff',
+      borderRadius: 'clamp(16px, 2vw, 22px)',
+      overflow: 'hidden',
+      border: '1px solid var(--sky-100)',
+      textDecoration: 'none',
+      color: 'inherit',
+      height: '100%',
+    }}>
+      {/* 左サイドのアクセント (日付ブロック) */}
+      <div className={`photo ${ev.category === 'IFT' ? 'photo--navy' : 'photo--coral'}`} style={{
+        width: 'clamp(110px, 14vw, 150px)',
+        flexShrink: 0,
+        position: 'relative',
+        display: 'flex',
+        alignItems: 'center',
+        justifyContent: 'center',
+      }}>
+        <div style={{
+          textAlign: 'center',
+          color: '#fff',
+          padding: 16,
+          position: 'relative',
+          zIndex: 2,
+        }}>
+          <div style={{
+            fontFamily: 'var(--mono)',
+            fontSize: 10,
+            fontWeight: 700,
+            letterSpacing: '0.2em',
+            opacity: 0.9,
+            marginBottom: 4,
+          }}>{mmShort}</div>
+          <div style={{
+            fontFamily: 'var(--sans)',
+            fontSize: 'clamp(36px, 4vw, 52px)',
+            fontWeight: 800,
+            lineHeight: 1,
+            letterSpacing: '-0.02em',
+          }}>{dd}</div>
+        </div>
+        {/* オーバーレイ */}
+        <div style={{
+          position: 'absolute',
+          inset: 0,
+          background: 'linear-gradient(135deg, rgba(22,86,176,0.4) 0%, rgba(10,41,96,0.6) 100%)',
+          zIndex: 1,
+        }} />
+      </div>
+
+      {/* 右の本文 */}
+      <div style={{
+        flex: 1,
+        padding: 'clamp(16px, 2.2vw, 24px)',
+        display: 'flex',
+        flexDirection: 'column',
+        gap: 8,
+        minWidth: 0,
+      }}>
+        <div style={{
+          display: 'flex',
+          alignItems: 'center',
+          gap: 8,
+          fontFamily: 'var(--mono)',
+          fontSize: 10,
+          letterSpacing: '0.18em',
+          fontWeight: 700,
+        }}>
+          <span style={{ color: 'var(--coral)' }}>{(ev.category || 'EVENT').toUpperCase()}</span>
+          {isFull && (
+            <span style={{ color: 'var(--coral)', background: 'var(--coral-soft)', padding: '2px 8px', borderRadius: 999, fontSize: 9 }}>
+              FULL
+            </span>
+          )}
+        </div>
+        <h3 style={{
+          fontFamily: 'var(--jp)',
+          fontSize: 'clamp(15px, 1.4vw, 18px)',
+          fontWeight: 700,
+          margin: 0,
+          lineHeight: 1.4,
+          color: 'var(--sky-900)',
+          display: '-webkit-box',
+          WebkitLineClamp: 2,
+          WebkitBoxOrient: 'vertical',
+          overflow: 'hidden',
+        }}>{ev.title}</h3>
+        <div style={{
+          fontFamily: 'var(--jp)',
+          fontSize: 12,
+          color: 'var(--sky-700)',
+          marginTop: 'auto',
+          paddingTop: 8,
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'space-between',
+          gap: 8,
+        }}>
+          <span>{ev.venue ? (ev.venue.length > 14 ? ev.venue.slice(0, 14) + '…' : ev.venue) : '会場未定'}</span>
+          <span style={{ color: 'var(--coral)', fontWeight: 700, whiteSpace: 'nowrap' }}>
+            {isFull ? '満員' : `残${spotsLeft}`} →
+          </span>
+        </div>
+      </div>
+    </a>
+  );
+}
+
+// ============================================================================
+// HOME (TOP) PAGE
+// ============================================================================
+// ============================================================================
+// PAGE HERO (共通: トップ・一覧・詳細で使う navy ヒーロー)
+// ============================================================================
+// バリエーション3種:
+//   variant='home'   : トップ用 (100vh, ヒーロー大きめ)
+//   variant='events' : 一覧用 (50vh)
+//   variant='detail' : 詳細用 (60vh)
+function PageHero({
+  variant = 'detail',
+  marker,         // 上部 mono ライン
+  markerRight,    // 右上 mono ライン
+  category,       // ヒーロー内のカテゴリラベル
+  eyebrow,        // タイトル上の補足文字列
+  title,          // タイトル本体
+  subtitle,       // タイトル下の説明文
+  metaLine,       // タイトル下の小さい mono 行
+  showScroll = true,
+  children,       // 追加コンテンツ
+}) {
+  // バリエーションで高さや配置を切替
+  const minHeight = {
+    home: '100vh',
+    events: '60vh',
+    detail: '70vh',
+  }[variant] || '60vh';
+
+  const titleSize = {
+    home: 'clamp(48px, 8vw, 120px)',
+    events: 'clamp(56px, 9vw, 110px)',
+    detail: 'clamp(48px, 8vw, 100px)',
+  }[variant] || 'clamp(48px, 8vw, 96px)';
+
+  return (
+    <section style={{
+      position: 'relative',
+      minHeight: minHeight,
+      background: variant === 'home' ? 'var(--sky-grad)' : 'var(--sky-grad-soft)',
+      overflow: 'hidden',
+      paddingTop: 100,
+    }}>
+      {/* 雲SVG (events/detail でも控えめに) */}
+      <svg aria-hidden style={{
+        position: 'absolute',
+        top: '20%', right: '8%',
+        width: 'clamp(140px, 18vw, 240px)',
+        opacity: 0.7,
+        zIndex: 1,
+      }} className="cloud-float-1" viewBox="0 0 200 80">
+        <path d="M40,55 Q40,30 60,30 Q70,15 90,20 Q105,5 125,15 Q145,10 155,30 Q175,30 175,55 Q175,70 155,70 L60,70 Q40,70 40,55Z"
+              fill="rgba(255,255,255,0.7)" />
+      </svg>
+
+      {/* Top markers */}
+      {(marker || markerRight) && (
+        <div className="desktop-only" style={{
+          position: 'absolute',
+          top: 100, left: 0, right: 0,
+          padding: '0 clamp(32px, 5vw, 80px)',
+          display: 'flex',
+          justifyContent: 'space-between',
+          alignItems: 'baseline',
+          color: 'var(--sky-700)',
+          fontFamily: 'var(--mono)',
+          fontSize: 11, letterSpacing: '0.22em',
+          zIndex: 5,
+          fontWeight: 500,
+        }}>
+          <Reveal delay={0} blur={false}>
+            <span>● {marker || ''}</span>
+          </Reveal>
+          {markerRight && <Reveal delay={100} blur={false}><span>{markerRight}</span></Reveal>}
+        </div>
+      )}
+
+      {/* Headline */}
+      <div style={{
+        position: 'relative',
+        zIndex: 3,
+        width: '100%',
+        maxWidth: 1280,
+        margin: '0 auto',
+        padding: 'clamp(140px, 18vh, 200px) clamp(32px, 5vw, 80px) clamp(80px, 12vh, 140px)',
+        color: 'var(--sky-900)',
+      }}>
+        {/* Eyebrow with number indicator */}
+        {(eyebrow || category) && (
+          <BuildInDir delay={100} dir="right" distance={30}>
+            <div style={{
+              display: 'inline-flex',
+              alignItems: 'center',
+              gap: 14,
+              marginBottom: 32,
+              fontFamily: 'var(--mono)',
+              fontSize: 12,
+              color: 'var(--sky-700)',
+              letterSpacing: '0.28em',
+              fontWeight: 500,
+            }}>
+              <span style={{ fontSize: 13, fontWeight: 700, color: 'var(--sky-800)' }}>01</span>
+              <span style={{ width: 28, height: 1, background: 'var(--sky-700)' }} />
+              <span>{(category || eyebrow || '').toUpperCase()}</span>
+            </div>
+          </BuildInDir>
+        )}
+
+        {/* Title */}
+        {title && (
+          <BuildInDir delay={250} dir="left" distance={50}>
+            <h1 style={{
+              fontFamily: 'var(--jp)',
+              fontSize: titleSize,
+              fontWeight: 600,
+              lineHeight: 1.18,
+              letterSpacing: '-0.025em',
+              margin: 0,
+              maxWidth: variant === 'detail' ? '20ch' : '16ch',
+              whiteSpace: 'pre-line',
+              color: 'var(--sky-900)',
+            }}>{title}</h1>
+          </BuildInDir>
+        )}
+
+        {/* Subtitle */}
+        {subtitle && (
+          <BuildInDir delay={400} dir="up" distance={30}>
+            <p style={{
+              fontFamily: 'var(--jp)',
+              fontSize: 'clamp(15px, 1.3vw, 18px)',
+              lineHeight: 2.0,
+              color: 'var(--sky-800)',
+              marginTop: 36,
+              marginBottom: 0,
+              maxWidth: '36em',
+              fontWeight: 400,
+              letterSpacing: '0.02em',
+            }}>{subtitle}</p>
+          </BuildInDir>
+        )}
+
+        {/* Meta line */}
+        {metaLine && (
+          <BuildInDir delay={550} dir="right" distance={30}>
+            <div style={{
+              marginTop: 36,
+              fontFamily: 'var(--mono)',
+              fontSize: 14,
+              color: 'var(--sky-700)',
+              letterSpacing: '0.18em',
+              fontWeight: 600,
+            }}>{metaLine}</div>
+          </BuildInDir>
+        )}
+
+        {/* 追加コンテンツ */}
+        {children && (
+          <BuildInDir delay={700} dir="up" distance={30}>
+            <div style={{ marginTop: 40 }}>{children}</div>
+          </BuildInDir>
+        )}
+      </div>
+
+      {/* Scroll cue */}
+      {showScroll && (
+        <div className="desktop-only" style={{
+          position: 'absolute',
+          bottom: 36, left: 'clamp(32px, 5vw, 80px)',
+          right: 'clamp(32px, 5vw, 80px)',
+          display: 'flex',
+          justifyContent: 'space-between',
+          alignItems: 'center',
+          fontFamily: 'var(--mono)', fontSize: 10,
+          color: 'var(--sky-700)', letterSpacing: '0.25em',
+          zIndex: 5,
+          fontWeight: 600,
+        }}>
+          <span>2018 — 2026</span>
+          <span style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+            <span>SCROLL ↓</span>
+            <span style={{
+              display: 'inline-block', width: 1, height: 24,
+              background: 'var(--sky-700)',
+              animation: 'cca-scroll-line 2.4s ease-in-out infinite',
+            }} />
+          </span>
+        </div>
+      )}
+
+      {/* 下端の白フェード */}
+      <div aria-hidden style={{
+        position: 'absolute',
+        bottom: 0, left: 0, right: 0,
+        height: 120,
+        background: 'linear-gradient(180deg, transparent 0%, var(--paper) 100%)',
+        pointerEvents: 'none',
+        zIndex: 2,
+      }} />
+    </section>
+  );
+}
+
+// ============================================================================
+// HERO SLIDESHOW (西武鉄道スタイル: 時間帯で切り替わるフルブリード写真)
+// ============================================================================
+function HeroSlideshow({ t }) {
+  const slides = [
+    {
+      img: ASSET_GROUP_PHOTO,
+      eyebrow: 'ENCOUNTERS',
+      mainEn: 'Where strangers become',
+      mainEm: 'friends.',
+      sub: '出会いが、まちを変えていく。',
+      tone: 'warm',
+    },
+    {
+      img: ASSET_SKY_STARS,
+      eyebrow: 'POSSIBILITIES',
+      mainEn: 'Beyond the city,',
+      mainEm: 'beyond ourselves.',
+      sub: '異なる文化が、ひとつの星空の下で。',
+      tone: 'night',
+    },
+    {
+      img: ASSET_SKY_NIGHT,
+      eyebrow: 'JOURNEY',
+      mainEn: 'A small step,',
+      mainEm: 'a wider world.',
+      sub: 'ひとつの出会いが、ひとつの世界を広げる。',
+      tone: 'night',
+    },
+    {
+      img: ASSET_CITYSCAPE,
+      eyebrow: 'TOKYO',
+      mainEn: 'Connecting lives,',
+      mainEm: 'lighting up the city.',
+      sub: '4,200,000人の物語が、ここで重なる。',
+      tone: 'city',
+    },
+  ];
+
+  const [idx, setIdx] = useState(0);
+  const [paused, setPaused] = useState(false);
+
+  useEffect(() => {
+    if (paused) return;
+    const interval = setInterval(() => {
+      setIdx(i => (i + 1) % slides.length);
+    }, 6500);
+    return () => clearInterval(interval);
+  }, [paused, slides.length]);
+
+  return (
+    <section style={{
+      position: 'relative',
+      width: '100%',
+      height: '100vh',
+      minHeight: 600,
+      maxHeight: 900,
+      overflow: 'hidden',
+      background: '#000',
+    }}>
+      {/* 各スライドをスタックして、現在のスライドだけopacity 1 */}
+      {slides.map((s, i) => (
+        <div key={i} style={{
+          position: 'absolute',
+          inset: 0,
+          opacity: i === idx ? 1 : 0,
+          transition: 'opacity 1.8s cubic-bezier(.4, 0, .2, 1)',
+          zIndex: i === idx ? 2 : 1,
+        }}>
+          {/* 写真 */}
+          <img
+            src={s.img}
+            alt=""
+            style={{
+              position: 'absolute',
+              inset: 0,
+              width: '100%',
+              height: '100%',
+              objectFit: 'cover',
+              display: 'block',
+              animation: i === idx ? 'cca-ken-burns 14s ease-out forwards' : 'none',
+            }}
+          />
+          {/* 暗い半透明オーバーレイ (テキスト読みやすさ) */}
+          <div aria-hidden style={{
+            position: 'absolute',
+            inset: 0,
+            background: s.tone === 'warm'
+              ? 'linear-gradient(180deg, rgba(10,41,96,0.35) 0%, rgba(10,41,96,0.55) 100%)'
+              : s.tone === 'city'
+              ? 'linear-gradient(180deg, rgba(0,0,0,0.35) 0%, rgba(10,41,96,0.65) 100%)'
+              : 'linear-gradient(180deg, rgba(0,0,0,0.45) 0%, rgba(10,41,96,0.65) 100%)',
+            zIndex: 1,
+          }} />
+        </div>
+      ))}
+
+      {/* ロゴ (右上、白カードに) */}
+      <div style={{
+        position: 'absolute',
+        top: 'clamp(110px, 13vh, 140px)',
+        right: 'clamp(28px, 4vw, 56px)',
+        zIndex: 10,
+      }}>
+        <div style={{
+          background: 'rgba(255, 255, 255, 0.95)',
+          backdropFilter: 'blur(20px)',
+          WebkitBackdropFilter: 'blur(20px)',
+          padding: 12,
+          borderRadius: 16,
+          boxShadow: '0 8px 24px -4px rgba(0,0,0,0.2)',
+        }}>
+          <img src={ASSET_LOGO} alt="connec+a" style={{
+            width: 'clamp(48px, 4.5vw, 64px)',
+            height: 'auto',
+            display: 'block',
+          }} />
+        </div>
+      </div>
+
+      {/* テキスト中央配置 */}
+      <div style={{
+        position: 'absolute',
+        inset: 0,
+        zIndex: 5,
+        display: 'flex',
+        flexDirection: 'column',
+        alignItems: 'flex-start',
+        justifyContent: 'center',
+        padding: 'clamp(80px, 12vh, 120px) clamp(28px, 5vw, 80px)',
+        color: '#fff',
+        maxWidth: 1440,
+        margin: '0 auto',
+      }}>
+        {slides.map((s, i) => (
+          <div key={i} style={{
+            position: 'absolute',
+            left: 'clamp(28px, 5vw, 80px)',
+            right: 'clamp(28px, 5vw, 80px)',
+            opacity: i === idx ? 1 : 0,
+            transform: i === idx ? 'translateY(0)' : 'translateY(20px)',
+            transition: 'opacity 1.2s cubic-bezier(.2,.8,.2,1) 0.4s, transform 1.2s cubic-bezier(.2,.8,.2,1) 0.4s',
+            pointerEvents: i === idx ? 'auto' : 'none',
+          }}>
+            {/* eyebrow */}
+            <div style={{
+              fontFamily: 'var(--mono)',
+              fontSize: 'clamp(11px, 1vw, 13px)',
+              letterSpacing: '0.32em',
+              fontWeight: 600,
+              opacity: 0.95,
+              marginBottom: 24,
+              display: 'flex',
+              alignItems: 'center',
+              gap: 14,
+            }}>
+              <span style={{ width: 32, height: 1, background: '#fff', opacity: 0.7 }} />
+              <span>{s.eyebrow}</span>
+            </div>
+
+            {/* メインコピー (英語、明朝) */}
+            <h1 style={{
+              fontFamily: 'var(--serif)',
+              fontSize: 'clamp(40px, 6.5vw, 96px)',
+              fontWeight: 400,
+              lineHeight: 1.05,
+              margin: 0,
+              letterSpacing: '-0.01em',
+              maxWidth: '14ch',
+              textShadow: '0 2px 24px rgba(0,0,0,0.35)',
+            }}>
+              <div style={{ fontStyle: 'normal' }}>{s.mainEn}</div>
+              <div style={{ fontStyle: 'italic', color: '#ffd5c6', marginTop: 4 }}>{s.mainEm}</div>
+            </h1>
+
+            {/* 日本語サブコピー */}
+            <div style={{
+              marginTop: 28,
+              fontFamily: 'var(--jp)',
+              fontSize: 'clamp(15px, 1.4vw, 19px)',
+              fontWeight: 500,
+              letterSpacing: '0.04em',
+              opacity: 0.95,
+              textShadow: '0 2px 12px rgba(0,0,0,0.4)',
+            }}>{s.sub}</div>
+          </div>
+        ))}
+      </div>
+
+      {/* 下部のスライドインジケータ */}
+      <div style={{
+        position: 'absolute',
+        bottom: 'clamp(28px, 4vh, 48px)',
+        left: 'clamp(28px, 5vw, 80px)',
+        zIndex: 10,
+        display: 'flex',
+        gap: 10,
+        alignItems: 'center',
+      }}>
+        {slides.map((_, i) => (
+          <button
+            key={i}
+            onClick={() => { setIdx(i); setPaused(true); setTimeout(() => setPaused(false), 8000); }}
+            aria-label={`スライド ${i + 1}`}
+            style={{
+              padding: 0,
+              border: 0,
+              background: 'transparent',
+              cursor: 'pointer',
+              display: 'flex',
+              alignItems: 'center',
+            }}>
+            <span style={{
+              display: 'inline-block',
+              width: i === idx ? 32 : 10,
+              height: 4,
+              background: i === idx ? '#fff' : 'rgba(255,255,255,0.45)',
+              borderRadius: 999,
+              transition: 'all .5s ease',
+            }} />
+          </button>
+        ))}
+        <span style={{
+          marginLeft: 12,
+          fontFamily: 'var(--mono)',
+          fontSize: 11,
+          color: 'rgba(255,255,255,0.85)',
+          letterSpacing: '0.18em',
+          fontWeight: 600,
+        }}>
+          {String(idx + 1).padStart(2, '0')} / {String(slides.length).padStart(2, '0')}
+        </span>
+      </div>
+
+      {/* 右下: SCROLL + CTA */}
+      <div style={{
+        position: 'absolute',
+        bottom: 'clamp(28px, 4vh, 48px)',
+        right: 'clamp(28px, 5vw, 80px)',
+        zIndex: 10,
+        display: 'flex',
+        alignItems: 'center',
+        gap: 24,
+      }}>
+        <a href="#/events" style={{
+          display: 'inline-flex',
+          alignItems: 'center',
+          gap: 10,
+          background: 'rgba(255, 255, 255, 0.95)',
+          color: 'var(--sky-900)',
+          padding: '14px 28px',
+          fontFamily: 'var(--jp)',
+          fontSize: 14,
+          fontWeight: 700,
+          borderRadius: 999,
+          textDecoration: 'none',
+          transition: 'all .3s',
+          backdropFilter: 'blur(10px)',
+          WebkitBackdropFilter: 'blur(10px)',
+        }}
+        onMouseEnter={(e) => {
+          e.currentTarget.style.background = '#ff7a59';
+          e.currentTarget.style.color = '#fff';
+          e.currentTarget.style.transform = 'translateY(-2px)';
+        }}
+        onMouseLeave={(e) => {
+          e.currentTarget.style.background = 'rgba(255, 255, 255, 0.95)';
+          e.currentTarget.style.color = 'var(--sky-900)';
+          e.currentTarget.style.transform = 'none';
+        }}>
+          <span>イベントを見る</span>
+          <span style={{ fontSize: 15 }}>→</span>
+        </a>
+        <div className="desktop-only" style={{
+          display: 'flex',
+          alignItems: 'center',
+          gap: 10,
+          fontFamily: 'var(--mono)',
+          fontSize: 10,
+          color: 'rgba(255,255,255,0.85)',
+          letterSpacing: '0.28em',
+          fontWeight: 600,
+        }}>
+          <span>SCROLL</span>
+          <span style={{
+            display: 'inline-block', width: 1, height: 24,
+            background: '#fff',
+            animation: 'cca-scroll-line 2.4s ease-in-out infinite',
+          }} />
+        </div>
+      </div>
+    </section>
+  );
+}
+
+function PageHome({ lang, t, events, loading }) {
+  const heroRef = useRef(null);
+
+  const upcomingEvents = filterPublicEvents(events).slice(0, 3);
+
+  return (
+    <div>
+      {/* ============================================================ */}
+      {/* CONNEC+A HERO v6 (西武鉄道スタイル: シンプル写真スライドショー) */}
+      {/* ============================================================ */}
+      <HeroSlideshow t={t} />
+
+      {/* PILL STATS PANEL */}
+      <section style={{ padding: '100px 24px 60px', position: 'relative' }}>
+        <Reveal>
+          <div style={{
+            maxWidth: 1200,
+            margin: '0 auto',
+            background: 'var(--navy)',
+            borderRadius: 32,
+            padding: 'clamp(40px, 5vw, 72px) clamp(32px, 5vw, 64px)',
+            color: '#fff',
+            position: 'relative',
+            overflow: 'hidden',
+            boxShadow: '0 40px 80px -40px rgba(15,28,69,0.5)',
+          }}>
+            <div aria-hidden style={{
+              position: 'absolute', right: -200, top: -200,
+              width: 520, height: 520, borderRadius: '50%',
+              background: `radial-gradient(circle at 30% 30%, var(--coral) 0%, transparent 60%)`,
+              opacity: 0.45,
+            }} />
+            <div style={{
+              position: 'relative',
+              display: 'grid',
+              gridTemplateColumns: 'repeat(auto-fit, minmax(160px, 1fr))',
+              gap: 'clamp(32px, 4vw, 56px)',
+              alignItems: 'center',
+            }}>
+              <PillStat n={CONFIG.ORG.members} label={t.stats.members} />
+              <PillStat n={CONFIG.ORG.events} label={t.stats.events} />
+              <PillStat n={CONFIG.ORG.countries} label={t.stats.countries} />
+              <PillStat n={CONFIG.ORG.satisfaction} suffix="%" label={t.stats.satisfaction} />
+            </div>
+          </div>
+        </Reveal>
+      </section>
+
+      {/* ============================================================ */}
+      {/* UPCOMING EVENTS v2 (大判イチオシ + サブカード + 動き) */}
+      {/* ============================================================ */}
+      <section style={{
+        position: 'relative',
+        padding: 'clamp(80px, 12vh, 140px) 0 clamp(60px, 10vh, 100px)',
+        background: 'linear-gradient(180deg, #ffffff 0%, var(--sky-50) 100%)',
+        overflow: 'hidden',
+      }}>
+        {/* 大型背景装飾 (薄い数字) */}
+        <div aria-hidden style={{
+          position: 'absolute',
+          top: 'clamp(40px, 6vh, 80px)',
+          right: 'clamp(-20px, -2vw, -40px)',
+          fontFamily: 'var(--mono)',
+          fontSize: 'clamp(180px, 25vw, 380px)',
+          fontWeight: 900,
+          color: 'transparent',
+          WebkitTextStroke: '1.5px rgba(28, 137, 232, 0.08)',
+          letterSpacing: '-0.06em',
+          lineHeight: 0.85,
+          pointerEvents: 'none',
+          userSelect: 'none',
+          zIndex: 0,
+        }}>02</div>
+
+        <div style={{
+          position: 'relative',
+          zIndex: 1,
+          maxWidth: 1320,
+          margin: '0 auto',
+          padding: '0 clamp(28px, 5vw, 64px)',
+        }}>
+          {/* ヘッダー */}
+          <div style={{
+            display: 'flex',
+            alignItems: 'flex-end',
+            justifyContent: 'space-between',
+            marginBottom: 'clamp(48px, 8vh, 80px)',
+            flexWrap: 'wrap',
+            gap: 24,
+          }}>
+            <div>
+              <BuildInDir delay={0} dir="right" distance={30}>
+                <div style={{
+                  display: 'inline-flex',
+                  alignItems: 'center',
+                  gap: 14,
+                  marginBottom: 20,
+                  fontFamily: 'var(--mono)',
+                  fontSize: 12,
+                  color: 'var(--sky-700)',
+                  letterSpacing: '0.28em',
+                  fontWeight: 600,
+                }}>
+                  <span style={{ fontSize: 13, fontWeight: 800, color: 'var(--sky-800)' }}>02</span>
+                  <span style={{ width: 28, height: 1, background: 'var(--sky-700)' }} />
+                  <span>UPCOMING</span>
+                </div>
+              </BuildInDir>
+              <BuildInDir delay={150} dir="right" distance={50}>
+                <h2 style={{
+                  fontFamily: 'var(--jp)',
+                  fontSize: 'clamp(36px, 5.5vw, 64px)',
+                  fontWeight: 900,
+                  margin: 0,
+                  letterSpacing: '-0.03em',
+                  lineHeight: 1.1,
+                  color: 'var(--sky-900)',
+                }}>
+                  近日開催の<br/>
+                  <span style={{ position: 'relative', display: 'inline-block' }}>
+                    イベント
+                    <svg aria-hidden style={{
+                      position: 'absolute',
+                      left: -4, right: -4, bottom: '-10%',
+                      width: 'calc(100% + 8px)', height: '14%',
+                      zIndex: -1,
+                    }} viewBox="0 0 200 16" preserveAspectRatio="none">
+                      <path d="M2,8 Q40,2 80,8 Q120,14 160,7 Q180,4 198,8 L198,14 Q180,11 160,14 Q120,18 80,14 Q40,10 2,14 Z"
+                            fill="#ff7a59" opacity="0.85"/>
+                    </svg>
+                  </span>
+                </h2>
+              </BuildInDir>
+              <BuildInDir delay={300} dir="up" distance={20}>
+                <p style={{
+                  fontFamily: 'var(--jp)',
+                  fontSize: 'clamp(14px, 1.2vw, 16px)',
+                  color: 'var(--sky-800)',
+                  lineHeight: 1.7,
+                  margin: '20px 0 0',
+                  maxWidth: '32em',
+                  fontWeight: 400,
+                }}>
+                  オンライン・オフラインを問わず、<br/>
+                  日本人と留学生が出会える機会を毎月開催しています。
+                </p>
+              </BuildInDir>
+            </div>
+
+            {/* 右上: 統計 + リンク */}
+            <BuildInDir delay={400} dir="left" distance={40}>
+              <div style={{
+                display: 'flex',
+                alignItems: 'center',
+                gap: 24,
+                flexWrap: 'wrap',
+              }}>
+                <div style={{
+                  background: '#fff',
+                  borderRadius: 16,
+                  padding: '14px 22px',
+                  boxShadow: '0 8px 24px -8px rgba(22, 86, 176, 0.15)',
+                  border: '1px solid var(--sky-100)',
+                }}>
+                  <div style={{
+                    fontFamily: 'var(--mono)',
+                    fontSize: 10,
+                    color: 'var(--sky-700)',
+                    letterSpacing: '0.2em',
+                    fontWeight: 600,
+                    marginBottom: 4,
+                  }}>OPEN NOW</div>
+                  <div style={{
+                    fontFamily: 'var(--sans)',
+                    fontSize: 26,
+                    fontWeight: 800,
+                    color: 'var(--sky-900)',
+                    lineHeight: 1,
+                  }}>
+                    <CountUpInline to={upcomingEvents.length} duration={1000} style={{ display: 'inline' }} />
+                    <span style={{ fontSize: 14, fontWeight: 600, marginLeft: 6, color: 'var(--sky-700)' }}>件</span>
+                  </div>
+                </div>
+
+                <a href="#/events" className="btn-flip" style={{
+                  fontSize: 14,
+                  padding: '14px 28px',
+                }}>
+                  <span>すべて見る</span>
+                  <span style={{ fontSize: 16 }}>→</span>
+                </a>
+              </div>
+            </BuildInDir>
+          </div>
+
+          {/* イベントグリッド: 大判1枚 + サブ2枚 */}
+          {loading ? (
+            <div style={{
+              padding: 100,
+              textAlign: 'center',
+              color: 'var(--sky-700)',
+              fontFamily: 'var(--jp)',
+              fontSize: 16,
+            }}>{t.loading}</div>
+          ) : upcomingEvents.length === 0 ? (
+            <BuildInDir>
+              <div style={{
+                padding: 100,
+                textAlign: 'center',
+                background: '#fff',
+                borderRadius: 24,
+                border: '1px solid var(--sky-100)',
+                color: 'var(--sky-700)',
+                fontFamily: 'var(--jp)',
+              }}>
+                <div style={{ fontSize: 48, marginBottom: 16 }}>🗓</div>
+                <div style={{ fontSize: 18, fontWeight: 600 }}>{t.noEvents}</div>
+                <div style={{ fontSize: 14, marginTop: 12, color: 'var(--ink-mute)' }}>新しいイベントが追加されるとここに表示されます。</div>
+              </div>
+            </BuildInDir>
+          ) : (
+            <div style={{
+              display: 'grid',
+              gridTemplateColumns: upcomingEvents.length >= 3 ? 'minmax(0, 1.4fr) minmax(0, 1fr)' : '1fr',
+              gap: 'clamp(24px, 3vw, 36px)',
+              alignItems: 'stretch',
+            }}
+            className="upcoming-grid">
+              {/* 大判イチオシ (1枚目) */}
+              <BuildInDir delay={500} dir="up" distance={50}>
+                <FeaturedEventCard ev={upcomingEvents[0]} lang={lang} t={t} />
+              </BuildInDir>
+
+              {/* サブカード (2-3枚目を縦積み) */}
+              {upcomingEvents.length >= 2 && (
+                <div style={{
+                  display: 'grid',
+                  gridTemplateRows: upcomingEvents.length >= 3 ? '1fr 1fr' : '1fr',
+                  gap: 'clamp(20px, 2.5vw, 32px)',
+                }}>
+                  {upcomingEvents.slice(1, 3).map((ev, i) => (
+                    <BuildInDir key={ev.id} delay={600 + i * 150} dir="left" distance={50}>
+                      <CompactEventCard ev={ev} lang={lang} t={t} />
+                    </BuildInDir>
+                  ))}
+                </div>
+              )}
+            </div>
+          )}
+        </div>
+      </section>
+
+      {/* HOW IT WORKS (illustration band) */}
+      <section style={{
+        padding: '80px 24px',
+        background: 'var(--paper-2)',
+        borderTop: '1px solid var(--line)',
+        borderBottom: '1px solid var(--line)',
+      }}>
+        <div style={{ maxWidth: 1280, margin: '0 auto' }}>
+          <Reveal>
+            <div style={{ textAlign: 'center', marginBottom: 60 }}>
+              <div style={{
+                fontFamily: 'var(--mono)', fontSize: 11,
+                color: 'var(--coral)', letterSpacing: '0.22em',
+                marginBottom: 12,
+              }}>HOW IT WORKS / 02</div>
+              <h2 style={{
+                fontFamily: 'var(--jp)',
+                fontSize: 'clamp(24px, 3.5vw, 36px)',
+                fontWeight: 900, margin: 0,
+                letterSpacing: '-0.02em',
+              }}>{t.sections.tagline}</h2>
+            </div>
+          </Reveal>
+          <div style={{
+            display: 'grid',
+            gridTemplateColumns: 'repeat(auto-fit, minmax(240px, 1fr))',
+            gap: 32,
+          }}>
+            {[
+              { num: '01', Icon: IconUserPlus, ttl: lang==='en'?'Sign up':lang==='easy'?'とうろく':'登録', body: lang==='en'?'Free membership':lang==='easy'?'むりょう':'無料で会員登録' },
+              { num: '02', Icon: IconCalendar, ttl: lang==='en'?'Browse events':lang==='easy'?'イベントを みる':'イベントを選ぶ', body: lang==='en'?'Find what you like':lang==='easy'?'すきなのを えらぶ':'カテゴリから選択' },
+              { num: '03', Icon: IconSparkles, ttl: lang==='en'?'Join & meet':lang==='easy'?'いって あう':'参加', body: lang==='en'?'New friends, new culture':lang==='easy'?'あたらしい ともだち':'仲間と文化に出会う' },
+            ].map((step, i) => {
+              const StepIcon = step.Icon;
+              return (
+                <BuildIn key={i} delay={i * 150}>
+                  <div className="lift-card-flip" style={{
+                    background: 'var(--paper)',
+                    padding: 40,
+                    borderRadius: 'var(--r-xl)',
+                    border: '1px solid var(--sky-100)',
+                    textAlign: 'left',
+                    position: 'relative',
+                    overflow: 'hidden',
+                    height: '100%',
+                  }}>
+                    {/* 装飾大番号 */}
+                    <div aria-hidden style={{
+                      position: 'absolute',
+                      top: -12, right: -8,
+                      fontFamily: 'var(--mono)',
+                      fontSize: 'clamp(110px, 11vw, 160px)',
+                      fontWeight: 900,
+                      lineHeight: 0.85,
+                      letterSpacing: '-0.06em',
+                      color: 'transparent',
+                      WebkitTextStroke: '1.5px rgba(28, 137, 232, 0.18)',
+                      pointerEvents: 'none',
+                      userSelect: 'none',
+                      transition: 'all .4s ease',
+                    }}>{step.num}</div>
+
+                    <div style={{
+                      position: 'relative',
+                      zIndex: 1,
+                      width: 60, height: 60,
+                      borderRadius: 16,
+                      background: 'var(--sky-100)',
+                      display: 'flex', alignItems: 'center', justifyContent: 'center',
+                      marginBottom: 28,
+                      color: 'var(--sky-700)',
+                      transition: 'all .4s ease',
+                    }}>
+                      <StepIcon size={30} />
+                    </div>
+                    <h3 style={{
+                      position: 'relative',
+                      zIndex: 1,
+                      fontFamily: 'var(--jp)',
+                      fontSize: 24, fontWeight: 700,
+                      margin: '0 0 12px',
+                      color: 'var(--sky-900)',
+                    }}>{step.ttl}</h3>
+                    <p style={{
+                      position: 'relative',
+                      zIndex: 1,
+                      fontFamily: 'var(--jp)',
+                      fontSize: 15,
+                      color: 'var(--sky-700)',
+                      margin: 0, lineHeight: 1.8,
+                    }}>{step.body}</p>
+                  </div>
+                </BuildIn>
+              );
+            })}
+          </div>
+        </div>
+      </section>
+    </div>
+  );
+}
+
+// ============================================================================
+// SVG ICONS (lucide風、ライン系)
+// ============================================================================
+function IconUserPlus({ size = 24 }) {
+  return (
+    <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round">
+      <path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2" />
+      <circle cx="9" cy="7" r="4" />
+      <line x1="19" y1="8" x2="19" y2="14" />
+      <line x1="22" y1="11" x2="16" y2="11" />
+    </svg>
+  );
+}
+
+function IconCalendar({ size = 24 }) {
+  return (
+    <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round">
+      <rect x="3" y="4" width="18" height="18" rx="2" ry="2" />
+      <line x1="16" y1="2" x2="16" y2="6" />
+      <line x1="8" y1="2" x2="8" y2="6" />
+      <line x1="3" y1="10" x2="21" y2="10" />
+    </svg>
+  );
+}
+
+function IconSparkles({ size = 24 }) {
+  return (
+    <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round">
+      <path d="M12 3l1.9 5.5L19 10l-5.1 1.5L12 17l-1.9-5.5L5 10l5.1-1.5L12 3z" />
+      <path d="M19 17v3M21 18.5h-4" />
+      <path d="M5 5v2M6 6h-2" />
+    </svg>
+  );
+}
+
+function PillStat({ n, suffix = '', label }) {
+  return (
+    <div>
+      <div style={{
+        fontSize: 'clamp(32px, 3.8vw, 48px)',
+        fontWeight: 800,
+        letterSpacing: '-0.03em',
+        lineHeight: 1,
+        marginBottom: 12,
+        fontFamily: 'var(--sans)',
+      }}>
+        <CountUp to={n} suffix={suffix} />
+      </div>
+      <div style={{
+        fontSize: 11,
+        color: 'rgba(255,255,255,0.7)',
+        fontFamily: 'var(--mono)',
+        letterSpacing: '0.15em',
+      }}>{label.toUpperCase()}</div>
+    </div>
+  );
+}
+
+// ============================================================================
+// EVENTS LIST PAGE
+// ============================================================================
+function PageEvents({ lang, t, events, loading }) {
+  const [category, setCategory] = useState('all');
+
+  const visibleEvents = filterPublicEvents(events);
+  const categories = useMemo(() => {
+    const set = new Set();
+    visibleEvents.forEach(e => { if (e.category) set.add(e.category); });
+    return Array.from(set).sort();
+  }, [visibleEvents]);
+
+  const filtered = category === 'all'
+    ? visibleEvents
+    : visibleEvents.filter(e => e.category === category);
+
+  return (
+    <div>
+      {/* Navy Hero (トップと統一感) */}
+      <PageHero
+        variant="events"
+        marker={`EVENTS / ${new Date().getFullYear()}`}
+        markerRight="ALL UPCOMING"
+        eyebrow={`${visibleEvents.length} ${lang === 'en' ? 'events' : lang === 'easy' ? 'イベント' : '件'} · ${lang === 'en' ? 'OPEN NOW' : '受付中'}`}
+        title={t.sections.allEvents}
+        subtitle={lang === 'en'
+          ? 'Browse all upcoming events organized by connec+a.'
+          : lang === 'easy'
+          ? 'これから ある イベントを ぜんぶ みる。'
+          : 'connec+a が主催する、すべての開催予定イベント。'}
+      />
+
+      {/* Filter */}
+      <section style={{ padding: '40px 24px 0', maxWidth: 1280, margin: '0 auto' }}>
+        <div style={{
+          display: 'flex',
+          alignItems: 'center',
+          gap: 12,
+          flexWrap: 'wrap',
+          paddingBottom: 16,
+          borderBottom: '1px solid var(--line)',
+        }}>
+          <span style={{
+            fontFamily: 'var(--mono)', fontSize: 11,
+            color: 'var(--ink-mute)', letterSpacing: '0.1em',
+            marginRight: 8,
+          }}>{t.filter.category}:</span>
+          <FilterPill label={t.filter.all} active={category === 'all'} onClick={() => setCategory('all')} />
+          {categories.map(cat => (
+            <FilterPill key={cat} label={cat} active={category === cat} onClick={() => setCategory(cat)} />
+          ))}
+          <div style={{ flex: 1 }} />
+          <span style={{ fontSize: 13, color: 'var(--ink-mute)' }}>
+            {filtered.length} {lang === 'en' ? 'events' : lang === 'easy' ? 'イベント' : '件'}
+          </span>
+        </div>
+      </section>
+
+      {/* Events grid */}
+      <section style={{ padding: '40px 24px 120px', maxWidth: 1280, margin: '0 auto' }}>
+        {loading ? (
+          <div style={{ padding: 80, textAlign: 'center', color: 'var(--ink-mute)' }}>{t.loading}</div>
+        ) : filtered.length === 0 ? (
+          <div style={{ padding: 80, textAlign: 'center', color: 'var(--ink-mute)' }}>{t.noEvents}</div>
+        ) : (
+          <div style={{
+            display: 'grid',
+            gridTemplateColumns: 'repeat(auto-fit, minmax(300px, 1fr))',
+            gap: 24,
+          }}>
+            {filtered.map((ev, i) => (
+              <Reveal key={ev.id} delay={(i % 6) * 50}>
+                <EventCard ev={ev} lang={lang} t={t} />
+              </Reveal>
+            ))}
+          </div>
+        )}
+      </section>
+    </div>
+  );
+}
+
+function FilterPill({ label, active, onClick }) {
+  return (
+    <button onClick={onClick} style={{
+      padding: '8px 16px',
+      borderRadius: 999,
+      border: `1px solid ${active ? 'var(--ink)' : 'var(--line)'}`,
+      background: active ? 'var(--ink)' : 'transparent',
+      color: active ? 'var(--paper)' : 'var(--ink)',
+      fontSize: 13, fontWeight: 500,
+      transition: 'all .15s',
+    }}>{label}</button>
+  );
+}
+
+// ============================================================================
+// SIMPLE STUB PAGE (about/news/contact/login/signup/event-detail)
+// ============================================================================
+// ============================================================================
+// PAGE: EVENT DETAIL
+// ============================================================================
+function PageEventDetail({ lang, t, eventId }) {
+  const [ev, setEv] = useState(null);
+  const [sessions, setSessions] = useState([]);
+  const [loading, setLoading] = useState(true);
+  const [selectedSessionId, setSelectedSessionId] = useState('');
+
+  useEffect(() => {
+    let cancelled = false;
+    async function load() {
+      setLoading(true);
+      const eventData = await fetchEvent(eventId);
+      if (cancelled) return;
+      setEv(eventData);
+      if (eventData && eventData.format === 'multi') {
+        const sessData = await fetchEventSessions(eventId);
+        if (!cancelled) setSessions(sessData);
+      }
+      setLoading(false);
+    }
+    load();
+    return () => { cancelled = true; };
+  }, [eventId]);
+
+  // ローディング中
+  if (loading) {
+    return (
+      <div style={{ minHeight: '100vh', paddingTop: 200, textAlign: 'center', color: 'var(--ink-mute)' }}>
+        {t.loading}
+      </div>
+    );
+  }
+
+  // イベントが見つからない
+  if (!ev) {
+    return (
+      <div style={{ minHeight: '100vh', paddingTop: 200, padding: '200px 24px 80px', maxWidth: 800, margin: '0 auto', textAlign: 'center' }}>
+        <h1 style={{ fontFamily: 'var(--jp)', fontSize: 'clamp(28px, 4vw, 42px)', fontWeight: 900, margin: '0 0 20px' }}>{t.detail.notFound}</h1>
+        <p style={{ color: 'var(--ink-mute)' }}>Event ID: {eventId}</p>
+        <div style={{ marginTop: 40 }}>
+          <a href="#/events" className="btn-outline">{t.detail.back}</a>
+        </div>
+      </div>
+    );
+  }
+
+  const isFull = ev.status === '満員' || (ev.capacity > 0 && ev.registered >= ev.capacity);
+  const spotsLeft = Math.max(0, (ev.capacity || 0) - (ev.registered || 0));
+  const isMulti = ev.format === 'multi' && sessions.length > 0;
+
+  // 日付パース (YYYY-MM-DD → 各部品)
+  const dateObj = ev.date ? new Date(ev.date + 'T00:00:00') : null;
+  const yyyy = dateObj ? dateObj.getFullYear() : '';
+  const mm = dateObj ? String(dateObj.getMonth() + 1).padStart(2, '0') : '';
+  const dd = dateObj ? String(dateObj.getDate()).padStart(2, '0') : '';
+  const dayOfWeek = dateObj ? ['SUN','MON','TUE','WED','THU','FRI','SAT'][dateObj.getDay()] : '';
+
+  // Google Maps URL 生成
+  const venueQuery = ev.address || ev.venue || '';
+  const mapsHref = venueQuery
+    ? `https://www.google.com/maps/dir/?api=1&destination=${encodeURIComponent(venueQuery)}`
+    : '';
+  const venueValue = ev.online ? (ev.zoomURL ? 'Zoom' : t.detail.meta.online) : (ev.venue || '—');
+  const venueHref = ev.online && ev.zoomURL ? ev.zoomURL : mapsHref;
+  const venueLinkLabel = ev.online ? t.detail.openInZoom : t.detail.openInMaps;
+
+  // 申込ボタンクリック
+  const handleRegister = () => {
+    alert(t.detail.registerSoon);
+  };
+
+  // Issue番号 (E-2601 → 026)
+  const issueNum = ev.id ? ev.id.replace(/^E-/, '').replace(/^2/, '0') : '000';
+
+  return (
+    <article style={{ background: 'var(--paper)' }}>
+      {/* Navy Hero (トップと統一感) */}
+      <PageHero
+        variant="detail"
+        marker={`${t.detail.issue} ${issueNum} · ${yyyy} · ${ev.id}`}
+        markerRight={t.detail.eventLog}
+        category={ev.category || 'EVENT'}
+        title={ev.title}
+        subtitle={ev.summary ? ev.summary.split('\n')[0] : ''}
+        metaLine={`${yyyy}.${mm}.${dd} · ${dayOfWeek}${ev.time ? ` · ${ev.time}` : ''}`}
+      />
+
+      {/* ============================================================ */}
+      {/* ARTICLE BODY (1カラム、エディトリアル) */}
+      {/* ============================================================ */}
+      <main style={{
+        maxWidth: 720,
+        margin: '0 auto',
+        padding: 'clamp(80px, 12vh, 140px) clamp(24px, 6vw, 40px) 160px',
+      }}>
+        {/* 戻るリンク (上品に) */}
+        <Reveal>
+          <a href="#/events" style={{
+            display: 'inline-block',
+            fontFamily: 'var(--mono)',
+            fontSize: 12,
+            color: 'var(--ink-mute)',
+            letterSpacing: '0.15em',
+            marginBottom: 80,
+            textDecoration: 'none',
+            transition: 'color .2s, transform .2s',
+          }}
+          onMouseEnter={(e) => { e.target.style.color = 'var(--ink)'; e.target.style.transform = 'translateX(-4px)'; }}
+          onMouseLeave={(e) => { e.target.style.color = 'var(--ink-mute)'; e.target.style.transform = 'none'; }}>
+            ← {t.detail.back.replace('← ', '')}
+          </a>
+        </Reveal>
+
+        {/* INFORMATION 段落 (情報を文章に埋め込む) */}
+        <Reveal delay={100}>
+          <SectionLabel>{t.detail.info}</SectionLabel>
+        </Reveal>
+
+        <Reveal delay={150}>
+          <div style={{
+            fontFamily: 'var(--jp)',
+            fontSize: 18,
+            lineHeight: 2.1,
+            color: 'var(--ink)',
+            marginBottom: 64,
+          }}>
+            {/* 日時行 */}
+            <InfoLine label={t.detail.tags.date}>
+              <strong style={editorialBold}>{yyyy}.{mm}.{dd} ({dayOfWeek})</strong>
+              {ev.time && <> · {ev.time}</>}
+            </InfoLine>
+
+            {/* 会場行 */}
+            <InfoLine label={t.detail.tags.venue}>
+              {ev.online ? (
+                <>
+                  <strong style={editorialBold}>{venueValue}</strong>
+                  {venueHref && (
+                    <> · <EditorialLink href={venueHref}>{venueLinkLabel}</EditorialLink></>
+                  )}
+                </>
+              ) : (
+                <>
+                  <strong style={editorialBold}>{venueValue}</strong>
+                  {mapsHref && (
+                    <> · <EditorialLink href={mapsHref}>{venueLinkLabel}</EditorialLink></>
+                  )}
+                </>
+              )}
+            </InfoLine>
+
+            {/* 定員行 */}
+            <InfoLine label={t.detail.tags.capacity}>
+              {ev.capacity ? (
+                <>
+                  <strong style={editorialBold}>{ev.capacity}{t.detail.seats}</strong>
+                  <span style={{ color: 'var(--ink-mute)' }}>
+                    （{lang === 'en' ? 'currently' : '現在'} {ev.registered || 0}/{ev.capacity}{lang === 'ja' ? '、' : ', '}
+                    {lang === 'en' ? `${spotsLeft} ${t.detail.seatsRemaining}` : `${t.detail.seatsRemaining}${spotsLeft}${t.detail.seats}`}）
+                  </span>
+                </>
+              ) : '—'}
+            </InfoLine>
+
+            {/* 参加費行 */}
+            <InfoLine label={t.detail.tags.fee}>
+              {ev.fee && ev.fee > 0 ? (
+                <strong style={editorialBold}>¥{ev.fee.toLocaleString()}</strong>
+              ) : (
+                <strong style={{ ...editorialBold, color: 'var(--coral)' }}>{t.detail.free}</strong>
+              )}
+            </InfoLine>
+          </div>
+        </Reveal>
+
+        {/* 概要 (本文) */}
+        {ev.summary && (
+          <Reveal delay={150}>
+            <SectionLabel>{t.detail.about}</SectionLabel>
+            <div style={{
+              fontFamily: 'var(--jp)',
+              fontSize: 18,
+              lineHeight: 2.1,
+              color: 'var(--ink)',
+              whiteSpace: 'pre-wrap',
+              marginBottom: 64,
+              letterSpacing: '0.01em',
+            }}>{ev.summary}</div>
+          </Reveal>
+        )}
+
+        {/* セッション選択 (multi イベントのみ、シンプルなリスト) */}
+        {isMulti && (
+          <Reveal delay={150}>
+            <SectionLabel>{t.detail.sessions}</SectionLabel>
+            <p style={{
+              fontFamily: 'var(--jp)',
+              fontSize: 16,
+              lineHeight: 1.85,
+              color: 'var(--ink-mute)',
+              marginTop: 0,
+              marginBottom: 32,
+            }}>{t.detail.sessionSelect}</p>
+            <div style={{ borderTop: '1px solid var(--line)', marginBottom: 64 }}>
+              {sessions.map((s) => {
+                const sFull = s.capacity > 0 && s.registered >= s.capacity;
+                const selected = selectedSessionId === s.id;
+                const sDate = s.date ? new Date(s.date + 'T00:00:00') : null;
+                const sFmt = sDate ? `${sDate.getFullYear()}.${String(sDate.getMonth()+1).padStart(2,'0')}.${String(sDate.getDate()).padStart(2,'0')}` : '';
+                return (
+                  <button
+                    key={s.id}
+                    onClick={() => !sFull && setSelectedSessionId(s.id)}
+                    disabled={sFull}
+                    style={{
+                      width: '100%',
+                      background: 'transparent',
+                      border: 'none',
+                      borderBottom: '1px solid var(--line)',
+                      padding: '24px 0',
+                      textAlign: 'left',
+                      cursor: sFull ? 'not-allowed' : 'pointer',
+                      opacity: sFull ? 0.4 : 1,
+                      display: 'flex',
+                      alignItems: 'baseline',
+                      gap: 24,
+                      transition: 'all .2s',
+                      borderLeft: selected ? '3px solid var(--coral)' : '3px solid transparent',
+                      paddingLeft: selected ? 16 : 0,
+                    }}
+                  >
+                    <span style={{
+                      fontFamily: 'var(--mono)',
+                      fontSize: 12,
+                      color: 'var(--coral)',
+                      letterSpacing: '0.15em',
+                      flexShrink: 0,
+                      width: 60,
+                    }}>{t.detail.day} {s.order}</span>
+                    <span style={{ flex: 1 }}>
+                      <span style={{ fontFamily: 'var(--jp)', fontSize: 17, fontWeight: 700, display: 'block', marginBottom: 4 }}>
+                        {s.name || `Session ${s.order}`}
+                      </span>
+                      <span style={{ fontFamily: 'var(--jp)', fontSize: 14, color: 'var(--ink-mute)' }}>
+                        {sFmt}
+                        {s.startTime && s.endTime && ` · ${s.startTime}—${s.endTime}`}
+                        {s.venue && ` · ${s.venue}`}
+                      </span>
+                    </span>
+                    <span style={{ fontFamily: 'var(--mono)', fontSize: 12, color: sFull ? 'var(--coral)' : 'var(--ink-mute)' }}>
+                      {sFull ? t.card.full : `${s.registered || 0}/${s.capacity || '∞'}`}
+                    </span>
+                  </button>
+                );
+              })}
+            </div>
+          </Reveal>
+        )}
+
+        {/* 参加要件 */}
+        {ev.requirements && (
+          <Reveal delay={150}>
+            <SectionLabel>{t.detail.requirements}</SectionLabel>
+            <p style={editorialBodyStyle}>{ev.requirements}</p>
+          </Reveal>
+        )}
+
+        {/* 支払い方法 */}
+        {ev.paymentMethod && (
+          <Reveal delay={150}>
+            <SectionLabel>{t.detail.payment}</SectionLabel>
+            <p style={editorialBodyStyle}>{ev.paymentMethod}</p>
+          </Reveal>
+        )}
+
+        {/* キャンセルポリシー */}
+        {ev.cancelPolicy && (
+          <Reveal delay={150}>
+            <SectionLabel muted>{t.detail.cancelPolicy}</SectionLabel>
+            <p style={{ ...editorialBodyStyle, fontSize: 15, color: 'var(--ink-mute)' }}>{ev.cancelPolicy}</p>
+          </Reveal>
+        )}
+
+        {/* 末尾の余韻 (雑誌の◾️マーク的な区切り) */}
+        <div style={{
+          marginTop: 80,
+          textAlign: 'center',
+          fontFamily: 'var(--mono)',
+          fontSize: 16,
+          color: 'var(--coral)',
+          letterSpacing: '0.6em',
+        }}>──◇──</div>
+      </main>
+
+      {/* ============================================================ */}
+      {/* Sticky CTA (エディトリアル風、控えめ) */}
+      {/* ============================================================ */}
+      <div style={{
+        position: 'fixed',
+        bottom: 0, left: 0, right: 0,
+        background: 'rgba(252,250,245,0.96)',
+        backdropFilter: 'blur(20px)',
+        WebkitBackdropFilter: 'blur(20px)',
+        borderTop: '1px solid var(--line)',
+        padding: '20px 24px',
+        zIndex: 50,
+      }}>
+        <div style={{
+          maxWidth: 920,
+          margin: '0 auto',
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'space-between',
+          gap: 16,
+          flexWrap: 'wrap',
+        }}>
+          <div>
+            <div style={{
+              fontFamily: 'var(--mono)',
+              fontSize: 11,
+              color: 'var(--ink-mute)',
+              letterSpacing: '0.2em',
+              marginBottom: 6,
+              fontWeight: 500,
+            }}>
+              {ev.fee && ev.fee > 0 ? `¥ ${ev.fee.toLocaleString()}` : t.detail.free.toUpperCase()}
+              {' · '}
+              {isFull ? t.detail.eventClosed : (
+                lang === 'en'
+                  ? `${spotsLeft} ${t.detail.seatsRemaining}`
+                  : `${t.detail.seatsRemaining} ${spotsLeft} ${t.detail.seats}`
+              )}
+            </div>
+            <div style={{
+              fontFamily: 'var(--jp)',
+              fontSize: 16,
+              fontWeight: 700,
+              color: 'var(--ink)',
+              lineHeight: 1.3,
+            }}>{ev.title}</div>
+          </div>
+          <button onClick={handleRegister} disabled={isFull || (isMulti && !selectedSessionId)} style={{
+            background: isFull ? 'var(--ink-faint)' : 'var(--ink)',
+            color: 'var(--paper)',
+            border: 0,
+            padding: '16px 36px',
+            fontFamily: 'var(--mono)',
+            fontSize: 13,
+            fontWeight: 700,
+            borderRadius: 999,
+            cursor: isFull ? 'not-allowed' : 'pointer',
+            opacity: (isMulti && !selectedSessionId) ? 0.5 : 1,
+            transition: 'all .25s',
+            letterSpacing: '0.18em',
+          }}
+          onMouseEnter={(e) => {
+            if (!isFull) {
+              e.target.style.background = 'var(--coral)';
+              e.target.style.transform = 'translateY(-2px)';
+            }
+          }}
+          onMouseLeave={(e) => {
+            if (!isFull) {
+              e.target.style.background = 'var(--ink)';
+              e.target.style.transform = 'none';
+            }
+          }}>
+            {isFull ? t.card.closed.toUpperCase() : (isMulti ? t.detail.sessionRegister.toUpperCase() : t.detail.registerNow.toUpperCase())} →
+          </button>
+        </div>
+      </div>
+
+      <div style={{ height: 110 }}></div>
+    </article>
+  );
+}
+
+// エディトリアル用 共通スタイル
+const editorialBold = {
+  fontWeight: 700,
+  color: 'var(--ink)',
+  letterSpacing: '0',
+};
+
+const editorialBodyStyle = {
+  fontFamily: 'var(--jp)',
+  fontSize: 18,
+  lineHeight: 2.1,
+  color: 'var(--ink)',
+  whiteSpace: 'pre-wrap',
+  marginTop: 0,
+  marginBottom: 64,
+  letterSpacing: '0.01em',
+};
+
+// セクション見出し (上品に、罫線+coral mono文字)
+function SectionLabel({ children, muted }) {
+  return (
+    <div style={{
+      display: 'flex',
+      alignItems: 'center',
+      gap: 16,
+      marginBottom: 32,
+      marginTop: 0,
+    }}>
+      <span style={{
+        fontFamily: 'var(--mono)',
+        fontSize: 11,
+        color: muted ? 'var(--ink-mute)' : 'var(--coral)',
+        letterSpacing: '0.28em',
+        fontWeight: 600,
+        flexShrink: 0,
+      }}>{String(children).toUpperCase()}</span>
+      <span style={{
+        flex: 1,
+        height: 1,
+        background: 'var(--line)',
+      }} />
+    </div>
+  );
+}
+
+// 情報行 (ラベル + 内容を、雑誌の見出し風に)
+function InfoLine({ label, children }) {
+  return (
+    <div style={{
+      display: 'flex',
+      alignItems: 'baseline',
+      gap: 24,
+      paddingBottom: 16,
+      marginBottom: 16,
+      borderBottom: '1px dotted var(--line)',
+      flexWrap: 'wrap',
+    }}>
+      <span style={{
+        fontFamily: 'var(--mono)',
+        fontSize: 11,
+        color: 'var(--ink-mute)',
+        letterSpacing: '0.2em',
+        fontWeight: 600,
+        flexShrink: 0,
+        width: 80,
+        textTransform: 'uppercase',
+      }}>{label}</span>
+      <span style={{ flex: 1, minWidth: 200 }}>{children}</span>
+    </div>
+  );
+}
+
+// インラインリンク (下線 + 外部リンク矢印、雑誌風)
+function EditorialLink({ href, children }) {
+  return (
+    <a
+      href={href}
+      target="_blank"
+      rel="noopener noreferrer"
+      style={{
+        color: 'var(--coral)',
+        textDecoration: 'none',
+        borderBottom: '1px solid var(--coral)',
+        paddingBottom: 1,
+        transition: 'all .2s',
+        fontWeight: 500,
+      }}
+      onMouseEnter={(e) => {
+        e.target.style.background = 'rgba(255,155,15,0.08)';
+        e.target.style.paddingLeft = '4px';
+        e.target.style.paddingRight = '4px';
+      }}
+      onMouseLeave={(e) => {
+        e.target.style.background = 'transparent';
+        e.target.style.paddingLeft = '0';
+        e.target.style.paddingRight = '0';
+      }}
+    >
+      {children} ↗
+    </a>
+  );
+}
+
+
+function PageStub({ lang, t, title }) {
+  return (
+    <div style={{
+      minHeight: '100vh',
+      paddingTop: 200, padding: '200px 24px 80px',
+      maxWidth: 800,
+      margin: '0 auto',
+      textAlign: 'center',
+    }}>
+      <h1 style={{
+        fontFamily: 'var(--jp)',
+        fontSize: 'clamp(32px, 5vw, 56px)',
+        fontWeight: 900,
+        margin: '0 0 20px',
+        letterSpacing: '-0.02em',
+      }}>{title}</h1>
+      <p style={{
+        fontFamily: 'var(--jp)',
+        fontSize: 16,
+        color: 'var(--ink-mute)',
+        lineHeight: 1.8,
+      }}>{lang === 'en' ? 'Coming soon.' : lang === 'easy' ? 'もうすぐ できます。' : '準備中です。'}</p>
+      <div style={{ marginTop: 40 }}>
+        <a href="#/" className="btn-outline">← Home</a>
+      </div>
+    </div>
+  );
+}
+
+// ============================================================================
+// FOOTER
+// ============================================================================
+function Footer({ lang, t }) {
+  return (
+    <footer style={{
+      background: 'var(--navy)',
+      color: 'rgba(255,255,255,0.85)',
+      padding: '80px 24px 40px',
+    }}>
+      <div style={{ maxWidth: 1280, margin: '0 auto' }}>
+        <div style={{
+          display: 'grid',
+          gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))',
+          gap: 48,
+          marginBottom: 60,
+        }}>
+          <div>
+            <div style={{
+              fontSize: 24, fontWeight: 800,
+              color: '#fff',
+              marginBottom: 16,
+              letterSpacing: '-0.02em',
+            }}>connec+a</div>
+            <p style={{ fontSize: 13, lineHeight: 1.7, opacity: 0.7, margin: 0, fontFamily: 'var(--jp)' }}>
+              {lang === 'en' ? 'Connecting cultures, building community.' : lang === 'easy' ? 'ぶんかと ぶんかを つなぐ。' : '文化と文化をつなぐ、コミュニティづくり。'}
+            </p>
+          </div>
+          <FooterCol title={t.nav.events} items={[
+            { href: '#/events', label: t.sections.allEvents },
+            { href: '#/news', label: t.nav.news },
+          ]}/>
+          <FooterCol title={lang === 'en' ? 'Organization' : lang === 'easy' ? 'だんたい' : '団体'} items={[
+            { href: '#/about', label: t.nav.about },
+            { href: '#/contact', label: t.nav.contact },
+          ]}/>
+          <FooterCol title={t.nav.signup} items={[
+            { href: '#/signup', label: t.nav.signup },
+            { href: '#/login', label: t.nav.login },
+          ]}/>
+        </div>
+        <div style={{
+          paddingTop: 32,
+          borderTop: '1px solid rgba(255,255,255,0.15)',
+          display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap',
+          gap: 16,
+          fontSize: 12, fontFamily: 'var(--mono)', opacity: 0.6,
+        }}>
+          <div>{t.footer.rights}</div>
+          <div style={{ letterSpacing: '0.1em' }}>EST. 2018 · TOKYO · JP</div>
+        </div>
+      </div>
+    </footer>
+  );
+}
+
+function FooterCol({ title, items }) {
+  return (
+    <div>
+      <div style={{
+        fontFamily: 'var(--mono)', fontSize: 11,
+        color: 'var(--coral)', letterSpacing: '0.15em',
+        marginBottom: 16,
+      }}>{title.toUpperCase()}</div>
+      <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
+        {items.map((item, i) => (
+          <a key={i} href={item.href} style={{
+            fontSize: 14, color: 'rgba(255,255,255,0.85)',
+            fontFamily: 'var(--jp)',
+            transition: 'color .15s',
+          }} onMouseEnter={(e)=>e.target.style.color='#fff'}
+             onMouseLeave={(e)=>e.target.style.color='rgba(255,255,255,0.85)'}>{item.label}</a>
+        ))}
+      </div>
+    </div>
+  );
+}
+
+// ============================================================================
+// APP
+// ============================================================================
+function App() {
+  const [lang, setLang] = useLang();
+  const route = useRoute();
+  const [events, setEvents] = useState([]);
+  const [loading, setLoading] = useState(true);
+  const t = I18N[lang] || I18N.ja;
+
+  // UTM 取得 (初回)
+  useEffect(() => {
+    captureUTM();
+  }, []);
+
+  // イベントデータ取得
+  useEffect(() => {
+    let cancelled = false;
+    async function load() {
+      setLoading(true);
+      const data = await fetchEvents();
+      if (!cancelled) {
+        setEvents(data);
+        setLoading(false);
+      }
+    }
+    load();
+    return () => { cancelled = true; };
+  }, []);
+
+  // ルーティング
+  let Page;
+  let pageTitle = '';
+  const isHome = route === '/';
+  const matchEvent = route.match(/^\/events\/(.+)/);
+
+  if (isHome) {
+    Page = <PageHome lang={lang} t={t} events={events} loading={loading} />;
+  } else if (route === '/events') {
+    Page = <PageEvents lang={lang} t={t} events={events} loading={loading} />;
+  } else if (matchEvent) {
+    Page = <PageEventDetail lang={lang} t={t} eventId={matchEvent[1]} />;
+  } else if (route === '/about') {
+    pageTitle = t.nav.about;
+    Page = <PageStub lang={lang} t={t} title={pageTitle} />;
+  } else if (route === '/news') {
+    pageTitle = t.nav.news;
+    Page = <PageStub lang={lang} t={t} title={pageTitle} />;
+  } else if (route === '/contact') {
+    pageTitle = t.nav.contact;
+    Page = <PageStub lang={lang} t={t} title={pageTitle} />;
+  } else if (route === '/login') {
+    pageTitle = t.nav.login;
+    Page = <PageStub lang={lang} t={t} title={pageTitle} />;
+  } else if (route === '/signup') {
+    pageTitle = t.nav.signup;
+    Page = <PageStub lang={lang} t={t} title={pageTitle} />;
+  } else if (route === '/mypage') {
+    pageTitle = lang === 'en' ? 'My Page' : 'マイページ';
+    Page = <PageStub lang={lang} t={t} title={pageTitle} />;
+  } else {
+    pageTitle = '404';
+    Page = <PageStub lang={lang} t={t} title="Not Found" />;
+  }
+
+  return (
+    <React.Fragment>
+      <Nav lang={lang} setLang={setLang} t={t} transparent={isHome} />
+      <main>{Page}</main>
+      <Footer lang={lang} t={t} />
+    </React.Fragment>
+  );
+}
+
+try {
+  const rootEl = document.getElementById('root');
+  // フォールバックをクリア
+  rootEl.innerHTML = '';
+  ReactDOM.createRoot(rootEl).render(<App />);
+} catch (err) {
+  console.error('[App Boot Error]', err);
+  const fallback = document.getElementById('fallback');
+  if (fallback) {
+    fallback.innerHTML = '<h1 style="color:#d44;">起動エラー</h1>'
+      + '<p style="color:#666;font-family:monospace;font-size:12px;">' + (err.message || err) + '</p>';
+  }
+}
+</script>
+
+</body>
+</html>
