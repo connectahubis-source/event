@@ -735,11 +735,33 @@ function formatEventDate(dateStr) {
   return `${d.getFullYear()}.${String(d.getMonth() + 1).padStart(2, '0')}.${String(d.getDate()).padStart(2, '0')} ${dayNames[d.getDay()]}`;
 }
 
+// イベントの会場ラベルを返す共通ヘルパー (Phase 6.6)
+//   - venues 配列が複数ある (multi イベント) → 結合 / 長すぎたら省略
+//   - venue 単体 → そのまま
+//   - online のみ → 「オンライン開催」
+//   - multi で venue 取れない → 「会場は各セッションで確認」
+//   - それ以外 → 「会場未定」
+function getEventVenueLabel(ev, opts) {
+  opts = opts || {};
+  const maxLen = opts.maxLen || 35;
+
+  if (Array.isArray(ev.venues) && ev.venues.length > 1) {
+    const joined = ev.venues.join(' / ');
+    if (joined.length <= maxLen) return joined;
+    return `${ev.venues[0]} ほか${ev.venues.length - 1}会場`;
+  }
+  if (ev.venue) return ev.venue;
+  if (ev.online) return 'オンライン開催';
+  if (ev.format === 'multi') return '会場は各セッションで確認';
+  return '会場未定';
+}
+
 // 時刻を「HH:MM」形式に正規化
 // 入力例:
 //   "10:00"               → "10:00"
 //   "10:00:00"            → "10:00"
-//   "1899-12-30T09:00:00.000Z" → "09:00" (Tの直後を抽出、TZ依存なし)
+//   "1899-12-30T09:00:00.000Z" → JSTに変換 (例: "18:00")
+//   "2026-05-08T00:33:00.000+09:00" → "00:33"
 //   Date オブジェクト       → "HH:MM"
 //   "" / null / undefined  → ""
 function fmtTime(t) {
@@ -748,9 +770,16 @@ function fmtTime(t) {
     // HH:MM 形式 (先頭から)
     const simple = t.match(/^(\d{1,2}):(\d{2})/);
     if (simple) return `${simple[1].padStart(2, '0')}:${simple[2]}`;
-    // ISO 形式: T直後の HH:MM を抽出 (TZ解釈に依存しない)
-    const isoMatch = t.match(/T(\d{2}):(\d{2})/);
-    if (isoMatch) return `${isoMatch[1]}:${isoMatch[2]}`;
+    // ISO 形式: Date にパースして JST で表示 (TZ ズレ解消、Phase 6.6 fix)
+    if (/^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}/.test(t)) {
+      const d = new Date(t);
+      if (!isNaN(d.getTime())) {
+        // toLocaleTimeString で JST に変換 (ブラウザのロケール非依存)
+        const hh = String(d.getHours()).padStart(2, '0');
+        const mm = String(d.getMinutes()).padStart(2, '0');
+        return `${hh}:${mm}`;
+      }
+    }
   }
   if (t instanceof Date) {
     const hh = String(t.getHours()).padStart(2, '0');
@@ -1350,10 +1379,18 @@ function EventCard({ ev, lang, t, big }) {
           fontSize: 13,
           color: 'var(--ink-mute)',
           marginBottom: 16,
-          display: 'flex', flexDirection: 'column', gap: 4,
+          display: 'flex', flexDirection: 'column', gap: 6,
         }}>
-          <span>📍 {ev.venue || '会場未定'}</span>
-          {ev.time && <span>🕐 {ev.time}</span>}
+          <span style={{display:'inline-flex',alignItems:'center',gap:6}}>
+            <IconMapPin size={14}/>
+            <span>{getEventVenueLabel(ev)}</span>
+          </span>
+          {ev.time && (
+            <span style={{display:'inline-flex',alignItems:'center',gap:6}}>
+              <IconClock size={14}/>
+              <span>{fmtTime(ev.time)}</span>
+            </span>
+          )}
         </div>
         <div style={{
           display: 'flex', alignItems: 'center', justifyContent: 'space-between',
@@ -1546,7 +1583,7 @@ function FeaturedEventCard({ ev, lang, t }) {
           {ev.time && (
             <span style={{ display: 'inline-flex', alignItems: 'center', gap: 6 }}>
               <span style={{ color: 'var(--coral)' }}>●</span>
-              {ev.time}
+              {fmtTime(ev.time)}
             </span>
           )}
           {ev.venue && (
@@ -1740,11 +1777,8 @@ function EventPosterRow({ ev, lang, t }) {
   const spotsLeft = hasCapacity ? Math.max(0, Number(ev.capacity) - (Number(ev.registered) || 0)) : null;
   const dateLabel = ev.date || (ev.format === 'multi' ? '複数日程' : '日程未定');
   const formatJa = ev.format === 'multi' ? `${ev.sessionCount || ''}セッション` : '';
-  // 会場表示: venue が空 + multi の場合は「各セッション参照」、online なら「オンライン開催」
-  const venueLabel = ev.venue
-    ? ev.venue
-    : (ev.online ? 'オンライン開催'
-       : (ev.format === 'multi' ? '会場は各セッションで確認' : '会場未定'));
+  // 会場表示は共通ヘルパー getEventVenueLabel を利用
+  const venueLabel = getEventVenueLabel(ev);
 
   return (
     <a href={`#/events/${ev.id}`} style={{
@@ -1836,7 +1870,9 @@ function EventPosterRow({ ev, lang, t }) {
               textAlign: 'center',
               padding: 20,
             }}>
-              <div style={{ fontSize: 36, marginBottom: 8 }}>📋</div>
+              <div style={{ marginBottom: 8, display:'flex', justifyContent:'center', color:'var(--sky-300)' }}>
+                <IconImage size={36}/>
+              </div>
               NO POSTER
             </div>
           )}
@@ -1933,7 +1969,7 @@ function EventPosterRow({ ev, lang, t }) {
               fontWeight: 500,
               textShadow: heroImg ? '0 1px 2px rgba(255,255,255,0.8)' : 'none',
             }}>
-              <span style={{ fontSize: 14 }}>📍</span>
+              <IconMapPin size={15}/>
               <span>{venueLabel}</span>
             </div>
           </div>
@@ -3012,7 +3048,9 @@ function PageHome({ lang, t, events, ads, heroSlides, loading }) {
                 color: 'var(--sky-700)',
                 fontFamily: 'var(--jp)',
               }}>
-                <div style={{ fontSize: 48, marginBottom: 16 }}>🗓</div>
+                <div style={{ marginBottom: 16, color:'var(--sky-300)', display:'flex', justifyContent:'center' }}>
+                  <IconCalendar size={48}/>
+                </div>
                 <div style={{ fontSize: 18, fontWeight: 600 }}>{t.noEvents}</div>
                 <div style={{ fontSize: 14, marginTop: 12, color: 'var(--ink-mute)' }}>新しいイベントが追加されるとここに表示されます。</div>
               </div>
@@ -3166,6 +3204,34 @@ function IconSparkles({ size = 24 }) {
       <path d="M12 3l1.9 5.5L19 10l-5.1 1.5L12 17l-1.9-5.5L5 10l5.1-1.5L12 3z" />
       <path d="M19 17v3M21 18.5h-4" />
       <path d="M5 5v2M6 6h-2" />
+    </svg>
+  );
+}
+
+function IconMapPin({ size = 16 }) {
+  return (
+    <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" style={{flex:'none'}}>
+      <path d="M20 10c0 6-8 12-8 12s-8-6-8-12a8 8 0 0 1 16 0Z"/>
+      <circle cx="12" cy="10" r="3"/>
+    </svg>
+  );
+}
+
+function IconClock({ size = 16 }) {
+  return (
+    <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" style={{flex:'none'}}>
+      <circle cx="12" cy="12" r="10"/>
+      <polyline points="12 6 12 12 16 14"/>
+    </svg>
+  );
+}
+
+function IconImage({ size = 36 }) {
+  return (
+    <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round" style={{flex:'none'}}>
+      <rect x="3" y="3" width="18" height="18" rx="2" ry="2"/>
+      <circle cx="9" cy="9" r="2"/>
+      <path d="m21 15-3.086-3.086a2 2 0 0 0-2.828 0L6 21"/>
     </svg>
   );
 }
@@ -3383,7 +3449,7 @@ function PageEventDetail({ lang, t, eventId }) {
         category={ev.category || 'EVENT'}
         title={ev.title}
         subtitle={ev.summary ? ev.summary.split('\n')[0] : ''}
-        metaLine={`${yyyy}.${mm}.${dd} · ${dayOfWeek}${ev.time ? ` · ${ev.time}` : ''}`}
+        metaLine={`${yyyy}.${mm}.${dd} · ${dayOfWeek}${ev.time ? ` · ${fmtTime(ev.time)}` : ''}`}
       />
 
       {/* ============================================================ */}
@@ -3488,7 +3554,7 @@ function PageEventDetail({ lang, t, eventId }) {
               {/* 日時行 */}
               <InfoLine label={t.detail.tags.date}>
                 <strong style={editorialBold}>{yyyy}.{mm}.{dd} ({dayOfWeek})</strong>
-                {ev.time && <> · {ev.time}</>}
+                {ev.time && <> · {fmtTime(ev.time)}</>}
               </InfoLine>
 
               {/* 会場行 */}
@@ -3748,15 +3814,15 @@ function PageEventDetail({ lang, t, eventId }) {
                         lineHeight: 1.5,
                       }}>
                         {(s.startTime || s.endTime) && (
-                          <span style={{ display: 'inline-flex', alignItems: 'center', gap: 4 }}>
-                            <span style={{ color: 'var(--sky-700)' }}>🕐</span>
-                            {fmtTimeRange(s.startTime, s.endTime)}
+                          <span style={{ display: 'inline-flex', alignItems: 'center', gap: 4, color:'var(--sky-700)' }}>
+                            <IconClock size={13}/>
+                            <span style={{color:'var(--ink-mute)'}}>{fmtTimeRange(s.startTime, s.endTime)}</span>
                           </span>
                         )}
                         {s.venue && (
-                          <span style={{ display: 'inline-flex', alignItems: 'center', gap: 4 }}>
-                            <span style={{ color: 'var(--sky-700)' }}>📍</span>
-                            {s.venue}
+                          <span style={{ display: 'inline-flex', alignItems: 'center', gap: 4, color:'var(--sky-700)' }}>
+                            <IconMapPin size={13}/>
+                            <span style={{color:'var(--ink-mute)'}}>{s.venue}</span>
                           </span>
                         )}
                       </div>
@@ -4082,7 +4148,7 @@ function MultiSessionInfo({ sessions, lang, t }) {
         fontWeight: 700,
         marginBottom: 24,
       }}>
-        <span style={{ fontSize: 14 }}>📅</span>
+        <IconCalendar size={14}/>
         <span>{t.detail.multiBadge} · {t.detail.multiTotal} {total} {t.detail.multiSessions}</span>
       </div>
 
