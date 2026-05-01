@@ -1824,6 +1824,22 @@ function PageHero({
 // Phase 6: 公開中イベントのポスターを優先表示、無ければ既定スライドにフォールバック
 // ============================================================================
 function HeroSlideshow({ t, events }) {
+  // Google Drive の URL を表示可能な形式に正規化 (Phase 6 fix)
+  // - uc?export=view&id=XXX (古い形式、403が増えている) → thumbnail?id=XXX&sz=w2000
+  // - file/d/XXX/view (閲覧URL) → thumbnail?id=XXX&sz=w2000
+  // - thumbnail?id=XXX (既に新形式) → そのまま
+  // - その他の URL (Imgur など) → そのまま
+  const normalizeImageUrl = (url) => {
+    if (!url || typeof url !== 'string') return url;
+    // file/d/{ID}/view または file/d/{ID}/edit
+    let m = url.match(/drive\.google\.com\/file\/d\/([^/]+)/);
+    if (m) return `https://drive.google.com/thumbnail?id=${m[1]}&sz=w2000`;
+    // uc?...&id={ID} or uc?id={ID}
+    m = url.match(/drive\.google\.com\/uc.*?[?&]id=([^&]+)/);
+    if (m) return `https://drive.google.com/thumbnail?id=${m[1]}&sz=w2000`;
+    return url;
+  };
+
   // 既定スライド (イベントが無い時のフォールバック)
   const defaultSlides = [
     {
@@ -1869,7 +1885,7 @@ function HeroSlideshow({ t, events }) {
     .filter(e => (e.status === '公開中' || e.status === '満員') && e.posterUrl)
     .slice(0, 6)   // 最大6件
     .map(e => ({
-      img: e.posterUrl,
+      img: normalizeImageUrl(e.posterUrl),
       eyebrow: e.category ? String(e.category).toUpperCase() : 'EVENT',
       mainEn: e.title || 'Upcoming Event',
       mainEm: e.format === 'multi' ? `${e.sessionCount || ''} sessions` : (e.date || ''),
