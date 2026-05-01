@@ -2367,6 +2367,16 @@ function HeroSlideshow({ t, events, heroSlides, loading }) {
   const [idx, setIdx] = useState(0);
   const [paused, setPaused] = useState(false);
 
+  // ロード中の遊び心: 文言を1.8秒ごとにローテーション (Phase 6.6)
+  const loadingPhrases = [
+    '光を、まぜています',
+    '出会いを、ならべています',
+    '空気感を、整えています',
+    '今日のひと幕を、選んでいます',
+    'まちに灯りを、ともしています',
+  ];
+  const [phraseIdx, setPhraseIdx] = useState(0);
+
   // スライド数が減った時にindex範囲外にならないようリセット
   useEffect(() => {
     if (idx >= slides.length) setIdx(0);
@@ -2381,8 +2391,16 @@ function HeroSlideshow({ t, events, heroSlides, loading }) {
     return () => clearInterval(interval);
   }, [paused, slides.length]);
 
-  // 取得中 (slides.length === 0) は同じ高さのプレースホルダーを描画
-  // → defaultSlides が一瞬出る挙動を完全に抑止しつつ、レイアウトのジャンプも防ぐ
+  // ロード中のみ文言ローテーション
+  useEffect(() => {
+    if (slides.length > 0) return;
+    const t = setInterval(() => {
+      setPhraseIdx(i => (i + 1) % loadingPhrases.length);
+    }, 1800);
+    return () => clearInterval(t);
+  }, [slides.length]);
+
+  // 取得中 (slides.length === 0): 白ぼかし + ロゴ + 切替文言で遊び心ある待機画面
   if (slides.length === 0) {
     return (
       <section style={{
@@ -2392,23 +2410,133 @@ function HeroSlideshow({ t, events, heroSlides, loading }) {
         minHeight: 600,
         maxHeight: 900,
         overflow: 'hidden',
-        background: 'linear-gradient(180deg, #0a2960 0%, #061a3f 100%)',
+        // 白ベースに薄いグラデで奥行き、サンライズ感
+        background: 'radial-gradient(ellipse at 50% 30%, #ffffff 0%, #fdf6ee 45%, #f5e8d8 100%)',
       }}>
-        {/* 静的な背景 + ロゴワードマーク程度に留める (ちらつき防止が最優先) */}
+        {/* ガラス風オーバーレイ (subtle blur) */}
+        <div style={{
+          position: 'absolute',
+          inset: 0,
+          backdropFilter: 'blur(20px) saturate(110%)',
+          WebkitBackdropFilter: 'blur(20px) saturate(110%)',
+          background: 'rgba(255, 255, 255, 0.35)',
+        }} />
+
+        {/* 背景にうっすら浮かぶ大きい円 (呼吸する光) */}
+        <div style={{
+          position: 'absolute',
+          top: '50%',
+          left: '50%',
+          transform: 'translate(-50%, -50%)',
+          width: 'clamp(400px, 50vw, 700px)',
+          height: 'clamp(400px, 50vw, 700px)',
+          borderRadius: '50%',
+          background: 'radial-gradient(circle, rgba(255, 200, 155, 0.5) 0%, rgba(255, 255, 255, 0) 70%)',
+          animation: 'heroLoadBreath 4s ease-in-out infinite',
+          pointerEvents: 'none',
+        }} />
+
+        {/* 中央コンテンツ */}
         <div style={{
           position: 'absolute',
           inset: 0,
           display: 'flex',
+          flexDirection: 'column',
           alignItems: 'center',
           justifyContent: 'center',
-          color: 'rgba(255,255,255,0.5)',
-          fontFamily: 'var(--serif, Georgia, serif)',
-          fontSize: 32,
-          fontStyle: 'italic',
-          letterSpacing: '0.02em',
+          textAlign: 'center',
+          padding: '0 24px',
         }}>
-          connec+a
+          {/* connec+a ワードマーク */}
+          <div style={{
+            fontFamily: 'var(--serif, Georgia, serif)',
+            fontSize: 'clamp(48px, 8vw, 96px)',
+            fontStyle: 'italic',
+            fontWeight: 500,
+            color: '#1a3661',
+            letterSpacing: '-0.02em',
+            lineHeight: 1,
+            marginBottom: 24,
+            animation: 'heroLoadFadePulse 3s ease-in-out infinite',
+          }}>
+            connec<span style={{color:'#ff7a59'}}>+</span>a
+          </div>
+
+          {/* 三点リーダーのドット (順番にバウンド) */}
+          <div style={{
+            display: 'flex',
+            gap: 6,
+            marginBottom: 18,
+          }}>
+            {[0,1,2].map(i => (
+              <span key={i} style={{
+                width: 6,
+                height: 6,
+                borderRadius: '50%',
+                background: '#1a3661',
+                opacity: 0.5,
+                animation: `heroLoadDot 1.4s ease-in-out ${i * 0.16}s infinite`,
+              }}/>
+            ))}
+          </div>
+
+          {/* ロード文言 (フェード切替) */}
+          <div key={phraseIdx} style={{
+            fontFamily: 'var(--jp)',
+            fontSize: 13,
+            color: 'rgba(26, 54, 97, 0.65)',
+            letterSpacing: '0.05em',
+            animation: 'heroLoadPhrase 1.8s ease-in-out',
+          }}>
+            {loadingPhrases[phraseIdx]}
+          </div>
         </div>
+
+        {/* 下部に細い進捗ライン */}
+        <div style={{
+          position: 'absolute',
+          bottom: 0,
+          left: 0,
+          right: 0,
+          height: 2,
+          background: 'rgba(26, 54, 97, 0.08)',
+          overflow: 'hidden',
+        }}>
+          <div style={{
+            position: 'absolute',
+            top: 0,
+            left: 0,
+            height: '100%',
+            width: '30%',
+            background: 'linear-gradient(90deg, transparent, #ff7a59, transparent)',
+            animation: 'heroLoadBar 2.2s ease-in-out infinite',
+          }} />
+        </div>
+
+        <style>{`
+          @keyframes heroLoadBreath {
+            0%, 100% { transform: translate(-50%, -50%) scale(1); opacity: 0.7; }
+            50%      { transform: translate(-50%, -50%) scale(1.08); opacity: 1; }
+          }
+          @keyframes heroLoadFadePulse {
+            0%, 100% { opacity: 0.85; transform: translateY(0); }
+            50%      { opacity: 1; transform: translateY(-2px); }
+          }
+          @keyframes heroLoadDot {
+            0%, 80%, 100% { transform: translateY(0); opacity: 0.4; }
+            40%           { transform: translateY(-6px); opacity: 1; }
+          }
+          @keyframes heroLoadPhrase {
+            0%   { opacity: 0; transform: translateY(4px); }
+            20%  { opacity: 1; transform: translateY(0); }
+            80%  { opacity: 1; transform: translateY(0); }
+            100% { opacity: 0.7; transform: translateY(-2px); }
+          }
+          @keyframes heroLoadBar {
+            0%   { left: -30%; }
+            100% { left: 100%; }
+          }
+        `}</style>
       </section>
     );
   }
