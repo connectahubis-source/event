@@ -2236,45 +2236,7 @@ function HeroSlideshow({ t, events, heroSlides, loading }) {
     return url;
   };
 
-  // フォールバックの既定スライド (Adminスライドが0件のときのみ使用)
-  const defaultSlides = [
-    {
-      img: ASSET_GROUP_PHOTO,
-      eyebrow: 'ENCOUNTERS',
-      mainEn: 'Where strangers become',
-      mainEm: 'friends.',
-      sub: '出会いが、まちを変えていく。',
-      tone: 'warm',
-      isEvent: false,
-    },
-    {
-      img: ASSET_SKY_STARS,
-      eyebrow: 'POSSIBILITIES',
-      mainEn: 'Beyond the city,',
-      mainEm: 'beyond ourselves.',
-      sub: '異なる文化が、ひとつの星空の下で。',
-      tone: 'night',
-      isEvent: false,
-    },
-    {
-      img: ASSET_SKY_NIGHT,
-      eyebrow: 'JOURNEY',
-      mainEn: 'A small step,',
-      mainEm: 'a wider world.',
-      sub: 'ひとつの出会いが、ひとつの世界を広げる。',
-      tone: 'night',
-      isEvent: false,
-    },
-    {
-      img: ASSET_CITYSCAPE,
-      eyebrow: 'TOKYO',
-      mainEn: 'Connecting lives,',
-      mainEm: 'lighting up the city.',
-      sub: '4,200,000人の物語が、ここで重なる。',
-      tone: 'city',
-      isEvent: false,
-    },
-  ];
+  // (Phase 6.7) defaultSlides は廃止。eventSlides も adminSlides も無いときは loading と同じ待機画面を表示する。
 
   // ① イベントスライド (Phase 6.2: 公開予約 + 過去日除外を反映)
   // 公開ロジックは filterPublicEvents と同じ: 公開状態 OR 公開予約日時を過ぎた、かつ開催日が今日以降
@@ -2347,12 +2309,12 @@ function HeroSlideshow({ t, events, heroSlides, loading }) {
 
   let slides;
   if (loading) {
-    // 初回 fetch 完了前: defaultSlides を出すと「一瞬 4枚が見える → 切替」のちらつきになるので、
-    // 取得中は空配列にして placeholder (下のレンダリングで処理) を表示する
+    // 初回 fetch 完了前: 取得中は空配列にして placeholder を表示
     slides = [];
   } else if (eventSlides.length === 0 && adminSlides.length === 0) {
-    // 取得完了後、両方空のときだけ既定スライドにフォールバック
-    slides = defaultSlides;
+    // (Phase 6.7) 取得完了後、両方空でも defaultSlides にフォールバックしない。
+    // 空配列 → 下の分岐で loading と同じ待機画面を表示。
+    slides = [];
   } else if (adminSlides.length === 0) {
     // イベントのみ
     slides = eventSlides;
@@ -2400,8 +2362,19 @@ function HeroSlideshow({ t, events, heroSlides, loading }) {
     return () => clearInterval(t);
   }, [slides.length]);
 
-  // 取得中 (slides.length === 0): 白ぼかし + ロゴ + 切替文言で遊び心ある待機画面
+  // 取得中 (slides.length === 0): 凝った白ぼかし + +a ロゴ + 多層アニメーションの待機画面
   if (slides.length === 0) {
+    // パーティクル定義 (各々ランダム的な位置/サイズ/遅延)
+    const particles = [
+      { l:  8,  size: 4,  delay: 0,    duration: 7  },
+      { l: 18,  size: 7,  delay: 1.4,  duration: 9  },
+      { l: 28,  size: 3,  delay: 2.8,  duration: 6.5},
+      { l: 42,  size: 6,  delay: 0.6,  duration: 8  },
+      { l: 58,  size: 5,  delay: 2.2,  duration: 7.5},
+      { l: 70,  size: 8,  delay: 1.0,  duration: 10 },
+      { l: 82,  size: 4,  delay: 3.4,  duration: 6  },
+      { l: 92,  size: 6,  delay: 0.2,  duration: 8.5},
+    ];
     return (
       <section style={{
         position: 'relative',
@@ -2410,131 +2383,222 @@ function HeroSlideshow({ t, events, heroSlides, loading }) {
         minHeight: 600,
         maxHeight: 900,
         overflow: 'hidden',
-        // 白ベースに薄いグラデで奥行き、サンライズ感
-        background: 'radial-gradient(ellipse at 50% 30%, #ffffff 0%, #fdf6ee 45%, #f5e8d8 100%)',
+        background: '#fffaf3',
       }}>
-        {/* ガラス風オーバーレイ (subtle blur) */}
+        {/* レイヤー1: 動くグラデーション (sweep) */}
         <div style={{
-          position: 'absolute',
-          inset: 0,
-          backdropFilter: 'blur(20px) saturate(110%)',
-          WebkitBackdropFilter: 'blur(20px) saturate(110%)',
-          background: 'rgba(255, 255, 255, 0.35)',
-        }} />
+          position:'absolute', inset:0,
+          background: 'linear-gradient(120deg, #fff8ed 0%, #ffe5d2 25%, #ffeed6 50%, #f5dfff 75%, #e8efff 100%)',
+          backgroundSize: '300% 300%',
+          animation: 'heroBgSweep 18s ease-in-out infinite',
+        }}/>
 
-        {/* 背景にうっすら浮かぶ大きい円 (呼吸する光) */}
+        {/* レイヤー2: ガラス風オーバーレイ */}
         <div style={{
-          position: 'absolute',
-          top: '50%',
-          left: '50%',
-          transform: 'translate(-50%, -50%)',
-          width: 'clamp(400px, 50vw, 700px)',
-          height: 'clamp(400px, 50vw, 700px)',
-          borderRadius: '50%',
-          background: 'radial-gradient(circle, rgba(255, 200, 155, 0.5) 0%, rgba(255, 255, 255, 0) 70%)',
-          animation: 'heroLoadBreath 4s ease-in-out infinite',
-          pointerEvents: 'none',
-        }} />
+          position:'absolute', inset:0,
+          backdropFilter: 'blur(28px) saturate(120%)',
+          WebkitBackdropFilter: 'blur(28px) saturate(120%)',
+          background: 'rgba(255, 255, 255, 0.25)',
+        }}/>
 
-        {/* 中央コンテンツ */}
+        {/* レイヤー3: 浮遊する光のパーティクル */}
+        {particles.map((p, i) => (
+          <span key={i} style={{
+            position:'absolute',
+            left: `${p.l}%`,
+            bottom: -20,
+            width: p.size,
+            height: p.size,
+            borderRadius: '50%',
+            background: i % 2 === 0
+              ? 'radial-gradient(circle, rgba(255,180,140,0.95) 0%, rgba(255,180,140,0) 70%)'
+              : 'radial-gradient(circle, rgba(180,200,255,0.9) 0%, rgba(180,200,255,0) 70%)',
+            filter: 'blur(0.5px)',
+            animation: `heroParticle ${p.duration}s ease-in-out ${p.delay}s infinite`,
+            pointerEvents: 'none',
+          }}/>
+        ))}
+
+        {/* レイヤー4: 中央の柔らかい光輪 (大きめ・呼吸) */}
         <div style={{
-          position: 'absolute',
-          inset: 0,
-          display: 'flex',
-          flexDirection: 'column',
-          alignItems: 'center',
-          justifyContent: 'center',
-          textAlign: 'center',
-          padding: '0 24px',
+          position:'absolute', top:'50%', left:'50%',
+          transform:'translate(-50%, -50%)',
+          width:'clamp(500px, 60vw, 850px)',
+          height:'clamp(500px, 60vw, 850px)',
+          borderRadius:'50%',
+          background:'radial-gradient(circle, rgba(255, 200, 155, 0.55) 0%, rgba(255,255,255,0) 65%)',
+          animation:'heroLoadBreath 5s ease-in-out infinite',
+          pointerEvents:'none',
+        }}/>
+
+        {/* 中央コンテンツ (ロゴ + ロゴ周りのリップル + 文言) */}
+        <div style={{
+          position:'absolute', inset:0,
+          display:'flex', flexDirection:'column',
+          alignItems:'center', justifyContent:'center',
+          textAlign:'center', padding:'0 24px',
         }}>
-          {/* connec+a ワードマーク */}
+          {/* ロゴと同心円リップルを重ねるラッパー */}
           <div style={{
-            fontFamily: 'var(--serif, Georgia, serif)',
-            fontSize: 'clamp(48px, 8vw, 96px)',
-            fontStyle: 'italic',
-            fontWeight: 500,
-            color: '#1a3661',
-            letterSpacing: '-0.02em',
-            lineHeight: 1,
-            marginBottom: 24,
-            animation: 'heroLoadFadePulse 3s ease-in-out infinite',
+            position:'relative',
+            width:'clamp(160px, 22vw, 280px)',
+            height:'clamp(160px, 22vw, 280px)',
+            display:'flex', alignItems:'center', justifyContent:'center',
+            marginBottom: 32,
           }}>
-            connec<span style={{color:'#ff7a59'}}>+</span>a
-          </div>
-
-          {/* 三点リーダーのドット (順番にバウンド) */}
-          <div style={{
-            display: 'flex',
-            gap: 6,
-            marginBottom: 18,
-          }}>
-            {[0,1,2].map(i => (
+            {/* 同心円リップル (3波、時間差) */}
+            {[0, 1, 2].map(i => (
               <span key={i} style={{
-                width: 6,
-                height: 6,
-                borderRadius: '50%',
-                background: '#1a3661',
-                opacity: 0.5,
-                animation: `heroLoadDot 1.4s ease-in-out ${i * 0.16}s infinite`,
+                position:'absolute',
+                top: '50%', left: '50%',
+                width: '70%', height: '70%',
+                marginTop: '-35%', marginLeft: '-35%',
+                borderRadius:'50%',
+                border: '1.5px solid rgba(255, 122, 89, 0.5)',
+                animation: `heroRipple 3.6s cubic-bezier(0.2, 0.6, 0.2, 1) ${i * 1.2}s infinite`,
+                pointerEvents:'none',
               }}/>
             ))}
+
+            {/* ロゴ周りのオーラ (パルス) */}
+            <span style={{
+              position:'absolute',
+              top: '50%', left: '50%',
+              width: '90%', height: '90%',
+              marginTop: '-45%', marginLeft: '-45%',
+              borderRadius: '50%',
+              background: 'radial-gradient(circle, rgba(255, 122, 89, 0.18) 0%, rgba(255,122,89,0) 70%)',
+              animation: 'heroAura 2.8s ease-in-out infinite',
+              pointerEvents:'none',
+            }}/>
+
+            {/* +a ロゴ画像本体 (フロート + シャドウパルス + 微回転) */}
+            <img
+              src={ASSET_LOGO}
+              alt="connec+a"
+              style={{
+                position:'relative',
+                width:'100%',
+                height:'auto',
+                animation: 'heroLogoFloat 4s ease-in-out infinite, heroLogoShadow 2.8s ease-in-out infinite',
+                filter: 'drop-shadow(0 12px 30px rgba(255, 122, 89, 0.35))',
+                zIndex: 2,
+              }}
+            />
           </div>
 
           {/* ロード文言 (フェード切替) */}
           <div key={phraseIdx} style={{
-            fontFamily: 'var(--jp)',
+            fontFamily:'var(--jp)',
             fontSize: 13,
-            color: 'rgba(26, 54, 97, 0.65)',
-            letterSpacing: '0.05em',
-            animation: 'heroLoadPhrase 1.8s ease-in-out',
+            color: 'rgba(26, 54, 97, 0.7)',
+            letterSpacing:'0.08em',
+            fontWeight: 500,
+            animation:'heroLoadPhrase 1.8s ease-in-out',
+            minHeight: 18,
           }}>
             {loadingPhrases[phraseIdx]}
           </div>
+
+          {/* サブテキスト: ブランド世界観 (常時表示) */}
+          <div style={{
+            marginTop: 12,
+            fontFamily:'var(--serif, Georgia, serif)',
+            fontStyle:'italic',
+            fontSize: 12,
+            color: 'rgba(26, 54, 97, 0.4)',
+            letterSpacing:'0.15em',
+            animation:'heroSubFade 4s ease-in-out infinite',
+          }}>
+            where strangers become friends
+          </div>
         </div>
 
-        {/* 下部に細い進捗ライン */}
+        {/* 下部の進捗ライン */}
         <div style={{
-          position: 'absolute',
-          bottom: 0,
-          left: 0,
-          right: 0,
+          position:'absolute', bottom:0, left:0, right:0,
           height: 2,
-          background: 'rgba(26, 54, 97, 0.08)',
-          overflow: 'hidden',
+          background:'rgba(26, 54, 97, 0.06)',
+          overflow:'hidden',
         }}>
           <div style={{
-            position: 'absolute',
-            top: 0,
-            left: 0,
-            height: '100%',
-            width: '30%',
-            background: 'linear-gradient(90deg, transparent, #ff7a59, transparent)',
-            animation: 'heroLoadBar 2.2s ease-in-out infinite',
-          }} />
+            position:'absolute', top:0, left:0, height:'100%', width:'30%',
+            background:'linear-gradient(90deg, transparent, #ff7a59 50%, transparent)',
+            animation:'heroLoadBar 2.2s ease-in-out infinite',
+          }}/>
         </div>
 
+        {/* 4隅にコーナーマーク (エディトリアルな雰囲気) */}
+        {[
+          { top: 20, left: 20, borderTop: 1, borderLeft: 1 },
+          { top: 20, right: 20, borderTop: 1, borderRight: 1 },
+          { bottom: 28, left: 20, borderBottom: 1, borderLeft: 1 },
+          { bottom: 28, right: 20, borderBottom: 1, borderRight: 1 },
+        ].map((pos, i) => (
+          <div key={i} style={{
+            position:'absolute',
+            width: 24, height: 24,
+            ...pos,
+            borderTopWidth: pos.borderTop ? 1 : 0,
+            borderBottomWidth: pos.borderBottom ? 1 : 0,
+            borderLeftWidth: pos.borderLeft ? 1 : 0,
+            borderRightWidth: pos.borderRight ? 1 : 0,
+            borderStyle: 'solid',
+            borderColor: 'rgba(26, 54, 97, 0.25)',
+            animation: 'heroCornerFade 3s ease-in-out infinite',
+          }}/>
+        ))}
+
         <style>{`
+          @keyframes heroBgSweep {
+            0%, 100% { background-position: 0% 50%; }
+            50%      { background-position: 100% 50%; }
+          }
           @keyframes heroLoadBreath {
-            0%, 100% { transform: translate(-50%, -50%) scale(1); opacity: 0.7; }
-            50%      { transform: translate(-50%, -50%) scale(1.08); opacity: 1; }
+            0%, 100% { transform: translate(-50%, -50%) scale(1);    opacity: 0.7; }
+            50%      { transform: translate(-50%, -50%) scale(1.12); opacity: 1; }
           }
-          @keyframes heroLoadFadePulse {
-            0%, 100% { opacity: 0.85; transform: translateY(0); }
-            50%      { opacity: 1; transform: translateY(-2px); }
+          @keyframes heroParticle {
+            0%   { transform: translateY(0)      translateX(0);   opacity: 0; }
+            10%  { opacity: 1; }
+            50%  { transform: translateY(-50vh)  translateX(20px); opacity: 0.8; }
+            90%  { opacity: 0.5; }
+            100% { transform: translateY(-105vh) translateX(-15px); opacity: 0; }
           }
-          @keyframes heroLoadDot {
-            0%, 80%, 100% { transform: translateY(0); opacity: 0.4; }
-            40%           { transform: translateY(-6px); opacity: 1; }
+          @keyframes heroRipple {
+            0%   { transform: scale(0.6); opacity: 0.7; }
+            70%  { transform: scale(1.6); opacity: 0;   }
+            100% { transform: scale(1.6); opacity: 0;   }
+          }
+          @keyframes heroAura {
+            0%, 100% { transform: scale(1);    opacity: 0.7; }
+            50%      { transform: scale(1.15); opacity: 1; }
+          }
+          @keyframes heroLogoFloat {
+            0%, 100% { transform: translateY(0)    rotate(-1.5deg); }
+            50%      { transform: translateY(-10px) rotate(1.5deg); }
+          }
+          @keyframes heroLogoShadow {
+            0%, 100% { filter: drop-shadow(0 8px 18px  rgba(255, 122, 89, 0.25)); }
+            50%      { filter: drop-shadow(0 16px 36px rgba(255, 122, 89, 0.45)); }
           }
           @keyframes heroLoadPhrase {
-            0%   { opacity: 0; transform: translateY(4px); }
-            20%  { opacity: 1; transform: translateY(0); }
-            80%  { opacity: 1; transform: translateY(0); }
-            100% { opacity: 0.7; transform: translateY(-2px); }
+            0%   { opacity: 0; transform: translateY(6px); }
+            18%  { opacity: 1; transform: translateY(0); }
+            82%  { opacity: 1; transform: translateY(0); }
+            100% { opacity: 0.6; transform: translateY(-2px); }
+          }
+          @keyframes heroSubFade {
+            0%, 100% { opacity: 0.3; }
+            50%      { opacity: 0.7; }
           }
           @keyframes heroLoadBar {
             0%   { left: -30%; }
             100% { left: 100%; }
+          }
+          @keyframes heroCornerFade {
+            0%, 100% { opacity: 0.4; }
+            50%      { opacity: 0.8; }
           }
         `}</style>
       </section>
