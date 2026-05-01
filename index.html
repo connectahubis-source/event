@@ -2329,7 +2329,15 @@ function HeroSlideshow({ t, events, heroSlides, loading }) {
   const [idx, setIdx] = useState(0);
   const [paused, setPaused] = useState(false);
 
-  // ロード中の遊び心: 文言を1.8秒ごとにローテーション (Phase 6.6)
+  // (Phase 6.8) ロゴmorph: phase 'loading' → 'morphing' → 'done'
+  // 'loading'  : スライド未到着、装飾フルで大ロゴ中央
+  // 'morphing' : スライド到着直後、装飾フェードアウト + 大ロゴが小ロゴ位置へ縮小・移動
+  // 'done'     : 通常スライドショー、小ロゴが本来位置に表示
+  const [phase, setPhase] = useState(slides.length === 0 ? 'loading' : 'done');
+  const smallLogoRef = useRef(null);
+  const [morphPos, setMorphPos] = useState(null); // {top, left, width} px
+
+  // ロード中の遊び心: 文言を1.8秒ごとにローテーション
   const loadingPhrases = [
     '光を、まぜています',
     '出会いを、ならべています',
@@ -2346,7 +2354,7 @@ function HeroSlideshow({ t, events, heroSlides, loading }) {
 
   useEffect(() => {
     if (paused) return;
-    if (slides.length === 0) return;   // 空のときはinterval走らせない
+    if (slides.length === 0) return;
     const interval = setInterval(() => {
       setIdx(i => (i + 1) % slides.length);
     }, 6500);
@@ -2355,61 +2363,72 @@ function HeroSlideshow({ t, events, heroSlides, loading }) {
 
   // ロード中のみ文言ローテーション
   useEffect(() => {
-    if (slides.length > 0) return;
+    if (phase === 'done') return;
     const t = setInterval(() => {
       setPhraseIdx(i => (i + 1) % loadingPhrases.length);
     }, 1800);
     return () => clearInterval(t);
-  }, [slides.length]);
+  }, [phase]);
 
-  // 取得中 (slides.length === 0): 凝った白ぼかし + +a ロゴ + 多層アニメーションの待機画面
-  if (slides.length === 0) {
-    // パーティクル定義 (各々ランダム的な位置/サイズ/遅延)
-    const particles = [
-      { l:  8,  size: 4,  delay: 0,    duration: 7  },
-      { l: 18,  size: 7,  delay: 1.4,  duration: 9  },
-      { l: 28,  size: 3,  delay: 2.8,  duration: 6.5},
-      { l: 42,  size: 6,  delay: 0.6,  duration: 8  },
-      { l: 58,  size: 5,  delay: 2.2,  duration: 7.5},
-      { l: 70,  size: 8,  delay: 1.0,  duration: 10 },
-      { l: 82,  size: 4,  delay: 3.4,  duration: 6  },
-      { l: 92,  size: 6,  delay: 0.2,  duration: 8.5},
-    ];
-    return (
-      <section style={{
-        position: 'relative',
-        width: '100%',
-        height: '100vh',
-        minHeight: 600,
-        maxHeight: 900,
-        overflow: 'hidden',
+  // (Phase 6.8) スライド到着で morph トリガー。小ロゴ位置を測ってから morph 開始。
+  useEffect(() => {
+    if (phase !== 'loading') return;
+    if (slides.length === 0) return;
+    // 次フレームで小ロゴ位置を測定 (DOMにマウント済みのはず)
+    const raf = requestAnimationFrame(() => {
+      if (smallLogoRef.current) {
+        const r = smallLogoRef.current.getBoundingClientRect();
+        setMorphPos({ top: r.top, left: r.left, width: r.width });
+      }
+      setPhase('morphing');
+    });
+    const t = setTimeout(() => setPhase('done'), 1500);
+    return () => { cancelAnimationFrame(raf); clearTimeout(t); };
+  }, [slides.length, phase]);
+
+  // (Phase 6.8) ロード/morph 画面: phase に応じて装飾フェード + 大ロゴが小ロゴ位置へ縮小・移動
+  // パーティクル定義
+  const particles = [
+    { l:  8,  size: 4,  delay: 0,    duration: 7  },
+    { l: 18,  size: 7,  delay: 1.4,  duration: 9  },
+    { l: 28,  size: 3,  delay: 2.8,  duration: 6.5},
+    { l: 42,  size: 6,  delay: 0.6,  duration: 8  },
+    { l: 58,  size: 5,  delay: 2.2,  duration: 7.5},
+    { l: 70,  size: 8,  delay: 1.0,  duration: 10 },
+    { l: 82,  size: 4,  delay: 3.4,  duration: 6  },
+    { l: 92,  size: 6,  delay: 0.2,  duration: 8.5},
+  ];
+  const loadingUI = phase !== 'done' ? (
+    <React.Fragment>
+      {/* 装飾レイヤー (背景・パーティクル・オーラ・リップル・文言・進捗・コーナー) */}
+      {/* phase==='loading' のみ visible、'morphing'/'done' で fade out */}
+      <div style={{
+        position: 'absolute', inset: 0, overflow: 'hidden',
         background: '#fffaf3',
+        opacity: phase === 'loading' ? 1 : 0,
+        transition: 'opacity 0.7s ease-out',
+        zIndex: 50,
+        pointerEvents: phase === 'loading' ? 'auto' : 'none',
       }}>
-        {/* レイヤー1: 動くグラデーション (sweep) */}
+        {/* レイヤー1: 動くグラデーション */}
         <div style={{
           position:'absolute', inset:0,
           background: 'linear-gradient(120deg, #fff8ed 0%, #ffe5d2 25%, #ffeed6 50%, #f5dfff 75%, #e8efff 100%)',
           backgroundSize: '300% 300%',
           animation: 'heroBgSweep 18s ease-in-out infinite',
         }}/>
-
-        {/* レイヤー2: ガラス風オーバーレイ */}
+        {/* レイヤー2: ガラス */}
         <div style={{
           position:'absolute', inset:0,
           backdropFilter: 'blur(28px) saturate(120%)',
           WebkitBackdropFilter: 'blur(28px) saturate(120%)',
           background: 'rgba(255, 255, 255, 0.25)',
         }}/>
-
-        {/* レイヤー3: 浮遊する光のパーティクル */}
+        {/* レイヤー3: パーティクル */}
         {particles.map((p, i) => (
           <span key={i} style={{
-            position:'absolute',
-            left: `${p.l}%`,
-            bottom: -20,
-            width: p.size,
-            height: p.size,
-            borderRadius: '50%',
+            position:'absolute', left: `${p.l}%`, bottom: -20,
+            width: p.size, height: p.size, borderRadius: '50%',
             background: i % 2 === 0
               ? 'radial-gradient(circle, rgba(255,180,140,0.95) 0%, rgba(255,180,140,0) 70%)'
               : 'radial-gradient(circle, rgba(180,200,255,0.9) 0%, rgba(180,200,255,0) 70%)',
@@ -2418,8 +2437,7 @@ function HeroSlideshow({ t, events, heroSlides, loading }) {
             pointerEvents: 'none',
           }}/>
         ))}
-
-        {/* レイヤー4: 中央の柔らかい光輪 (大きめ・呼吸) */}
+        {/* レイヤー4: 中央光輪 */}
         <div style={{
           position:'absolute', top:'50%', left:'50%',
           transform:'translate(-50%, -50%)',
@@ -2428,70 +2446,45 @@ function HeroSlideshow({ t, events, heroSlides, loading }) {
           borderRadius:'50%',
           background:'radial-gradient(circle, rgba(255, 200, 155, 0.55) 0%, rgba(255,255,255,0) 65%)',
           animation:'heroLoadBreath 5s ease-in-out infinite',
-          pointerEvents:'none',
         }}/>
-
-        {/* 中央コンテンツ (ロゴ + ロゴ周りのリップル + 文言) */}
+        {/* リップル & オーラ (ロゴ位置に固定で重ねる) */}
+        <div style={{
+          position:'absolute', top:'50%', left:'50%',
+          transform:'translate(-50%, -50%)',
+          width:'clamp(160px, 22vw, 280px)',
+          height:'clamp(160px, 22vw, 280px)',
+        }}>
+          {[0,1,2].map(i => (
+            <span key={i} style={{
+              position:'absolute', top:'50%', left:'50%',
+              width:'70%', height:'70%',
+              marginTop:'-35%', marginLeft:'-35%',
+              borderRadius:'50%',
+              border:'1.5px solid rgba(255, 122, 89, 0.5)',
+              animation: `heroRipple 3.6s cubic-bezier(0.2, 0.6, 0.2, 1) ${i * 1.2}s infinite`,
+            }}/>
+          ))}
+          <span style={{
+            position:'absolute', top:'50%', left:'50%',
+            width:'90%', height:'90%',
+            marginTop:'-45%', marginLeft:'-45%',
+            borderRadius:'50%',
+            background:'radial-gradient(circle, rgba(255, 122, 89, 0.18) 0%, rgba(255,122,89,0) 70%)',
+            animation:'heroAura 2.8s ease-in-out infinite',
+          }}/>
+        </div>
+        {/* 文言 + サブ (中央コンテンツの下方) */}
         <div style={{
           position:'absolute', inset:0,
           display:'flex', flexDirection:'column',
           alignItems:'center', justifyContent:'center',
           textAlign:'center', padding:'0 24px',
+          paddingTop:'clamp(180px, 28vw, 340px)',
         }}>
-          {/* ロゴと同心円リップルを重ねるラッパー */}
-          <div style={{
-            position:'relative',
-            width:'clamp(160px, 22vw, 280px)',
-            height:'clamp(160px, 22vw, 280px)',
-            display:'flex', alignItems:'center', justifyContent:'center',
-            marginBottom: 32,
-          }}>
-            {/* 同心円リップル (3波、時間差) */}
-            {[0, 1, 2].map(i => (
-              <span key={i} style={{
-                position:'absolute',
-                top: '50%', left: '50%',
-                width: '70%', height: '70%',
-                marginTop: '-35%', marginLeft: '-35%',
-                borderRadius:'50%',
-                border: '1.5px solid rgba(255, 122, 89, 0.5)',
-                animation: `heroRipple 3.6s cubic-bezier(0.2, 0.6, 0.2, 1) ${i * 1.2}s infinite`,
-                pointerEvents:'none',
-              }}/>
-            ))}
-
-            {/* ロゴ周りのオーラ (パルス) */}
-            <span style={{
-              position:'absolute',
-              top: '50%', left: '50%',
-              width: '90%', height: '90%',
-              marginTop: '-45%', marginLeft: '-45%',
-              borderRadius: '50%',
-              background: 'radial-gradient(circle, rgba(255, 122, 89, 0.18) 0%, rgba(255,122,89,0) 70%)',
-              animation: 'heroAura 2.8s ease-in-out infinite',
-              pointerEvents:'none',
-            }}/>
-
-            {/* +a ロゴ画像本体 (フロート + シャドウパルス + 微回転) */}
-            <img
-              src={ASSET_LOGO}
-              alt="connec+a"
-              style={{
-                position:'relative',
-                width:'100%',
-                height:'auto',
-                animation: 'heroLogoFloat 4s ease-in-out infinite, heroLogoShadow 2.8s ease-in-out infinite',
-                filter: 'drop-shadow(0 12px 30px rgba(255, 122, 89, 0.35))',
-                zIndex: 2,
-              }}
-            />
-          </div>
-
-          {/* ロード文言 (フェード切替) */}
           <div key={phraseIdx} style={{
             fontFamily:'var(--jp)',
             fontSize: 13,
-            color: 'rgba(26, 54, 97, 0.7)',
+            color:'rgba(26, 54, 97, 0.7)',
             letterSpacing:'0.08em',
             fontWeight: 500,
             animation:'heroLoadPhrase 1.8s ease-in-out',
@@ -2499,22 +2492,19 @@ function HeroSlideshow({ t, events, heroSlides, loading }) {
           }}>
             {loadingPhrases[phraseIdx]}
           </div>
-
-          {/* サブテキスト: ブランド世界観 (常時表示) */}
           <div style={{
             marginTop: 12,
             fontFamily:'var(--serif, Georgia, serif)',
             fontStyle:'italic',
             fontSize: 12,
-            color: 'rgba(26, 54, 97, 0.4)',
+            color:'rgba(26, 54, 97, 0.4)',
             letterSpacing:'0.15em',
             animation:'heroSubFade 4s ease-in-out infinite',
           }}>
             where strangers become friends
           </div>
         </div>
-
-        {/* 下部の進捗ライン */}
+        {/* 進捗バー */}
         <div style={{
           position:'absolute', bottom:0, left:0, right:0,
           height: 2,
@@ -2527,8 +2517,7 @@ function HeroSlideshow({ t, events, heroSlides, loading }) {
             animation:'heroLoadBar 2.2s ease-in-out infinite',
           }}/>
         </div>
-
-        {/* 4隅にコーナーマーク (エディトリアルな雰囲気) */}
+        {/* 4隅コーナーマーク */}
         {[
           { top: 20, left: 20, borderTop: 1, borderLeft: 1 },
           { top: 20, right: 20, borderTop: 1, borderRight: 1 },
@@ -2543,12 +2532,11 @@ function HeroSlideshow({ t, events, heroSlides, loading }) {
             borderBottomWidth: pos.borderBottom ? 1 : 0,
             borderLeftWidth: pos.borderLeft ? 1 : 0,
             borderRightWidth: pos.borderRight ? 1 : 0,
-            borderStyle: 'solid',
-            borderColor: 'rgba(26, 54, 97, 0.25)',
-            animation: 'heroCornerFade 3s ease-in-out infinite',
+            borderStyle:'solid',
+            borderColor:'rgba(26, 54, 97, 0.25)',
+            animation:'heroCornerFade 3s ease-in-out infinite',
           }}/>
         ))}
-
         <style>{`
           @keyframes heroBgSweep {
             0%, 100% { background-position: 0% 50%; }
@@ -2578,10 +2566,6 @@ function HeroSlideshow({ t, events, heroSlides, loading }) {
             0%, 100% { transform: translateY(0)    rotate(-1.5deg); }
             50%      { transform: translateY(-10px) rotate(1.5deg); }
           }
-          @keyframes heroLogoShadow {
-            0%, 100% { filter: drop-shadow(0 8px 18px  rgba(255, 122, 89, 0.25)); }
-            50%      { filter: drop-shadow(0 16px 36px rgba(255, 122, 89, 0.45)); }
-          }
           @keyframes heroLoadPhrase {
             0%   { opacity: 0; transform: translateY(6px); }
             18%  { opacity: 1; transform: translateY(0); }
@@ -2601,9 +2585,40 @@ function HeroSlideshow({ t, events, heroSlides, loading }) {
             50%      { opacity: 0.8; }
           }
         `}</style>
-      </section>
-    );
-  }
+      </div>
+
+      {/* Morphロゴ: 中央(大) → 小ロゴ位置(小) へスムーズ変形 (1.5s で着地、phase='done' と同期) */}
+      <div style={{
+        position: 'fixed',
+        top:   phase === 'morphing' && morphPos ? `${morphPos.top}px` : '50%',
+        left:  phase === 'morphing' && morphPos ? `${morphPos.left}px` : '50%',
+        width: phase === 'morphing' && morphPos ? `${morphPos.width}px` : 'clamp(160px, 22vw, 280px)',
+        transform: phase === 'morphing' ? 'translate(0, 0)' : 'translate(-50%, -50%)',
+        transition: 'top 1.5s cubic-bezier(0.65, 0, 0.35, 1), left 1.5s cubic-bezier(0.65, 0, 0.35, 1), width 1.5s cubic-bezier(0.65, 0, 0.35, 1), transform 1.5s cubic-bezier(0.65, 0, 0.35, 1)',
+        zIndex: 100,
+        pointerEvents: 'none',
+        willChange: 'top, left, width, transform',
+      }}>
+        <img
+          src={ASSET_LOGO}
+          alt="connec+a"
+          style={{
+            width: '100%',
+            height: 'auto',
+            display: 'block',
+            // loading時のみフロート・シャドウパルス、morphing時はオフ (transition干渉回避)
+            animation: phase === 'loading'
+              ? 'heroLogoFloat 4s ease-in-out infinite'
+              : 'none',
+            filter: phase === 'loading'
+              ? 'drop-shadow(0 12px 30px rgba(255, 122, 89, 0.35))'
+              : 'drop-shadow(0 6px 14px rgba(255, 122, 89, 0.25))',
+            transition: 'filter 0.7s ease-out',
+          }}
+        />
+      </div>
+    </React.Fragment>
+  ) : null;
 
   return (
     <section style={{
@@ -2652,12 +2667,15 @@ function HeroSlideshow({ t, events, heroSlides, loading }) {
         </div>
       ))}
 
-      {/* ロゴ (右上、白カードに) */}
+      {/* ロゴ (右上、白カードに) - smallLogoRef はinner img に付けて、morph 完了時に img の位置・サイズと完全一致させる */}
       <div style={{
         position: 'absolute',
         top: 'clamp(110px, 13vh, 140px)',
         right: 'clamp(28px, 4vw, 56px)',
         zIndex: 10,
+        // morphing 中はモーフ用ロゴが上に被さるので非表示。done でフェードイン
+        opacity: phase === 'done' ? 1 : 0,
+        transition: 'opacity 0.5s ease-out',
       }}>
         <div style={{
           background: 'rgba(255, 255, 255, 0.95)',
@@ -2667,7 +2685,7 @@ function HeroSlideshow({ t, events, heroSlides, loading }) {
           borderRadius: 16,
           boxShadow: '0 8px 24px -4px rgba(0,0,0,0.2)',
         }}>
-          <img src={ASSET_LOGO} alt="connec+a" style={{
+          <img ref={smallLogoRef} src={ASSET_LOGO} alt="connec+a" style={{
             width: 'clamp(48px, 4.5vw, 64px)',
             height: 'auto',
             display: 'block',
@@ -2857,6 +2875,9 @@ function HeroSlideshow({ t, events, heroSlides, loading }) {
           }} />
         </div>
       </div>
+
+      {/* (Phase 6.8) ロード装飾 + モーフ用ロゴ。phase==='done' のときは null になる */}
+      {loadingUI}
     </section>
   );
 }
