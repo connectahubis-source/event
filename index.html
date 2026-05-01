@@ -666,6 +666,26 @@ async function fetchAds() {
   }
 }
 
+// ヒーロースライド一覧 (Phase 6.3: Adminで管理する常設ヒーロースライド)
+async function fetchHeroSlides() {
+  const controller = new AbortController();
+  const timeoutId = setTimeout(() => controller.abort(), 15000);
+  try {
+    const url = `${CONFIG.GAS_URL}?action=listHeroSlides&_t=${Date.now()}`;
+    const res = await fetch(url, { signal: controller.signal });
+    clearTimeout(timeoutId);
+    if (!res.ok) return [];
+    const json = await res.json();
+    if (json && json.ok && Array.isArray(json.data)) return json.data;
+    if (Array.isArray(json)) return json;
+    return [];
+  } catch (err) {
+    clearTimeout(timeoutId);
+    console.error('[Participants] fetchHeroSlides error:', err);
+    return [];
+  }
+}
+
 // 単一イベント取得 (詳細ページ用)
 async function fetchEvent(eventId) {
   const controller = new AbortController();
@@ -2160,24 +2180,18 @@ function PageHero({
 // HERO SLIDESHOW (西武鉄道スタイル: 時間帯で切り替わるフルブリード写真)
 // Phase 6: 公開中イベントのポスターを優先表示、無ければ既定スライドにフォールバック
 // ============================================================================
-function HeroSlideshow({ t, events }) {
+function HeroSlideshow({ t, events, heroSlides }) {
   // Google Drive の URL を表示可能な形式に正規化 (Phase 6 fix)
-  // - uc?export=view&id=XXX (古い形式、403が増えている) → thumbnail?id=XXX&sz=w2000
-  // - file/d/XXX/view (閲覧URL) → thumbnail?id=XXX&sz=w2000
-  // - thumbnail?id=XXX (既に新形式) → そのまま
-  // - その他の URL (Imgur など) → そのまま
   const normalizeImageUrl = (url) => {
     if (!url || typeof url !== 'string') return url;
-    // file/d/{ID}/view または file/d/{ID}/edit
     let m = url.match(/drive\.google\.com\/file\/d\/([^/]+)/);
     if (m) return `https://drive.google.com/thumbnail?id=${m[1]}&sz=w2000`;
-    // uc?...&id={ID} or uc?id={ID}
     m = url.match(/drive\.google\.com\/uc.*?[?&]id=([^&]+)/);
     if (m) return `https://drive.google.com/thumbnail?id=${m[1]}&sz=w2000`;
     return url;
   };
 
-  // 既定スライド (イベントが無い時のフォールバック)
+  // フォールバックの既定スライド (Adminスライドが0件のときのみ使用)
   const defaultSlides = [
     {
       img: ASSET_GROUP_PHOTO,
@@ -2217,11 +2231,33 @@ function HeroSlideshow({ t, events }) {
     },
   ];
 
-  // 公開中 (またはこれから開催) のイベントから、ヒーロー画像 or ポスター付きのものを抽出
-  // ヒーロー画像 (横長) を優先、無ければ縦長ポスターでフォールバック
+  // ① イベントスライド (Phase 6.2: 公開予約 + 過去日除外を反映)
+  // 公開ロジックは filterPublicEvents と同じ: 公開状態 OR 公開予約日時を過ぎた、かつ開催日が今日以降
+  const now = new Date();
+  const todayStart = new Date(now.getFullYear(), now.getMonth(), now.getDate());
+  const PUBLIC_STATUSES_HERO = ['公開中', '満員', '公開', 'published', 'public', 'open'];
+
   const eventSlides = (events || [])
-    .filter(e => (e.status === '公開中' || e.status === '満員') && (e.heroImageUrl || e.posterUrl))
-    .slice(0, 6)   // 最大6件
+    .filter(e => {
+      // 画像が無いものはヒーローに出さない
+      if (!e.heroImageUrl && !e.posterUrl) return false;
+      // 公開状態 OR 公開予約日時を過ぎた
+      const isPubliclyMarked = PUBLIC_STATUSES_HERO.includes(e.status);
+      let isScheduled = false;
+      if (e.publishAt) {
+        const pd = new Date(e.publishAt);
+        if (!isNaN(pd.getTime()) && pd <= now) isScheduled = true;
+      }
+      if (!isPubliclyMarked && !isScheduled) return false;
+      // 開催日が今日以降
+      const endStr = e.endDate || e.date;
+      if (endStr) {
+        const endDate = new Date(String(endStr) + 'T23:59:59');
+        if (!isNaN(endDate.getTime()) && endDate < todayStart) return false;
+      }
+      return true;
+    })
+    .slice(0, 4)   // イベントは最大4件
     .map(e => ({
       img: normalizeImageUrl(e.heroImageUrl || e.posterUrl),
       eyebrow: e.category ? String(e.category).toUpperCase() : 'EVENT',
@@ -2238,13 +2274,51 @@ function HeroSlideshow({ t, events }) {
       accent: e.accent,
     }));
 
-  // イベントスライドがあればそれを使い、無ければ既定スライド
-  const slides = eventSlides.length > 0 ? eventSlides : defaultSlides;
+  // ② Adminで管理するヒーロースライド (有効・画像ありのみ)
+  const adminSlides = (heroSlides || [])
+    .filter(s => s.enabled && s.imageUrl)
+    .sort((a, b) => a.order - b.order)
+    .map(s => ({
+      img: normalizeImageUrl(s.imageUrl),
+      eyebrow: s.eyebrow || 'CONNEC+A',
+      mainEn: s.titleEn || '',
+      mainEm: s.titleEm || '',
+      sub: s.sub || '',
+      tone: s.tone || 'warm',
+      isEvent: false,
+    }));
+
+  // ③ 混在表示: イベントスライドと Adminスライドを交互に挟む (イベント優先で先頭)
+  // 例: [event1, admin1, event2, admin2, event3, admin3] のように
+  const interleave = (a, b) => {
+    const result = [];
+    const max = Math.max(a.length, b.length);
+    for (let i = 0; i < max; i++) {
+      if (i < a.length) result.push(a[i]);
+      if (i < b.length) result.push(b[i]);
+    }
+    return result;
+  };
+
+  let slides;
+  if (eventSlides.length === 0 && adminSlides.length === 0) {
+    // 両方空: hardcoded フォールバック
+    slides = defaultSlides;
+  } else if (adminSlides.length === 0) {
+    // イベントのみ
+    slides = eventSlides;
+  } else if (eventSlides.length === 0) {
+    // Adminスライドのみ
+    slides = adminSlides;
+  } else {
+    // 両方あり: 混在
+    slides = interleave(eventSlides, adminSlides);
+  }
 
   const [idx, setIdx] = useState(0);
   const [paused, setPaused] = useState(false);
 
-  // events 配列が変わってスライド数が減った時にindex範囲外にならないようリセット
+  // スライド数が減った時にindex範囲外にならないようリセット
   useEffect(() => {
     if (idx >= slides.length) setIdx(0);
   }, [slides.length, idx]);
@@ -2674,7 +2748,7 @@ function AdRotator({ ads, placement = '参加者ヒーロー' }) {
   );
 }
 
-function PageHome({ lang, t, events, ads, loading }) {
+function PageHome({ lang, t, events, ads, heroSlides, loading }) {
   const heroRef = useRef(null);
 
   const upcomingEvents = filterPublicEvents(events).slice(0, 3);
@@ -2684,7 +2758,7 @@ function PageHome({ lang, t, events, ads, loading }) {
       {/* ============================================================ */}
       {/* CONNEC+A HERO v6 (西武鉄道スタイル: シンプル写真スライドショー) */}
       {/* ============================================================ */}
-      <HeroSlideshow t={t} events={events} />
+      <HeroSlideshow t={t} events={events} heroSlides={heroSlides} />
 
       {/* AD ROTATOR (Phase 6: スポンサー広告のローテーション) */}
       <AdRotator ads={ads} placement="参加者ヒーロー" />
@@ -4297,6 +4371,7 @@ function App() {
   const route = useRoute();
   const [events, setEvents] = useState([]);
   const [ads, setAds] = useState([]);   // 広告 (Phase 6)
+  const [heroSlides, setHeroSlides] = useState([]);   // ヒーロースライド (Phase 6.3)
   const [loading, setLoading] = useState(true);
   const t = I18N[lang] || I18N.ja;
 
@@ -4305,18 +4380,20 @@ function App() {
     captureUTM();
   }, []);
 
-  // イベント + 広告データ取得 (並列)
+  // イベント + 広告 + ヒーロースライド (並列)
   useEffect(() => {
     let cancelled = false;
     async function load() {
       setLoading(true);
-      const [eventData, adData] = await Promise.all([
+      const [eventData, adData, heroData] = await Promise.all([
         fetchEvents(),
         fetchAds(),
+        fetchHeroSlides(),
       ]);
       if (!cancelled) {
         setEvents(eventData);
         setAds(adData);
+        setHeroSlides(heroData);
         setLoading(false);
       }
     }
@@ -4331,7 +4408,7 @@ function App() {
   const matchEvent = route.match(/^\/events\/(.+)/);
 
   if (isHome) {
-    Page = <PageHome lang={lang} t={t} events={events} ads={ads} loading={loading} />;
+    Page = <PageHome lang={lang} t={t} events={events} ads={ads} heroSlides={heroSlides} loading={loading} />;
   } else if (route === '/events') {
     Page = <PageEvents lang={lang} t={t} events={events} loading={loading} />;
   } else if (matchEvent) {
