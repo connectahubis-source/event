@@ -1735,9 +1735,16 @@ function EventPosterRow({ ev, lang, t }) {
   const posterImg = normalizeImageUrl(ev.posterUrl);
   const heroImg = normalizeImageUrl(ev.heroImageUrl);
   const isFull = ev.status === '満員';
-  const spotsLeft = Math.max(0, (ev.capacity || 0) - (ev.registered || 0));
+  // 残席表示: capacity が 0/空のときは表示しない (定員無制限イベントの誤表示防止)
+  const hasCapacity = Number(ev.capacity) > 0;
+  const spotsLeft = hasCapacity ? Math.max(0, Number(ev.capacity) - (Number(ev.registered) || 0)) : null;
   const dateLabel = ev.date || (ev.format === 'multi' ? '複数日程' : '日程未定');
   const formatJa = ev.format === 'multi' ? `${ev.sessionCount || ''}セッション` : '';
+  // 会場表示: venue が空 + multi の場合は「各セッション参照」、online なら「オンライン開催」
+  const venueLabel = ev.venue
+    ? ev.venue
+    : (ev.online ? 'オンライン開催'
+       : (ev.format === 'multi' ? '会場は各セッションで確認' : '会場未定'));
 
   return (
     <a href={`#/events/${ev.id}`} style={{
@@ -1927,7 +1934,7 @@ function EventPosterRow({ ev, lang, t }) {
               textShadow: heroImg ? '0 1px 2px rgba(255,255,255,0.8)' : 'none',
             }}>
               <span style={{ fontSize: 14 }}>📍</span>
-              <span>{ev.venue || (ev.online ? 'オンライン開催' : '会場未定')}</span>
+              <span>{venueLabel}</span>
             </div>
           </div>
 
@@ -1948,7 +1955,9 @@ function EventPosterRow({ ev, lang, t }) {
               letterSpacing: '0.1em',
               textShadow: heroImg ? '0 1px 2px rgba(255,255,255,0.8)' : 'none',
             }}>
-              {isFull ? '満員 (キャンセル待ち)' : `残り ${spotsLeft} 席`}
+              {isFull
+                ? '満員 (キャンセル待ち)'
+                : (hasCapacity ? `残り ${spotsLeft} 席` : '定員制限なし')}
             </div>
             <span style={{
               display: 'inline-flex',
@@ -2180,7 +2189,7 @@ function PageHero({
 // HERO SLIDESHOW (西武鉄道スタイル: 時間帯で切り替わるフルブリード写真)
 // Phase 6: 公開中イベントのポスターを優先表示、無ければ既定スライドにフォールバック
 // ============================================================================
-function HeroSlideshow({ t, events, heroSlides }) {
+function HeroSlideshow({ t, events, heroSlides, loading }) {
   // Google Drive の URL を表示可能な形式に正規化 (Phase 6 fix)
   const normalizeImageUrl = (url) => {
     if (!url || typeof url !== 'string') return url;
@@ -2301,8 +2310,12 @@ function HeroSlideshow({ t, events, heroSlides }) {
   };
 
   let slides;
-  if (eventSlides.length === 0 && adminSlides.length === 0) {
-    // 両方空: hardcoded フォールバック
+  if (loading) {
+    // 初回 fetch 完了前: defaultSlides を出すと「一瞬 4枚が見える → 切替」のちらつきになるので、
+    // 取得中は空配列にして placeholder (下のレンダリングで処理) を表示する
+    slides = [];
+  } else if (eventSlides.length === 0 && adminSlides.length === 0) {
+    // 取得完了後、両方空のときだけ既定スライドにフォールバック
     slides = defaultSlides;
   } else if (adminSlides.length === 0) {
     // イベントのみ
@@ -2325,11 +2338,44 @@ function HeroSlideshow({ t, events, heroSlides }) {
 
   useEffect(() => {
     if (paused) return;
+    if (slides.length === 0) return;   // 空のときはinterval走らせない
     const interval = setInterval(() => {
       setIdx(i => (i + 1) % slides.length);
     }, 6500);
     return () => clearInterval(interval);
   }, [paused, slides.length]);
+
+  // 取得中 (slides.length === 0) は同じ高さのプレースホルダーを描画
+  // → defaultSlides が一瞬出る挙動を完全に抑止しつつ、レイアウトのジャンプも防ぐ
+  if (slides.length === 0) {
+    return (
+      <section style={{
+        position: 'relative',
+        width: '100%',
+        height: '100vh',
+        minHeight: 600,
+        maxHeight: 900,
+        overflow: 'hidden',
+        background: 'linear-gradient(180deg, #0a2960 0%, #061a3f 100%)',
+      }}>
+        {/* 静的な背景 + ロゴワードマーク程度に留める (ちらつき防止が最優先) */}
+        <div style={{
+          position: 'absolute',
+          inset: 0,
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'center',
+          color: 'rgba(255,255,255,0.5)',
+          fontFamily: 'var(--serif, Georgia, serif)',
+          fontSize: 32,
+          fontStyle: 'italic',
+          letterSpacing: '0.02em',
+        }}>
+          connec+a
+        </div>
+      </section>
+    );
+  }
 
   return (
     <section style={{
@@ -2758,7 +2804,7 @@ function PageHome({ lang, t, events, ads, heroSlides, loading }) {
       {/* ============================================================ */}
       {/* CONNEC+A HERO v6 (西武鉄道スタイル: シンプル写真スライドショー) */}
       {/* ============================================================ */}
-      <HeroSlideshow t={t} events={events} heroSlides={heroSlides} />
+      <HeroSlideshow t={t} events={events} heroSlides={heroSlides} loading={loading} />
 
       {/* AD ROTATOR (Phase 6: スポンサー広告のローテーション) */}
       <AdRotator ads={ads} placement="参加者ヒーロー" />
