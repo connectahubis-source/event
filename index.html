@@ -751,24 +751,101 @@ function fmtTimeRange(start, end) {
   return '';
 }
 
-// 公開イベントのフィルタ (表記揺れに強い実装)
+// 公開イベントのフィルタ (Phase 6.2: 公開予約 + 過去日 + 申込締切に対応)
+//
+// 表示条件 (AND):
+//   ① ステータスが PUBLIC_STATUSES に該当する OR 公開予約日時を過ぎた「下書き」
+//   ② イベント開催日が今日以降 (過去のイベントは出さない)
+//
+// 補助フィルタは別関数:
+//   - isRegistrationOpen(event): 申込が現在受付中か (申込締切で false)
 function filterPublicEvents(events) {
   if (!Array.isArray(events)) {
     console.warn('[Participants] filterPublicEvents: events is not array', events);
     return [];
   }
-  // 公開状態とみなすステータス値 (表記揺れ吸収)
   const PUBLIC_STATUSES = ['公開中', '満員', '公開', 'published', 'public', 'open'];
-  const filtered = events.filter(e => PUBLIC_STATUSES.includes(e.status));
-  // デバッグログ: 受信件数とフィルタ後件数を表示
+  const now = new Date();
+
+  // 今日 0:00 (過去日チェック用、開催日が「今日」のものは含める)
+  const todayStart = new Date(now.getFullYear(), now.getMonth(), now.getDate());
+
+  const filtered = events.filter(e => {
+    // --- ① 公開状態チェック (公開予約日時の遅延公開も対応) ---
+    const isPubliclyMarked = PUBLIC_STATUSES.includes(e.status);
+    let isScheduledPublished = false;
+    if (e.publishAt) {
+      const publishDate = new Date(e.publishAt);
+      if (!isNaN(publishDate.getTime()) && publishDate <= now) {
+        isScheduledPublished = true;
+      }
+    }
+    if (!isPubliclyMarked && !isScheduledPublished) return false;
+
+    // --- ② 開催日が今日以降か (multi イベントは終了日 or 開催日で判定) ---
+    // 終了日があればそれを優先、無ければ開催日。両方無ければ通す
+    const endStr = e.endDate || e.date;
+    if (endStr) {
+      const endDate = new Date(String(endStr) + 'T23:59:59');
+      if (!isNaN(endDate.getTime()) && endDate < todayStart) return false;
+    }
+
+    return true;
+  });
+
   console.log(`[Participants] filterPublicEvents: ${events.length} received → ${filtered.length} public`);
   if (events.length > 0 && filtered.length === 0) {
-    // 受信したのに全部フィルタで落ちる場合、ステータス値を一覧表示
     const statuses = [...new Set(events.map(e => e.status))];
     console.warn('[Participants] all events filtered out. Found statuses:', statuses);
-    console.warn('[Participants] expected one of:', PUBLIC_STATUSES);
   }
   return filtered;
+}
+
+// 申込受付中か判定 (Phase 6.2)
+// false の場合: 申込ボタンを「受付終了」「申込開始前」表示にする
+function isRegistrationOpen(event) {
+  if (!event) return false;
+  if (event.status === '満員') return false;
+  const now = new Date();
+  // 申込開始日チェック
+  if (event.regOpenDate) {
+    const open = new Date(String(event.regOpenDate) + 'T00:00:00');
+    if (!isNaN(open.getTime()) && now < open) return false;
+  }
+  // 申込締切日チェック (締切日の 23:59 まで受付)
+  if (event.regCloseDate) {
+    const close = new Date(String(event.regCloseDate) + 'T23:59:59');
+    if (!isNaN(close.getTime()) && now > close) return false;
+  }
+  return true;
+}
+
+// 申込が締め切られた理由を文字列で返す (UI 表示用) Phase 6.2
+function getRegistrationStatus(event) {
+  if (!event) return { open: false, reason: '不明', label: '' };
+  if (event.status === '満員') return { open: false, reason: 'full', label: '満員 (キャンセル待ち)' };
+  const now = new Date();
+  if (event.regOpenDate) {
+    const open = new Date(String(event.regOpenDate) + 'T00:00:00');
+    if (!isNaN(open.getTime()) && now < open) {
+      return { open: false, reason: 'before_open', label: `${event.regOpenDate} から申込開始` };
+    }
+  }
+  if (event.regCloseDate) {
+    const close = new Date(String(event.regCloseDate) + 'T23:59:59');
+    if (!isNaN(close.getTime()) && now > close) {
+      return { open: false, reason: 'closed', label: '申込受付終了' };
+    }
+  }
+  // イベント当日も過ぎていれば終了
+  const eventEnd = event.endDate || event.date;
+  if (eventEnd) {
+    const end = new Date(String(eventEnd) + 'T23:59:59');
+    if (!isNaN(end.getTime()) && now > end) {
+      return { open: false, reason: 'ended', label: 'イベント終了' };
+    }
+  }
+  return { open: true, reason: 'open', label: '申込受付中' };
 }
 
 // ============================================================================
@@ -1617,6 +1694,266 @@ function CompactEventCard({ ev, lang, t }) {
 }
 
 // ============================================================================
+// EVENT POSTER ROW (Phase 6.1: 左ポスター・右概要、ヒーロー画像を背景に薄く)
+// ============================================================================
+// 「近日開催のイベント」セクション専用カード。
+// - 左: 縦長ポスター画像 (posterUrl)
+// - 右: タイトル / 日付 / 会場 / 概要 / 「詳しく見る →」 CTA
+// - 背景: ヒーロー画像 (heroImageUrl) を blur(8px) + 透明度 10-15% で配置
+// - 文字可読性: 半透明白パネル + text-shadow + ぼかしの3重防御
+function EventPosterRow({ ev, lang, t }) {
+  // Drive URL を thumbnail 形式に正規化 (古い uc?export=view 対策)
+  const normalizeImageUrl = (url) => {
+    if (!url || typeof url !== 'string') return url;
+    let m = url.match(/drive\.google\.com\/file\/d\/([^/]+)/);
+    if (m) return `https://drive.google.com/thumbnail?id=${m[1]}&sz=w2000`;
+    m = url.match(/drive\.google\.com\/uc.*?[?&]id=([^&]+)/);
+    if (m) return `https://drive.google.com/thumbnail?id=${m[1]}&sz=w2000`;
+    return url;
+  };
+
+  const posterImg = normalizeImageUrl(ev.posterUrl);
+  const heroImg = normalizeImageUrl(ev.heroImageUrl);
+  const isFull = ev.status === '満員';
+  const spotsLeft = Math.max(0, (ev.capacity || 0) - (ev.registered || 0));
+  const dateLabel = ev.date || (ev.format === 'multi' ? '複数日程' : '日程未定');
+  const formatJa = ev.format === 'multi' ? `${ev.sessionCount || ''}セッション` : '';
+
+  return (
+    <a href={`#/events/${ev.id}`} style={{
+      display: 'block',
+      position: 'relative',
+      borderRadius: 24,
+      overflow: 'hidden',
+      textDecoration: 'none',
+      color: 'inherit',
+      background: '#fff',
+      border: '1px solid var(--sky-100)',
+      boxShadow: '0 12px 32px -16px rgba(22, 86, 176, 0.18)',
+      transition: 'transform .35s cubic-bezier(.2,.8,.2,1), box-shadow .35s',
+      isolation: 'isolate',
+      minHeight: 280,
+    }}
+    onMouseEnter={(e) => {
+      e.currentTarget.style.transform = 'translateY(-4px)';
+      e.currentTarget.style.boxShadow = '0 20px 44px -16px rgba(22, 86, 176, 0.28)';
+    }}
+    onMouseLeave={(e) => {
+      e.currentTarget.style.transform = 'none';
+      e.currentTarget.style.boxShadow = '0 12px 32px -16px rgba(22, 86, 176, 0.18)';
+    }}
+    >
+      {/* 背景レイヤー: ヒーロー画像をぼかし + 透明度で */}
+      {heroImg && (
+        <>
+          <div aria-hidden style={{
+            position: 'absolute',
+            inset: 0,
+            backgroundImage: `url(${heroImg})`,
+            backgroundSize: 'cover',
+            backgroundPosition: 'center',
+            opacity: 0.12,
+            filter: 'blur(8px)',
+            transform: 'scale(1.1)',   // blurの端ボケ対策
+            zIndex: 0,
+          }}/>
+          {/* 白いベール (文字可読性確保) */}
+          <div aria-hidden style={{
+            position: 'absolute',
+            inset: 0,
+            background: 'linear-gradient(135deg, rgba(255,255,255,0.85) 0%, rgba(255,255,255,0.92) 60%, rgba(255,255,255,0.85) 100%)',
+            zIndex: 1,
+          }}/>
+        </>
+      )}
+
+      {/* コンテンツ: 左ポスター + 右概要 */}
+      <div style={{
+        position: 'relative',
+        zIndex: 2,
+        display: 'grid',
+        gridTemplateColumns: 'minmax(180px, 32%) 1fr',
+        gap: 'clamp(20px, 3vw, 32px)',
+        alignItems: 'stretch',
+      }}
+      className="event-poster-row-grid">
+        {/* 左: ポスター画像 (縦長) */}
+        <div style={{
+          position: 'relative',
+          background: 'linear-gradient(135deg, var(--sky-100) 0%, var(--sky-50) 100%)',
+          minHeight: 280,
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'center',
+        }}>
+          {posterImg ? (
+            <img
+              src={posterImg}
+              alt={ev.title || ''}
+              style={{
+                width: '100%',
+                height: '100%',
+                objectFit: 'cover',
+                position: 'absolute',
+                inset: 0,
+              }}
+              onError={(e) => { e.target.style.display = 'none'; }}
+            />
+          ) : (
+            <div style={{
+              fontFamily: 'var(--mono)',
+              fontSize: 11,
+              color: 'var(--sky-700)',
+              letterSpacing: '0.2em',
+              fontWeight: 600,
+              textAlign: 'center',
+              padding: 20,
+            }}>
+              <div style={{ fontSize: 36, marginBottom: 8 }}>📋</div>
+              NO POSTER
+            </div>
+          )}
+          {/* ステータスバッジ (ポスター上にオーバーレイ) */}
+          {isFull && (
+            <div style={{
+              position: 'absolute',
+              top: 14,
+              left: 14,
+              background: 'var(--coral)',
+              color: '#fff',
+              padding: '4px 10px',
+              borderRadius: 999,
+              fontSize: 11,
+              fontWeight: 700,
+              letterSpacing: '0.1em',
+              boxShadow: '0 4px 12px rgba(255, 122, 89, 0.4)',
+              zIndex: 5,
+            }}>FULL</div>
+          )}
+        </div>
+
+        {/* 右: 概要 + CTA */}
+        <div style={{
+          padding: 'clamp(20px, 3vw, 32px) clamp(20px, 3vw, 32px) clamp(20px, 3vw, 32px) 0',
+          display: 'flex',
+          flexDirection: 'column',
+          justifyContent: 'space-between',
+          minHeight: 280,
+        }}>
+          <div>
+            {/* eyebrow: カテゴリ + 日付 */}
+            <div style={{
+              fontFamily: 'var(--mono)',
+              fontSize: 11,
+              letterSpacing: '0.18em',
+              color: 'var(--coral)',
+              fontWeight: 700,
+              marginBottom: 14,
+              display: 'flex',
+              alignItems: 'center',
+              gap: 10,
+              flexWrap: 'wrap',
+              textShadow: heroImg ? '0 1px 2px rgba(255,255,255,0.8)' : 'none',
+            }}>
+              {ev.category && <span>{String(ev.category).toUpperCase()}</span>}
+              {ev.category && <span style={{ width: 4, height: 4, borderRadius: '50%', background: 'var(--coral)' }} />}
+              <span style={{ color: 'var(--sky-800)' }}>{dateLabel}</span>
+              {formatJa && (
+                <>
+                  <span style={{ width: 4, height: 4, borderRadius: '50%', background: 'var(--sky-400)' }} />
+                  <span style={{ color: 'var(--sky-800)' }}>{formatJa}</span>
+                </>
+              )}
+            </div>
+
+            {/* タイトル */}
+            <h3 style={{
+              fontFamily: 'var(--jp)',
+              fontSize: 'clamp(20px, 2.4vw, 28px)',
+              fontWeight: 800,
+              lineHeight: 1.3,
+              margin: 0,
+              color: 'var(--sky-900)',
+              letterSpacing: '-0.01em',
+              textShadow: heroImg ? '0 1px 3px rgba(255,255,255,0.9)' : 'none',
+            }}>{ev.title || '(無題)'}</h3>
+
+            {/* 概要 */}
+            {ev.summary && (
+              <p style={{
+                fontFamily: 'var(--jp)',
+                fontSize: 'clamp(13px, 1.1vw, 15px)',
+                color: 'var(--sky-800)',
+                lineHeight: 1.7,
+                margin: '14px 0 0',
+                display: '-webkit-box',
+                WebkitLineClamp: 3,
+                WebkitBoxOrient: 'vertical',
+                overflow: 'hidden',
+                textShadow: heroImg ? '0 1px 2px rgba(255,255,255,0.8)' : 'none',
+              }}>{ev.summary}</p>
+            )}
+
+            {/* 会場 */}
+            <div style={{
+              marginTop: 14,
+              display: 'flex',
+              alignItems: 'center',
+              gap: 8,
+              fontFamily: 'var(--jp)',
+              fontSize: 13,
+              color: 'var(--sky-700)',
+              fontWeight: 500,
+              textShadow: heroImg ? '0 1px 2px rgba(255,255,255,0.8)' : 'none',
+            }}>
+              <span style={{ fontSize: 14 }}>📍</span>
+              <span>{ev.venue || (ev.online ? 'オンライン開催' : '会場未定')}</span>
+            </div>
+          </div>
+
+          {/* CTA: 詳しく見る → */}
+          <div style={{
+            marginTop: 24,
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'space-between',
+            flexWrap: 'wrap',
+            gap: 12,
+          }}>
+            <div style={{
+              fontFamily: 'var(--mono)',
+              fontSize: 11,
+              color: isFull ? 'var(--coral)' : 'var(--sky-700)',
+              fontWeight: 700,
+              letterSpacing: '0.1em',
+              textShadow: heroImg ? '0 1px 2px rgba(255,255,255,0.8)' : 'none',
+            }}>
+              {isFull ? '満員 (キャンセル待ち)' : `残り ${spotsLeft} 席`}
+            </div>
+            <span style={{
+              display: 'inline-flex',
+              alignItems: 'center',
+              gap: 8,
+              background: 'var(--coral)',
+              color: '#fff',
+              padding: '10px 20px',
+              borderRadius: 999,
+              fontFamily: 'var(--jp)',
+              fontSize: 13,
+              fontWeight: 700,
+              boxShadow: '0 6px 16px -4px rgba(255, 122, 89, 0.4)',
+            }}>
+              詳しく見る
+              <span style={{ fontSize: 14 }}>→</span>
+            </span>
+          </div>
+        </div>
+      </div>
+    </a>
+  );
+}
+
+// ============================================================================
 // HOME (TOP) PAGE
 // ============================================================================
 // ============================================================================
@@ -1880,12 +2217,13 @@ function HeroSlideshow({ t, events }) {
     },
   ];
 
-  // 公開中 (またはこれから開催) のイベントから、ポスター付きのものを抽出
+  // 公開中 (またはこれから開催) のイベントから、ヒーロー画像 or ポスター付きのものを抽出
+  // ヒーロー画像 (横長) を優先、無ければ縦長ポスターでフォールバック
   const eventSlides = (events || [])
-    .filter(e => (e.status === '公開中' || e.status === '満員') && e.posterUrl)
+    .filter(e => (e.status === '公開中' || e.status === '満員') && (e.heroImageUrl || e.posterUrl))
     .slice(0, 6)   // 最大6件
     .map(e => ({
-      img: normalizeImageUrl(e.posterUrl),
+      img: normalizeImageUrl(e.heroImageUrl || e.posterUrl),
       eyebrow: e.category ? String(e.category).toUpperCase() : 'EVENT',
       mainEn: e.title || 'Upcoming Event',
       mainEm: e.format === 'multi' ? `${e.sessionCount || ''} sessions` : (e.date || ''),
@@ -2116,7 +2454,7 @@ function HeroSlideshow({ t, events }) {
         {(() => {
           const cur = slides[idx];
           const href = cur && cur.isEvent && cur.eventId
-            ? `#/event/${cur.eventId}`
+            ? `#/events/${cur.eventId}`
             : '#/events';
           const label = cur && cur.isEvent && cur.eventId
             ? 'このイベントを見る'
@@ -2561,31 +2899,15 @@ function PageHome({ lang, t, events, ads, loading }) {
             </BuildInDir>
           ) : (
             <div style={{
-              display: 'grid',
-              gridTemplateColumns: upcomingEvents.length >= 3 ? 'minmax(0, 1.4fr) minmax(0, 1fr)' : '1fr',
-              gap: 'clamp(24px, 3vw, 36px)',
-              alignItems: 'stretch',
-            }}
-            className="upcoming-grid">
-              {/* 大判イチオシ (1枚目) */}
-              <BuildInDir delay={500} dir="up" distance={50}>
-                <FeaturedEventCard ev={upcomingEvents[0]} lang={lang} t={t} />
-              </BuildInDir>
-
-              {/* サブカード (2-3枚目を縦積み) */}
-              {upcomingEvents.length >= 2 && (
-                <div style={{
-                  display: 'grid',
-                  gridTemplateRows: upcomingEvents.length >= 3 ? '1fr 1fr' : '1fr',
-                  gap: 'clamp(20px, 2.5vw, 32px)',
-                }}>
-                  {upcomingEvents.slice(1, 3).map((ev, i) => (
-                    <BuildInDir key={ev.id} delay={600 + i * 150} dir="left" distance={50}>
-                      <CompactEventCard ev={ev} lang={lang} t={t} />
-                    </BuildInDir>
-                  ))}
-                </div>
-              )}
+              display: 'flex',
+              flexDirection: 'column',
+              gap: 'clamp(20px, 2.5vw, 28px)',
+            }}>
+              {upcomingEvents.map((ev, i) => (
+                <BuildInDir key={ev.id} delay={500 + i * 120} dir="up" distance={40}>
+                  <EventPosterRow ev={ev} lang={lang} t={t} />
+                </BuildInDir>
+              ))}
             </div>
           )}
         </div>
@@ -2903,6 +3225,10 @@ function PageEventDetail({ lang, t, eventId }) {
   const spotsLeft = Math.max(0, (ev.capacity || 0) - (ev.registered || 0));
   const isMulti = ev.format === 'multi' && sessions.length > 0;
 
+  // 申込受付ステータス (Phase 6.2): 満員・申込開始前・申込締切後・終了 を一元判定
+  const regStatus = getRegistrationStatus(ev);
+  const cantRegister = !regStatus.open;
+
   // 日付パース (YYYY-MM-DD → 各部品)
   const dateObj = ev.date ? new Date(ev.date + 'T00:00:00') : null;
   const yyyy = dateObj ? dateObj.getFullYear() : '';
@@ -2965,6 +3291,59 @@ function PageEventDetail({ lang, t, eventId }) {
             ← {t.detail.back.replace('← ', '')}
           </a>
         </Reveal>
+
+        {/* ポスター画像 (Phase 6.1: 縦長ポスターを大きく掲示) */}
+        {ev.posterUrl && (() => {
+          const normalizeImageUrl = (url) => {
+            if (!url || typeof url !== 'string') return url;
+            let m = url.match(/drive\.google\.com\/file\/d\/([^/]+)/);
+            if (m) return `https://drive.google.com/thumbnail?id=${m[1]}&sz=w2000`;
+            m = url.match(/drive\.google\.com\/uc.*?[?&]id=([^&]+)/);
+            if (m) return `https://drive.google.com/thumbnail?id=${m[1]}&sz=w2000`;
+            return url;
+          };
+          const posterImg = normalizeImageUrl(ev.posterUrl);
+          return (
+            <Reveal delay={50}>
+              <div style={{
+                margin: '0 0 80px',
+                display: 'flex',
+                flexDirection: 'column',
+                alignItems: 'center',
+              }}>
+                <div style={{
+                  position: 'relative',
+                  maxWidth: 480,
+                  width: '100%',
+                  borderRadius: 12,
+                  overflow: 'hidden',
+                  boxShadow: '0 24px 60px -16px rgba(22, 86, 176, 0.25), 0 8px 24px -8px rgba(22, 86, 176, 0.15)',
+                  background: 'var(--sky-50)',
+                }}>
+                  <img
+                    src={posterImg}
+                    alt={`${ev.title} ポスター`}
+                    style={{
+                      display: 'block',
+                      width: '100%',
+                      height: 'auto',
+                      objectFit: 'contain',
+                    }}
+                    onError={(e) => { e.target.parentElement.parentElement.style.display = 'none'; }}
+                  />
+                </div>
+                <div style={{
+                  fontFamily: 'var(--mono)',
+                  fontSize: 10,
+                  color: 'var(--ink-mute)',
+                  letterSpacing: '0.2em',
+                  marginTop: 14,
+                  fontWeight: 600,
+                }}>EVENT POSTER</div>
+              </div>
+            </Reveal>
+          );
+        })()}
 
         {/* INFORMATION 段落 (multi/single分岐) */}
         <Reveal delay={100}>
@@ -3349,7 +3728,7 @@ function PageEventDetail({ lang, t, eventId }) {
             }}>
               {ev.fee && ev.fee > 0 ? `¥ ${ev.fee.toLocaleString()}` : t.detail.free.toUpperCase()}
               {' · '}
-              {isFull ? t.detail.eventClosed : (
+              {cantRegister ? regStatus.label : (
                 lang === 'en'
                   ? `${spotsLeft} ${t.detail.seatsRemaining}`
                   : `${t.detail.seatsRemaining} ${spotsLeft} ${t.detail.seats}`
@@ -3363,8 +3742,8 @@ function PageEventDetail({ lang, t, eventId }) {
               lineHeight: 1.3,
             }}>{ev.title}</div>
           </div>
-          <button onClick={handleRegister} disabled={isFull || (isMulti && selectedSessionIds.length === 0)} style={{
-            background: isFull ? 'var(--ink-faint)' : 'var(--ink)',
+          <button onClick={handleRegister} disabled={cantRegister || (isMulti && selectedSessionIds.length === 0)} style={{
+            background: cantRegister ? 'var(--ink-faint)' : 'var(--ink)',
             color: 'var(--paper)',
             border: 0,
             padding: '16px 36px',
@@ -3372,25 +3751,25 @@ function PageEventDetail({ lang, t, eventId }) {
             fontSize: 13,
             fontWeight: 700,
             borderRadius: 999,
-            cursor: isFull ? 'not-allowed' : 'pointer',
+            cursor: cantRegister ? 'not-allowed' : 'pointer',
             opacity: (isMulti && selectedSessionIds.length === 0) ? 0.5 : 1,
             transition: 'all .25s',
             letterSpacing: '0.18em',
           }}
           onMouseEnter={(e) => {
-            if (!isFull) {
+            if (!cantRegister) {
               e.target.style.background = 'var(--coral)';
               e.target.style.transform = 'translateY(-2px)';
             }
           }}
           onMouseLeave={(e) => {
-            if (!isFull) {
+            if (!cantRegister) {
               e.target.style.background = 'var(--ink)';
               e.target.style.transform = 'none';
             }
           }}>
-            {isFull
-              ? t.card.closed.toUpperCase()
+            {cantRegister
+              ? regStatus.label.toUpperCase()
               : isMulti
                 ? (selectedSessionIds.length > 1
                     ? t.detail.sessionsRegister.replace('{n}', selectedSessionIds.length).toUpperCase()
