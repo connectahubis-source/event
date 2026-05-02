@@ -2415,20 +2415,26 @@ function HeroSlideshow({ t, events, heroSlides, loading }) {
   }, [phase]);
 
   // (Phase 6.8) スライド到着で morph トリガー。小ロゴ位置を測ってから morph 開始。
+  // 注: 依存は slides.length のみ。phase を依存に入れると setPhase('morphing') の直後に
+  //     effect が再実行 → cleanup で clearTimeout が走り、'done' 遷移が起きないバグになる。
   useEffect(() => {
     if (phase !== 'loading') return;
     if (slides.length === 0) return;
+    let cancelled = false;
     // 次フレームで小ロゴ位置を測定 (DOMにマウント済みのはず)
     const raf = requestAnimationFrame(() => {
+      if (cancelled) return;
       if (smallLogoRef.current) {
         const r = smallLogoRef.current.getBoundingClientRect();
         setMorphPos({ top: r.top, left: r.left, width: r.width });
       }
       setPhase('morphing');
     });
-    const t = setTimeout(() => setPhase('done'), 1500);
-    return () => { cancelAnimationFrame(raf); clearTimeout(t); };
-  }, [slides.length, phase]);
+    const t = setTimeout(() => {
+      if (!cancelled) setPhase('done');
+    }, 1500);
+    return () => { cancelled = true; cancelAnimationFrame(raf); clearTimeout(t); };
+  }, [slides.length]);
 
   // (Phase 6.8) ロード/morph 画面: phase に応じて装飾フェード + 大ロゴが小ロゴ位置へ縮小・移動
   // パーティクル定義
@@ -3088,14 +3094,107 @@ function AdRotator({ ads, placement = '参加者ヒーロー' }) {
 }
 
 // ============================================================================
-// (Phase 6.9) seiban風セクション 共通スタイル
+// (Phase 6.9) seiban風セクション 共通スタイル + アニメーション
 // ============================================================================
 const SEIBAN_SECTION_HEIGHT = 'clamp(580px, 92vh, 880px)';
 const SEIBAN_PAD_X = 'clamp(24px, 6vw, 120px)';
 const SEIBAN_LABEL_EN_FONT = "'Cormorant Garamond', 'Noto Serif JP', Georgia, serif";
 
+const SEIBAN_ANIM_STYLE = `
+  @keyframes seibanBgFloat {
+    0%   { transform: translate(-50%, -50%) translateX(0); }
+    50%  { transform: translate(-50%, -50%) translateX(-30px); }
+    100% { transform: translate(-50%, -50%) translateX(0); }
+  }
+  @keyframes seibanBgFade {
+    0%, 100% { opacity: 0.04; }
+    50%      { opacity: 0.08; }
+  }
+  @keyframes seibanKenBurns {
+    0%   { transform: scale(1.02) translate(0, 0); }
+    50%  { transform: scale(1.08) translate(-1%, -1%); }
+    100% { transform: scale(1.02) translate(0, 0); }
+  }
+  @keyframes seibanLineGrow {
+    from { width: 0; }
+    to   { width: 32px; }
+  }
+  @keyframes seibanLineGrowLong {
+    from { width: 0; }
+    to   { width: 80px; }
+  }
+  @keyframes seibanTitleSlideIn {
+    from { opacity: 0; transform: translateY(40px); letter-spacing: 0.02em; }
+    to   { opacity: 1; transform: translateY(0);    letter-spacing: -0.025em; }
+  }
+  @keyframes seibanLabelDrop {
+    from { opacity: 0; transform: translateY(-12px); }
+    to   { opacity: 1; transform: translateY(0); }
+  }
+  @keyframes seibanCtaBreath {
+    0%, 100% { transform: scale(1);    box-shadow: 0 8px 24px -8px rgba(0,0,0,0.2); }
+    50%      { transform: scale(1.04); box-shadow: 0 16px 36px -8px rgba(0,0,0,0.35); }
+  }
+  @keyframes seibanCtaArrow {
+    0%, 100% { transform: translateX(0); }
+    50%      { transform: translateX(4px); }
+  }
+  @keyframes seibanDotBreath {
+    0%, 100% { transform: scale(1);    opacity: 0.55; }
+    50%      { transform: scale(1.4);  opacity: 0.85; }
+  }
+  @keyframes seibanCornerFade {
+    0%, 100% { opacity: 0.3; }
+    50%      { opacity: 0.7; }
+  }
+  @keyframes seibanGradShift {
+    0%, 100% { background-position: 0% 50%; }
+    50%      { background-position: 100% 50%; }
+  }
+  @keyframes seibanBodyRise {
+    from { opacity: 0; transform: translateY(20px); }
+    to   { opacity: 1; transform: translateY(0); }
+  }
+  @keyframes seibanScrollHint {
+    0%, 100% { opacity: 0.5; transform: translateY(0); }
+    50%      { opacity: 1;   transform: translateY(6px); }
+  }
+  @keyframes seibanProgressBar {
+    from { width: 0%; }
+    to   { width: 100%; }
+  }
+`;
+
+// 共通: 背景画像をぼかし背景 + Ken Burns で表示。
+// ロゴ風の正方形PNGや透明画像でも違和感が少なくなるよう、ぼかし下地を敷く。
+function SeibanBackgroundImage({ src }) {
+  if (!src) return null;
+  return (
+    <React.Fragment>
+      <img src={src} alt="" aria-hidden style={{
+        position:'absolute', inset:0,
+        width:'100%', height:'100%',
+        objectFit:'cover',
+        objectPosition:'center',
+        display:'block',
+        filter: 'blur(40px) saturate(1.3)',
+        transform: 'scale(1.15)',
+        opacity: 0.7,
+      }}/>
+      <img src={src} alt="" style={{
+        position:'absolute', inset:0,
+        width:'100%', height:'100%',
+        objectFit:'cover',
+        objectPosition:'center',
+        display:'block',
+        animation: 'seibanKenBurns 22s ease-in-out infinite',
+      }}/>
+    </React.Fragment>
+  );
+}
+
 // ============================================================================
-// (Phase 6.9) ConceptSection — 「Make Tokyo home.」を中心に静かに語るセクション
+// (Phase 6.9) ConceptSection
 // ============================================================================
 function ConceptSection({ settings }) {
   const mainEn = settings.concept_main_en || 'Make Tokyo home.';
@@ -3108,11 +3207,15 @@ function ConceptSection({ settings }) {
       position:'relative',
       minHeight: SEIBAN_SECTION_HEIGHT,
       padding: `clamp(80px, 12vh, 160px) ${SEIBAN_PAD_X}`,
-      background: '#fffaf3',
+      background: 'linear-gradient(135deg, #fffaf3 0%, #fff8ed 50%, #ffeed6 100%)',
+      backgroundSize: '200% 200%',
+      animation: 'seibanGradShift 24s ease-in-out infinite',
       overflow: 'hidden',
       scrollSnapAlign: 'start',
     }}>
-      {/* 背景の大英文タイポ */}
+      <style>{SEIBAN_ANIM_STYLE}</style>
+
+      {/* 背景大英文タイポ (動く + フェード) */}
       <div aria-hidden style={{
         position:'absolute',
         top:'50%', left:'50%',
@@ -3121,15 +3224,34 @@ function ConceptSection({ settings }) {
         fontStyle:'italic',
         fontSize:'clamp(120px, 22vw, 360px)',
         fontWeight: 400,
-        color: 'rgba(26, 54, 97, 0.04)',
+        color: 'rgba(26, 54, 97, 1)',
         whiteSpace:'nowrap',
         letterSpacing:'-0.04em',
         userSelect:'none',
         pointerEvents:'none',
         lineHeight: 1,
+        animation: 'seibanBgFloat 22s ease-in-out infinite, seibanBgFade 8s ease-in-out infinite',
       }}>
         ENCOUNTERS
       </div>
+
+      {/* 浮遊ドット装飾 (国旗カラー) */}
+      {[
+        { l: 8,  t: 18, c: '#ff7a59', d: 0   },
+        { l: 14, t: 70, c: '#1c89e8', d: 0.8 },
+        { l: 88, t: 22, c: '#ffc857', d: 1.6 },
+        { l: 92, t: 78, c: '#4ecdc4', d: 2.4 },
+        { l: 50, t: 88, c: '#9b5de5', d: 3.2 },
+      ].map((p, i) => (
+        <span key={i} aria-hidden style={{
+          position:'absolute',
+          left: `${p.l}%`, top: `${p.t}%`,
+          width: 8, height: 8, borderRadius:'50%',
+          background: p.c,
+          animation: `seibanDotBreath 4s ease-in-out ${p.d}s infinite`,
+          pointerEvents:'none',
+        }}/>
+      ))}
 
       <div style={{
         position:'relative',
@@ -3140,95 +3262,125 @@ function ConceptSection({ settings }) {
         gap: 'clamp(48px, 6vh, 96px)',
         zIndex: 1,
       }}>
-        {/* Small label */}
-        <div style={{display:'flex', alignItems:'center', gap:14}}>
-          <span style={{
-            display:'inline-block', width:32, height:1,
-            background:'rgba(26, 54, 97, 0.4)',
-          }}/>
-          <span style={{
-            fontFamily:'var(--sans, system-ui)',
-            fontSize:11, fontWeight:600,
-            letterSpacing:'0.18em',
-            textTransform:'uppercase',
-            color:'rgba(26, 54, 97, 0.7)',
-          }}>About</span>
-          <span style={{
-            fontFamily:'var(--jp)',
-            fontSize:11, fontWeight:500,
-            color:'rgba(26, 54, 97, 0.45)',
-            letterSpacing:'0.08em',
-          }}>私たちについて</span>
-        </div>
-
-        {/* メインコピー */}
-        <div>
-          <h2 style={{
-            margin: 0,
-            fontFamily: SEIBAN_LABEL_EN_FONT,
-            fontStyle:'italic',
-            fontWeight: 500,
-            fontSize:'clamp(56px, 9vw, 128px)',
-            lineHeight: 1.05,
-            letterSpacing:'-0.025em',
-            color: '#1a3661',
-          }}>
-            {mainEn}
-          </h2>
-          <div style={{
-            marginTop: 24,
-            display:'flex', alignItems:'center', gap:16,
-            fontFamily:'var(--jp)',
-            fontSize: 13,
-            color:'rgba(26, 54, 97, 0.55)',
-            letterSpacing:'0.1em',
-          }}>
-            <span style={{display:'inline-block', width:24, height:1, background:'rgba(26,54,97,0.3)'}}/>
-            <span>{mainJa}</span>
-            <span style={{display:'inline-block', width:24, height:1, background:'rgba(26,54,97,0.3)'}}/>
+        <Reveal y={0} blur={false}>
+          <div style={{display:'flex', alignItems:'center', gap:14}}>
+            <span style={{
+              display:'inline-block', width:32, height:1,
+              background:'rgba(26, 54, 97, 0.4)',
+              animation: 'seibanLineGrow 1s ease-out 0.2s both',
+            }}/>
+            <span style={{
+              fontFamily:'var(--sans, system-ui)',
+              fontSize:11, fontWeight:600,
+              letterSpacing:'0.18em',
+              textTransform:'uppercase',
+              color:'rgba(26, 54, 97, 0.7)',
+              animation: 'seibanLabelDrop 0.8s ease-out 0.3s both',
+            }}>About</span>
+            <span style={{
+              fontFamily:'var(--jp)',
+              fontSize:11, fontWeight:500,
+              color:'rgba(26, 54, 97, 0.45)',
+              letterSpacing:'0.08em',
+              animation: 'seibanLabelDrop 0.8s ease-out 0.5s both',
+            }}>私たちについて</span>
           </div>
-        </div>
+        </Reveal>
 
-        {/* 本文 */}
+        <Reveal delay={150} y={60}>
+          <div>
+            <h2 style={{
+              margin: 0,
+              fontFamily: SEIBAN_LABEL_EN_FONT,
+              fontStyle:'italic',
+              fontWeight: 500,
+              fontSize:'clamp(56px, 9vw, 128px)',
+              lineHeight: 1.05,
+              letterSpacing:'-0.025em',
+              color: '#1a3661',
+              animation: 'seibanTitleSlideIn 1.4s cubic-bezier(.2,.8,.2,1) 0.3s both',
+            }}>
+              {mainEn}
+            </h2>
+            <div style={{
+              marginTop: 24,
+              display:'flex', alignItems:'center', gap:16,
+              fontFamily:'var(--jp)',
+              fontSize: 13,
+              color:'rgba(26, 54, 97, 0.55)',
+              letterSpacing:'0.1em',
+              animation: 'seibanBodyRise 1.2s ease-out 0.9s both',
+            }}>
+              <span style={{
+                display:'inline-block', height:1, background:'rgba(26,54,97,0.3)',
+                animation: 'seibanLineGrow 1.2s ease-out 1.1s both',
+              }}/>
+              <span>{mainJa}</span>
+              <span style={{
+                display:'inline-block', height:1, background:'rgba(26,54,97,0.3)',
+                animation: 'seibanLineGrow 1.2s ease-out 1.1s both',
+              }}/>
+            </div>
+          </div>
+        </Reveal>
+
         <div style={{
           display:'grid',
           gridTemplateColumns: 'minmax(0, 1fr) minmax(0, 1fr)',
           gap: 'clamp(24px, 4vw, 64px)',
           alignItems: 'start',
         }}>
-          <p style={{
-            margin: 0,
-            fontFamily: SEIBAN_LABEL_EN_FONT,
-            fontSize:'clamp(17px, 1.6vw, 21px)',
-            lineHeight: 1.8,
-            color:'#1a3661',
-            fontWeight: 400,
-            whiteSpace: 'pre-wrap',
-          }}>
-            {bodyEn}
-          </p>
-          <p style={{
-            margin: 0,
-            fontFamily:'var(--jp)',
-            fontSize:'clamp(14px, 1.2vw, 16px)',
-            lineHeight: 2,
-            color:'rgba(26, 54, 97, 0.7)',
-            fontStyle:'italic',
-            fontWeight: 400,
-            whiteSpace: 'pre-wrap',
-            paddingLeft: 'clamp(0px, 2vw, 24px)',
-            borderLeft: '1px solid rgba(26, 54, 97, 0.12)',
-          }}>
-            {bodyJa}
-          </p>
+          <Reveal delay={400} y={30}>
+            <p style={{
+              margin: 0,
+              fontFamily: SEIBAN_LABEL_EN_FONT,
+              fontSize:'clamp(17px, 1.6vw, 21px)',
+              lineHeight: 1.8,
+              color:'#1a3661',
+              fontWeight: 400,
+              whiteSpace: 'pre-wrap',
+            }}>
+              {bodyEn}
+            </p>
+          </Reveal>
+          <Reveal delay={600} y={30}>
+            <p style={{
+              margin: 0,
+              fontFamily:'var(--jp)',
+              fontSize:'clamp(14px, 1.2vw, 16px)',
+              lineHeight: 2,
+              color:'rgba(26, 54, 97, 0.7)',
+              fontStyle:'italic',
+              fontWeight: 400,
+              whiteSpace: 'pre-wrap',
+              paddingLeft: 'clamp(0px, 2vw, 24px)',
+              borderLeft: '1px solid rgba(26, 54, 97, 0.12)',
+            }}>
+              {bodyJa}
+            </p>
+          </Reveal>
         </div>
+      </div>
+
+      {/* スクロールヒント */}
+      <div aria-hidden style={{
+        position:'absolute',
+        bottom: 32, left:'50%',
+        transform:'translateX(-50%)',
+        display:'flex', flexDirection:'column', alignItems:'center', gap: 8,
+        animation: 'seibanScrollHint 2s ease-in-out infinite',
+        color:'rgba(26, 54, 97, 0.5)',
+        fontSize: 10, fontFamily:'var(--mono, monospace)', letterSpacing:'0.3em',
+      }}>
+        <span>SCROLL</span>
+        <span style={{display:'inline-block', width:1, height:24, background:'currentColor'}}/>
       </div>
     </section>
   );
 }
 
 // ============================================================================
-// (Phase 6.9) EventsEntrySection — 右タイトル / 左本文 (Newsと左右対称)
+// (Phase 6.9) EventsEntrySection — 左本文 / 右タイトル (Newsと逆)
 // ============================================================================
 function EventsEntrySection({ settings }) {
   const bgImage  = settings.events_section_bg_image || '';
@@ -3252,28 +3404,40 @@ function EventsEntrySection({ settings }) {
       minHeight: SEIBAN_SECTION_HEIGHT,
       overflow:'hidden',
       scrollSnapAlign: 'start',
-      background: bgImage ? '#1a3661' : 'linear-gradient(135deg, #1a3661 0%, #0a2960 100%)',
+      background: 'linear-gradient(135deg, #1a3661 0%, #0a2960 50%, #1a3661 100%)',
+      backgroundSize: '200% 200%',
+      animation: bgImage ? 'none' : 'seibanGradShift 18s ease-in-out infinite',
     }}>
-      {/* 背景画像 */}
-      {bgImage && (
-        <img src={bgImage} alt="" style={{
-          position:'absolute', inset:0,
-          width:'100%', height:'100%',
-          objectFit:'cover',
-          objectPosition:'center',
-          display:'block',
-        }}/>
-      )}
-      {/* オーバーレイ (テキスト読みやすさ) */}
+      <style>{SEIBAN_ANIM_STYLE}</style>
+
+      <SeibanBackgroundImage src={bgImage}/>
+
       <div aria-hidden style={{
         position:'absolute', inset:0,
-        background: 'linear-gradient(135deg, rgba(10,41,96,0.5) 0%, rgba(10,41,96,0.3) 60%, rgba(10,41,96,0.55) 100%)',
+        background: 'linear-gradient(135deg, rgba(10,41,96,0.6) 0%, rgba(10,41,96,0.35) 50%, rgba(255,122,89,0.2) 100%)',
       }}/>
 
-      {/* コンテンツ: 左本文 / 右タイトル (左右対称、News と逆) */}
+      {/* コーナーマーク */}
+      <div aria-hidden style={{
+        position:'absolute', top: 40, right: 40,
+        width: 60, height: 60,
+        borderTop: '1px solid rgba(255,255,255,0.4)',
+        borderRight: '1px solid rgba(255,255,255,0.4)',
+        animation: 'seibanCornerFade 4s ease-in-out infinite',
+        pointerEvents:'none',
+      }}/>
+      <div aria-hidden style={{
+        position:'absolute', bottom: 40, left: 40,
+        width: 60, height: 60,
+        borderBottom: '1px solid rgba(255,255,255,0.4)',
+        borderLeft: '1px solid rgba(255,255,255,0.4)',
+        animation: 'seibanCornerFade 4s ease-in-out 1s infinite',
+        pointerEvents:'none',
+      }}/>
+
       <div style={{
         position:'relative',
-        zIndex: 1,
+        zIndex: 2,
         minHeight: SEIBAN_SECTION_HEIGHT,
         padding: `clamp(80px, 12vh, 140px) ${SEIBAN_PAD_X}`,
         display:'grid',
@@ -3283,67 +3447,82 @@ function EventsEntrySection({ settings }) {
         maxWidth: 1440,
         margin:'0 auto',
       }}>
-        {/* 左: 本文 + CTA */}
         <div style={{display:'flex', flexDirection:'column', gap: 32, color:'#fff'}}>
-          <p style={{
-            margin: 0,
-            fontFamily:'var(--jp)',
-            fontSize:'clamp(15px, 1.3vw, 17px)',
-            lineHeight: 2.1,
-            color:'rgba(255, 255, 255, 0.92)',
-            fontWeight: 300,
-            whiteSpace:'pre-wrap',
-            letterSpacing:'0.02em',
-          }}>
-            {body}
-          </p>
-          {/* CTA: 白丸 + 矢印 (seiban Sustainabilityと同じ) */}
-          <a href={ctaLink} onClick={handleCta} style={{
-            display:'inline-flex', alignItems:'center', gap: 24,
-            color:'#fff', textDecoration:'none',
-            fontFamily:'var(--jp)',
-            fontSize: 14, fontWeight: 500,
-            letterSpacing:'0.1em',
-            cursor:'pointer',
-          }}>
-            <span>{ctaText}</span>
-            <span style={{
-              width: 56, height: 56,
-              borderRadius:'50%',
-              background:'#fff',
-              display:'flex', alignItems:'center', justifyContent:'center',
-              transition:'transform 0.4s cubic-bezier(.2,.8,.2,1)',
-            }} onMouseEnter={e => e.currentTarget.style.transform = 'translateX(8px)'}
-              onMouseLeave={e => e.currentTarget.style.transform = 'translateX(0)'}>
-              <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#1a3661" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"><path d="M5 12h14"/><polyline points="12 5 19 12 12 19"/></svg>
-            </span>
-          </a>
+          <Reveal y={20}>
+            <p style={{
+              margin: 0,
+              fontFamily:'var(--jp)',
+              fontSize:'clamp(15px, 1.3vw, 17px)',
+              lineHeight: 2.1,
+              color:'rgba(255, 255, 255, 0.92)',
+              fontWeight: 300,
+              whiteSpace:'pre-wrap',
+              letterSpacing:'0.02em',
+            }}>
+              {body}
+            </p>
+          </Reveal>
+          <Reveal delay={200} y={20}>
+            <a href={ctaLink} onClick={handleCta} style={{
+              display:'inline-flex', alignItems:'center', gap: 24,
+              color:'#fff', textDecoration:'none',
+              fontFamily:'var(--jp)',
+              fontSize: 14, fontWeight: 500,
+              letterSpacing:'0.1em',
+              cursor:'pointer',
+            }}>
+              <span>{ctaText}</span>
+              <span style={{
+                width: 56, height: 56,
+                borderRadius:'50%',
+                background:'#fff',
+                display:'flex', alignItems:'center', justifyContent:'center',
+                animation: 'seibanCtaBreath 3s ease-in-out infinite',
+                transition:'transform 0.4s cubic-bezier(.2,.8,.2,1)',
+              }} onMouseEnter={e => { e.currentTarget.style.transform = 'translateX(8px) scale(1.08)'; e.currentTarget.style.animation = 'none'; }}
+                onMouseLeave={e => { e.currentTarget.style.transform = 'translateX(0) scale(1)'; e.currentTarget.style.animation = 'seibanCtaBreath 3s ease-in-out infinite'; }}>
+                <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#1a3661" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" style={{
+                  animation: 'seibanCtaArrow 2s ease-in-out infinite',
+                }}><path d="M5 12h14"/><polyline points="12 5 19 12 12 19"/></svg>
+              </span>
+            </a>
+          </Reveal>
         </div>
 
-        {/* 右: 大英文タイトル */}
         <div style={{display:'flex', flexDirection:'column', gap: 16}}>
-          <h2 style={{
-            margin: 0,
-            fontFamily: SEIBAN_LABEL_EN_FONT,
-            fontStyle:'italic',
-            fontWeight: 500,
-            fontSize:'clamp(64px, 9vw, 144px)',
-            lineHeight: 1,
-            letterSpacing:'-0.025em',
-            color: '#fff',
-          }}>
-            {labelEn}
-          </h2>
-          <div style={{
-            fontFamily:'var(--jp)',
-            fontSize: 14,
-            fontWeight: 400,
-            color:'rgba(255, 255, 255, 0.75)',
-            letterSpacing:'0.18em',
-            paddingLeft: 4,
-          }}>
-            {labelJa}
-          </div>
+          <Reveal delay={100} y={50} blur={false}>
+            <h2 style={{
+              margin: 0,
+              fontFamily: SEIBAN_LABEL_EN_FONT,
+              fontStyle:'italic',
+              fontWeight: 500,
+              fontSize:'clamp(64px, 9vw, 144px)',
+              lineHeight: 1,
+              letterSpacing:'-0.025em',
+              color: '#fff',
+              animation: 'seibanTitleSlideIn 1.4s cubic-bezier(.2,.8,.2,1) 0.3s both',
+              textShadow: '0 4px 30px rgba(0,0,0,0.3)',
+            }}>
+              {labelEn}
+            </h2>
+          </Reveal>
+          <Reveal delay={400} y={20}>
+            <div style={{
+              fontFamily:'var(--jp)',
+              fontSize: 14,
+              fontWeight: 400,
+              color:'rgba(255, 255, 255, 0.75)',
+              letterSpacing:'0.18em',
+              paddingLeft: 4,
+              display:'flex', alignItems:'center', gap: 12,
+            }}>
+              <span style={{
+                display:'inline-block', height: 1, background:'rgba(255,255,255,0.5)',
+                animation: 'seibanLineGrowLong 1.5s ease-out 0.6s both',
+              }}/>
+              {labelJa}
+            </div>
+          </Reveal>
         </div>
       </div>
     </section>
@@ -3351,7 +3530,7 @@ function EventsEntrySection({ settings }) {
 }
 
 // ============================================================================
-// (Phase 6.9) NewsSection — 左タイトル / 右本文、3件自動切替+手動切替
+// (Phase 6.9) NewsSection — 左タイトル / 右本文、3件自動切替10秒
 // ============================================================================
 function NewsSection({ settings, newsList }) {
   const bgImage = settings.news_section_bg_image || '';
@@ -3362,7 +3541,6 @@ function NewsSection({ settings, newsList }) {
   const [idx, setIdx] = useState(0);
   const [paused, setPaused] = useState(false);
 
-  // 自動切替 (10秒)
   useEffect(() => {
     if (paused) return;
     if (items.length <= 1) return;
@@ -3372,17 +3550,13 @@ function NewsSection({ settings, newsList }) {
     return () => clearInterval(t);
   }, [paused, items.length]);
 
-  // index 範囲外を防ぐ
   useEffect(() => {
     if (idx >= items.length && items.length > 0) setIdx(0);
   }, [items.length]);
 
-  // News 0件時は何も表示しない
   if (items.length === 0) {
     return null;
   }
-
-  const current = items[idx] || items[0];
 
   function handleCta(e, link) {
     if (!link) { e.preventDefault(); return; }
@@ -3402,28 +3576,37 @@ function NewsSection({ settings, newsList }) {
         minHeight: SEIBAN_SECTION_HEIGHT,
         overflow:'hidden',
         scrollSnapAlign: 'start',
-        background: bgImage ? '#1a3661' : 'linear-gradient(135deg, #fffaf3 0%, #ffe5d2 50%, #1a3661 100%)',
+        background: 'linear-gradient(135deg, #fffaf3 0%, #ffe5d2 30%, #1a3661 70%, #0a2960 100%)',
+        backgroundSize: '200% 200%',
+        animation: bgImage ? 'none' : 'seibanGradShift 16s ease-in-out infinite',
       }}>
-      {/* 背景画像 (固定) */}
-      {bgImage && (
-        <img src={bgImage} alt="" style={{
-          position:'absolute', inset:0,
-          width:'100%', height:'100%',
-          objectFit:'cover',
-          objectPosition:'center',
-          display:'block',
-        }}/>
-      )}
-      {/* オーバーレイ */}
+      <style>{SEIBAN_ANIM_STYLE}</style>
+
+      <SeibanBackgroundImage src={bgImage}/>
+
       <div aria-hidden style={{
         position:'absolute', inset:0,
-        background: 'linear-gradient(135deg, rgba(10,41,96,0.55) 0%, rgba(10,41,96,0.3) 60%, rgba(10,41,96,0.5) 100%)',
+        background: 'linear-gradient(135deg, rgba(10,41,96,0.55) 0%, rgba(10,41,96,0.35) 50%, rgba(255,122,89,0.2) 100%)',
       }}/>
 
-      {/* コンテンツ: 左タイトル / 右本文 */}
+      <div aria-hidden style={{
+        position:'absolute', top: 40, left: 40,
+        width: 60, height: 60,
+        borderTop: '1px solid rgba(255,255,255,0.4)',
+        borderLeft: '1px solid rgba(255,255,255,0.4)',
+        animation: 'seibanCornerFade 4s ease-in-out infinite',
+      }}/>
+      <div aria-hidden style={{
+        position:'absolute', bottom: 40, right: 40,
+        width: 60, height: 60,
+        borderBottom: '1px solid rgba(255,255,255,0.4)',
+        borderRight: '1px solid rgba(255,255,255,0.4)',
+        animation: 'seibanCornerFade 4s ease-in-out 1s infinite',
+      }}/>
+
       <div style={{
         position:'relative',
-        zIndex: 1,
+        zIndex: 2,
         minHeight: SEIBAN_SECTION_HEIGHT,
         padding: `clamp(80px, 12vh, 140px) ${SEIBAN_PAD_X}`,
         display:'grid',
@@ -3433,45 +3616,54 @@ function NewsSection({ settings, newsList }) {
         maxWidth: 1440,
         margin:'0 auto',
       }}>
-        {/* 左: 大英文タイトル */}
         <div style={{display:'flex', flexDirection:'column', gap: 16}}>
-          <h2 style={{
-            margin: 0,
-            fontFamily: SEIBAN_LABEL_EN_FONT,
-            fontStyle:'italic',
-            fontWeight: 500,
-            fontSize:'clamp(64px, 9vw, 144px)',
-            lineHeight: 1,
-            letterSpacing:'-0.025em',
-            color: '#fff',
-          }}>
-            {labelEn}
-          </h2>
-          <div style={{
-            fontFamily:'var(--jp)',
-            fontSize: 14,
-            fontWeight: 400,
-            color:'rgba(255, 255, 255, 0.75)',
-            letterSpacing:'0.18em',
-            paddingLeft: 4,
-          }}>
-            {labelJa}
-          </div>
+          <Reveal delay={100} y={50} blur={false}>
+            <h2 style={{
+              margin: 0,
+              fontFamily: SEIBAN_LABEL_EN_FONT,
+              fontStyle:'italic',
+              fontWeight: 500,
+              fontSize:'clamp(64px, 9vw, 144px)',
+              lineHeight: 1,
+              letterSpacing:'-0.025em',
+              color: '#fff',
+              animation: 'seibanTitleSlideIn 1.4s cubic-bezier(.2,.8,.2,1) 0.3s both',
+              textShadow: '0 4px 30px rgba(0,0,0,0.3)',
+            }}>
+              {labelEn}
+            </h2>
+          </Reveal>
+          <Reveal delay={400} y={20}>
+            <div style={{
+              fontFamily:'var(--jp)',
+              fontSize: 14,
+              fontWeight: 400,
+              color:'rgba(255, 255, 255, 0.75)',
+              letterSpacing:'0.18em',
+              paddingLeft: 4,
+              display:'flex', alignItems:'center', gap: 12,
+            }}>
+              <span style={{
+                display:'inline-block', height: 1, background:'rgba(255,255,255,0.5)',
+                animation: 'seibanLineGrowLong 1.5s ease-out 0.6s both',
+              }}/>
+              {labelJa}
+            </div>
+          </Reveal>
         </div>
 
-        {/* 右: News本文 (idx で切替) */}
         <div style={{position:'relative', minHeight: 280, color:'#fff'}}>
           {items.map((news, i) => (
             <div key={news.id || i} style={{
               position: i === idx ? 'relative' : 'absolute',
               inset: i === idx ? 'auto' : 0,
               opacity: i === idx ? 1 : 0,
-              transform: i === idx ? 'translateY(0)' : 'translateY(12px)',
-              transition: 'opacity 1.2s ease-out, transform 1.2s ease-out',
+              transform: i === idx ? 'translateY(0)' : 'translateY(20px)',
+              filter: i === idx ? 'blur(0)' : 'blur(8px)',
+              transition: 'opacity 1s ease-out, transform 1s ease-out, filter 1s ease-out',
               pointerEvents: i === idx ? 'auto' : 'none',
               display:'flex', flexDirection:'column', gap: 24,
             }}>
-              {/* カテゴリバッジ */}
               {news.category && (
                 <div style={{
                   display:'inline-flex', alignItems:'center', gap: 8,
@@ -3481,11 +3673,13 @@ function NewsSection({ settings, newsList }) {
                   textTransform:'uppercase',
                   color:'rgba(255, 255, 255, 0.85)',
                 }}>
-                  <span style={{display:'inline-block', width:24, height:1, background:'rgba(255,255,255,0.5)'}}/>
+                  <span style={{
+                    display:'inline-block', height:1, background:'rgba(255,255,255,0.5)',
+                    animation: i === idx ? 'seibanLineGrow 1s ease-out 0.2s both' : 'none',
+                  }}/>
                   {news.category}
                 </div>
               )}
-              {/* タイトル */}
               <h3 style={{
                 margin: 0,
                 fontFamily: SEIBAN_LABEL_EN_FONT,
@@ -3495,10 +3689,10 @@ function NewsSection({ settings, newsList }) {
                 fontWeight: 500,
                 fontStyle:'italic',
                 letterSpacing:'-0.01em',
+                textShadow: '0 2px 20px rgba(0,0,0,0.2)',
               }}>
                 {news.title}
               </h3>
-              {/* 本文 */}
               {news.body && (
                 <p style={{
                   margin: 0,
@@ -3513,7 +3707,6 @@ function NewsSection({ settings, newsList }) {
                   {news.body}
                 </p>
               )}
-              {/* CTA */}
               {(news.ctaText || news.ctaLink) && (
                 <a href={news.ctaLink || '#'} onClick={(e) => handleCta(e, news.ctaLink)} style={{
                   display:'inline-flex', alignItems:'center', gap: 24,
@@ -3530,10 +3723,13 @@ function NewsSection({ settings, newsList }) {
                     borderRadius:'50%',
                     background:'#fff',
                     display:'flex', alignItems:'center', justifyContent:'center',
+                    animation: 'seibanCtaBreath 3s ease-in-out infinite',
                     transition:'transform 0.4s cubic-bezier(.2,.8,.2,1)',
-                  }} onMouseEnter={e => e.currentTarget.style.transform = 'translateX(8px)'}
-                    onMouseLeave={e => e.currentTarget.style.transform = 'translateX(0)'}>
-                    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#1a3661" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"><path d="M5 12h14"/><polyline points="12 5 19 12 12 19"/></svg>
+                  }} onMouseEnter={e => { e.currentTarget.style.transform = 'translateX(8px) scale(1.08)'; e.currentTarget.style.animation = 'none'; }}
+                    onMouseLeave={e => { e.currentTarget.style.transform = 'translateX(0) scale(1)'; e.currentTarget.style.animation = 'seibanCtaBreath 3s ease-in-out infinite'; }}>
+                    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#1a3661" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" style={{
+                      animation: 'seibanCtaArrow 2s ease-in-out infinite',
+                    }}><path d="M5 12h14"/><polyline points="12 5 19 12 12 19"/></svg>
                   </span>
                 </a>
               )}
@@ -3542,57 +3738,70 @@ function NewsSection({ settings, newsList }) {
         </div>
       </div>
 
-      {/* 手動切替: 左右ボタン + ドット */}
       {items.length > 1 && (
         <React.Fragment>
-          {/* ドットインジケータ */}
           <div style={{
             position:'absolute',
             bottom: 32, left:'50%',
             transform:'translateX(-50%)',
-            display:'flex', gap: 12, zIndex: 2,
+            display:'flex', gap: 12, zIndex: 3,
           }}>
             {items.map((_, i) => (
               <button key={i} onClick={() => setIdx(i)} aria-label={`News ${i+1}`}
                 style={{
-                  width: i === idx ? 32 : 8,
+                  width: i === idx ? 40 : 8,
                   height: 8,
                   borderRadius: 4,
                   border:'none',
-                  background: i === idx ? '#fff' : 'rgba(255,255,255,0.4)',
+                  background: i === idx ? 'rgba(255,255,255,0.4)' : 'rgba(255,255,255,0.4)',
                   cursor:'pointer',
                   padding: 0,
-                  transition:'all 0.4s ease-out',
-                }}/>
+                  transition:'all 0.5s cubic-bezier(.2,.8,.2,1)',
+                  position:'relative', overflow:'hidden',
+                }}>
+                {i === idx && !paused && items.length > 1 && (
+                  <span style={{
+                    position:'absolute', top:0, left:0, height:'100%',
+                    background:'#fff',
+                    animation: 'seibanProgressBar 10s linear infinite',
+                  }}/>
+                )}
+                {i === idx && (paused || items.length === 1) && (
+                  <span style={{ position:'absolute', inset:0, background:'#fff' }}/>
+                )}
+              </button>
             ))}
           </div>
 
-          {/* 左右ボタン (右下に控えめに配置) */}
           <div style={{
             position:'absolute',
             bottom: 32, right: SEIBAN_PAD_X,
-            display:'flex', gap: 8, zIndex: 2,
+            display:'flex', gap: 8, zIndex: 3,
           }}>
             <button onClick={() => setIdx(i => (i - 1 + items.length) % items.length)} aria-label="前のニュース"
               style={{
-                width: 36, height: 36, borderRadius:'50%',
+                width: 40, height: 40, borderRadius:'50%',
                 border:'1px solid rgba(255,255,255,0.4)',
                 background:'rgba(255,255,255,0.1)',
                 color:'#fff',
                 cursor:'pointer',
                 display:'flex', alignItems:'center', justifyContent:'center',
-              }}>
+                transition:'all 0.3s ease-out',
+              }} onMouseEnter={e => { e.currentTarget.style.background = 'rgba(255,255,255,0.25)'; e.currentTarget.style.transform = 'scale(1.08)'; }}
+                onMouseLeave={e => { e.currentTarget.style.background = 'rgba(255,255,255,0.1)'; e.currentTarget.style.transform = 'scale(1)'; }}>
               <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"><polyline points="15 18 9 12 15 6"/></svg>
             </button>
             <button onClick={() => setIdx(i => (i + 1) % items.length)} aria-label="次のニュース"
               style={{
-                width: 36, height: 36, borderRadius:'50%',
+                width: 40, height: 40, borderRadius:'50%',
                 border:'1px solid rgba(255,255,255,0.4)',
                 background:'rgba(255,255,255,0.1)',
                 color:'#fff',
                 cursor:'pointer',
                 display:'flex', alignItems:'center', justifyContent:'center',
-              }}>
+                transition:'all 0.3s ease-out',
+              }} onMouseEnter={e => { e.currentTarget.style.background = 'rgba(255,255,255,0.25)'; e.currentTarget.style.transform = 'scale(1.08)'; }}
+                onMouseLeave={e => { e.currentTarget.style.background = 'rgba(255,255,255,0.1)'; e.currentTarget.style.transform = 'scale(1)'; }}>
               <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"><polyline points="9 18 15 12 9 6"/></svg>
             </button>
           </div>
