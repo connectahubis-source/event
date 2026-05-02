@@ -636,6 +636,17 @@ async function fetchEvents() {
     // GAS標準レスポンス形状: { ok: true, data: [...], user: {...} }
     if (json && json.ok && Array.isArray(json.data)) {
       console.log(`[Participants] fetchEvents: ${json.data.length} events received`);
+      // (Phase 7.5 debug) heroOverlay の有無を確認
+      const withOverlay = json.data.filter(e => e.heroOverlay);
+      console.log(`[Participants][overlay-debug] events with heroOverlay field: ${withOverlay.length}/${json.data.length}`);
+      withOverlay.forEach(e => {
+        console.log(`[Participants][overlay-debug] event ${e.id} (${e.title}):`, {
+          heroOverlay_type: typeof e.heroOverlay,
+          heroOverlay_value: e.heroOverlay,
+          heroOverlay_length: typeof e.heroOverlay === 'string' ? e.heroOverlay.length : (Array.isArray(e.heroOverlay) ? e.heroOverlay.length : 'N/A'),
+          heroImageUrl: e.heroImageUrl,
+        });
+      });
       return json.data;
     }
     // 互換: 直接配列が返るパターンも許容
@@ -2336,7 +2347,7 @@ function PageHero({
 // HERO SLIDESHOW (西武鉄道スタイル: 時間帯で切り替わるフルブリード写真)
 // Phase 6: 公開中イベントのポスターを優先表示、無ければ既定スライドにフォールバック
 // ============================================================================
-function HeroSlideshow({ t, events, heroSlides, loading, frontNews }) {
+function HeroSlideshow({ lang, t, events, heroSlides, loading, frontNews, siteSettings }) {
   // Google Drive の URL を表示可能な形式に正規化 (Phase 6 fix)
   const normalizeImageUrl = (url) => {
     if (!url || typeof url !== 'string') return url;
@@ -2382,7 +2393,14 @@ function HeroSlideshow({ t, events, heroSlides, loading, frontNews }) {
       try {
         if (Array.isArray(e.heroOverlay)) overlay = e.heroOverlay;
         else if (typeof e.heroOverlay === 'string' && e.heroOverlay) overlay = JSON.parse(e.heroOverlay);
-      } catch (err) { overlay = []; }
+      } catch (err) {
+        console.warn('[Hero][overlay-debug] JSON.parse failed for event', e.id, err);
+        overlay = [];
+      }
+      // (Phase 7.5 debug)
+      if (overlay.length > 0) {
+        console.log(`[Hero][overlay-debug] event ${e.id} → overlay items:`, overlay.length, overlay);
+      }
       return {
         img: normalizeImageUrl(e.heroImageUrl || e.posterUrl),
         eyebrow: e.category ? String(e.category).toUpperCase() : 'EVENT',
@@ -2445,6 +2463,16 @@ function HeroSlideshow({ t, events, heroSlides, loading, frontNews }) {
     // 両方あり: 混在
     slides = interleave(eventSlides, adminSlides);
   }
+
+  // (Phase 7.5 debug) 最終的に Hero に渡される slides の heroOverlay 状況
+  React.useEffect(() => {
+    if (!slides || slides.length === 0) return;
+    const slidesWithOverlay = slides.filter(s => Array.isArray(s.heroOverlay) && s.heroOverlay.length > 0);
+    console.log(`[Hero][overlay-debug] final slides: ${slides.length}, with overlay: ${slidesWithOverlay.length}`);
+    slidesWithOverlay.forEach((s, i) => {
+      console.log(`[Hero][overlay-debug] slide #${i} (${s.eventTitle || s.eyebrow}):`, s.heroOverlay);
+    });
+  }, [slides.length]);
 
   const [idx, setIdx] = useState(0);
   const [paused, setPaused] = useState(false);
@@ -3147,7 +3175,7 @@ function HeroSlideshow({ t, events, heroSlides, loading, frontNews }) {
             animation: 'heroLineGrow 1.2s cubic-bezier(0.2,0.8,0.2,1) 0.6s both',
           }}/>
 
-          {/* キャッチコピー */}
+          {/* キャッチコピー (Adminから設定可能、言語別) */}
           <h1 style={{
             margin: 0,
             fontFamily: 'var(--jp)',
@@ -3158,15 +3186,22 @@ function HeroSlideshow({ t, events, heroSlides, loading, frontNews }) {
             lineHeight: 1.45,
             animation: 'heroCatchSlideIn 1.4s cubic-bezier(0.2,0.8,0.2,1) 0.8s both',
           }}>
-            一緒に、東京を歩こう
+            {(() => {
+              const s = siteSettings || {};
+              if (lang === 'en')   return s.hero_catch_en   || "Let's walk Tokyo together.";
+              if (lang === 'easy') return s.hero_catch_easy || 'いっしょに、とうきょうを あるこう';
+              return s.hero_catch_ja || '一緒に、東京を歩こう';
+            })()}
           </h1>
 
-          {/* ロゴ (smallLogoRef = morph終点) */}
+          {/* ロゴ (smallLogoRef = morph終点) — Phase 7.5 大型化 + 横中央配置 */}
           <div ref={smallLogoRef} style={{
+            display: 'flex',
+            justifyContent: 'center',
             animation: 'heroLogoFadeIn 1.4s cubic-bezier(0.2,0.8,0.2,1) 1.2s both',
           }}>
             <img src={ASSET_LOGO} alt="connec+a" style={{
-              width: 'clamp(110px, 10vw, 140px)',
+              width: 'clamp(160px, 14vw, 200px)',
               height: 'auto',
               display: 'block',
             }}/>
@@ -5064,7 +5099,7 @@ function PageHome({ lang, t, events, ads, heroSlides, loading, siteSettings, fro
       {/* ============================================================ */}
       {/* CONNEC+A HERO v6 (西武鉄道スタイル: シンプル写真スライドショー) */}
       {/* ============================================================ */}
-      <HeroSlideshow t={t} events={events} heroSlides={heroSlides} loading={loading} frontNews={frontNews} />
+      <HeroSlideshow lang={lang} t={t} events={events} heroSlides={heroSlides} loading={loading} frontNews={frontNews} siteSettings={siteSettings} />
 
       {/* AD ROTATOR (Phase 6: スポンサー広告のローテーション) */}
       <AdRotator ads={ads} placement="参加者ヒーロー" />
