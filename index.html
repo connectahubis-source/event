@@ -5625,12 +5625,14 @@ function App() {
   const t = I18N[lang] || I18N.ja;
 
   // (Phase 6.11) オープニングタイマー: 5秒後にカーテン開始 → 1.2秒後に完全終了
+  // 初回マウント時に1度だけ schedule。openingPhase を依存に入れると、
+  // setOpeningPhase('splitting') 時に effect 再実行 → cleanup で t2 もクリア → gone にならないバグ。
   useEffect(() => {
-    if (openingPhase !== 'showing') return;
+    if (route !== '/') return;   // ホーム以外は即終了 (showing状態にもならない)
     const t1 = setTimeout(() => setOpeningPhase('splitting'), 5000);
     const t2 = setTimeout(() => setOpeningPhase('gone'), 5000 + 1200);
     return () => { clearTimeout(t1); clearTimeout(t2); };
-  }, [openingPhase]);
+  }, []);
 
   // ルート変更時、ホーム以外なら即 gone (再びオープニングは出ない)
   useEffect(() => {
