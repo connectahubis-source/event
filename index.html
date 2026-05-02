@@ -636,17 +636,6 @@ async function fetchEvents() {
     // GAS標準レスポンス形状: { ok: true, data: [...], user: {...} }
     if (json && json.ok && Array.isArray(json.data)) {
       console.log(`[Participants] fetchEvents: ${json.data.length} events received`);
-      // (Phase 7.5 debug) heroOverlay の有無を確認
-      const withOverlay = json.data.filter(e => e.heroOverlay);
-      console.log(`[Participants][overlay-debug] events with heroOverlay field: ${withOverlay.length}/${json.data.length}`);
-      withOverlay.forEach(e => {
-        console.log(`[Participants][overlay-debug] event ${e.id} (${e.title}):`, {
-          heroOverlay_type: typeof e.heroOverlay,
-          heroOverlay_value: e.heroOverlay,
-          heroOverlay_length: typeof e.heroOverlay === 'string' ? e.heroOverlay.length : (Array.isArray(e.heroOverlay) ? e.heroOverlay.length : 'N/A'),
-          heroImageUrl: e.heroImageUrl,
-        });
-      });
       return json.data;
     }
     // 互換: 直接配列が返るパターンも許容
@@ -2393,14 +2382,7 @@ function HeroSlideshow({ lang, t, events, heroSlides, loading, frontNews, siteSe
       try {
         if (Array.isArray(e.heroOverlay)) overlay = e.heroOverlay;
         else if (typeof e.heroOverlay === 'string' && e.heroOverlay) overlay = JSON.parse(e.heroOverlay);
-      } catch (err) {
-        console.warn('[Hero][overlay-debug] JSON.parse failed for event', e.id, err);
-        overlay = [];
-      }
-      // (Phase 7.5 debug)
-      if (overlay.length > 0) {
-        console.log(`[Hero][overlay-debug] event ${e.id} → overlay items:`, overlay.length, overlay);
-      }
+      } catch (err) { overlay = []; }
       return {
         img: normalizeImageUrl(e.heroImageUrl || e.posterUrl),
         eyebrow: e.category ? String(e.category).toUpperCase() : 'EVENT',
@@ -2463,16 +2445,6 @@ function HeroSlideshow({ lang, t, events, heroSlides, loading, frontNews, siteSe
     // 両方あり: 混在
     slides = interleave(eventSlides, adminSlides);
   }
-
-  // (Phase 7.5 debug) 最終的に Hero に渡される slides の heroOverlay 状況
-  React.useEffect(() => {
-    if (!slides || slides.length === 0) return;
-    const slidesWithOverlay = slides.filter(s => Array.isArray(s.heroOverlay) && s.heroOverlay.length > 0);
-    console.log(`[Hero][overlay-debug] final slides: ${slides.length}, with overlay: ${slidesWithOverlay.length}`);
-    slidesWithOverlay.forEach((s, i) => {
-      console.log(`[Hero][overlay-debug] slide #${i} (${s.eventTitle || s.eyebrow}):`, s.heroOverlay);
-    });
-  }, [slides.length]);
 
   const [idx, setIdx] = useState(0);
   const [paused, setPaused] = useState(false);
