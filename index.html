@@ -3062,13 +3062,9 @@ function HeroSlideshow({ t, events, heroSlides, loading, frontNews }) {
             </div>
           )}
 
-          {/* 矢印 */}
-          {topNewsList.length > 0 && (
-            <a href="#news" onClick={(e) => {
-              e.preventDefault();
-              const target = document.querySelector('[data-section="news"]');
-              if (target) target.scrollIntoView({behavior:'smooth'});
-            }} style={{
+          {/* 矢印 — 現在表示中のニュース詳細へ */}
+          {topNews && (
+            <a href={`#/news/${topNews.id}`} style={{
               flexShrink: 0,
               width: 32, height: 32,
               borderRadius: '50%',
@@ -3077,8 +3073,11 @@ function HeroSlideshow({ t, events, heroSlides, loading, frontNews }) {
               color: '#0a2960',
               cursor: 'pointer',
               transition: 'all 0.3s ease',
+              textDecoration: 'none',
             }} onMouseEnter={e => { e.currentTarget.style.background = '#0a2960'; e.currentTarget.style.color = '#fff'; }}
-              onMouseLeave={e => { e.currentTarget.style.background = 'transparent'; e.currentTarget.style.color = '#0a2960'; }}>
+              onMouseLeave={e => { e.currentTarget.style.background = 'transparent'; e.currentTarget.style.color = '#0a2960'; }}
+              aria-label={`${topNews.title} の詳細を見る`}
+              title={`${topNews.title} の詳細`}>
               <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"><path d="M5 12h14"/><polyline points="12 5 19 12 12 19"/></svg>
             </a>
           )}
@@ -3872,7 +3871,7 @@ function ConceptSection({ settings }) {
 function EventsEntrySection({ settings }) {
   const bgImage  = settings.events_section_bg_image || '';
   const ctaText  = settings.events_section_cta_text || '参加する';
-  const ctaLink  = settings.events_section_cta_link || '#events-list';
+  const ctaLink  = settings.events_section_cta_link || '#/events';
   const galleryLink = settings.events_gallery_link || '#/gallery';
 
   // (Phase 7.1) Concept と同じ青ノーズアニメ、左右反対のレイアウト (左写真、右白パネル)
@@ -4077,6 +4076,7 @@ function EventsEntrySection({ settings }) {
         alignItems: 'center',
         justifyContent: 'flex-end',
         padding: 'clamp(80px, 12vh, 160px) clamp(40px, 6vw, 96px)',
+        pointerEvents: 'none',  /* (Phase 7.4 fix) ラッパ自体は透過、子の白パネルだけクリックを受ける */
       }}>
         <div style={{
           width: 'clamp(420px, 50%, 720px)',
@@ -4089,6 +4089,7 @@ function EventsEntrySection({ settings }) {
           display: 'flex',
           flexDirection: 'column',
           gap: 'clamp(20px, 3vh, 32px)',
+          pointerEvents: 'auto',  /* (Phase 7.4 fix) 白パネル本体はクリック可 */
         }}>
           {/* 装飾線 */}
           <Reveal y={0} blur={false}>
