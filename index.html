@@ -41,8 +41,9 @@
   --navy-soft:   var(--sky-500);
   --navy-bright: var(--sky-500);
 
-  --coral:       #ff7a59;
-  --coral-soft:  #ffd5c6;
+  --coral:       var(--sky-500);
+  --coral-soft:  var(--sky-200);
+  /* (Phase 6.12) coral は青系に統一。全コンポーネントで参照されているため変数経由で一括差替え。 */
 
   --ink-rich:    #0a1628;
   --paper:       #ffffff;
@@ -1214,10 +1215,10 @@ function Nav({ lang, setLang, t, transparent }) {
               borderRadius: 999,
               textDecoration: 'none',
               transition: 'all .25s',
-              boxShadow: '0 4px 14px -2px rgba(255,122,89,0.4)',
+              boxShadow: '0 4px 14px -2px rgba(28, 137, 232, 0.4)',
             }}
-            onMouseEnter={(e) => { e.target.style.transform = 'translateY(-2px)'; e.target.style.boxShadow = '0 8px 22px -4px rgba(255,122,89,0.6)'; }}
-            onMouseLeave={(e) => { e.target.style.transform = 'none'; e.target.style.boxShadow = '0 4px 14px -2px rgba(255,122,89,0.4)'; }}>{t.nav.signup}</a>
+            onMouseEnter={(e) => { e.target.style.transform = 'translateY(-2px)'; e.target.style.boxShadow = '0 8px 22px -4px rgba(28, 137, 232, 0.6)'; }}
+            onMouseLeave={(e) => { e.target.style.transform = 'none'; e.target.style.boxShadow = '0 4px 14px -2px rgba(28, 137, 232, 0.4)'; }}>{t.nav.signup}</a>
           </div>
 
           {/* Mobile menu button */}
@@ -1936,7 +1937,7 @@ function EventPosterRow({ ev, lang, t }) {
               fontSize: 11,
               fontWeight: 700,
               letterSpacing: '0.1em',
-              boxShadow: '0 4px 12px rgba(255, 122, 89, 0.4)',
+              boxShadow: '0 4px 12px rgba(28, 137, 232, 0.4)',
               zIndex: 5,
             }}>FULL</div>
           )}
@@ -2053,7 +2054,7 @@ function EventPosterRow({ ev, lang, t }) {
               fontFamily: 'var(--jp)',
               fontSize: 13,
               fontWeight: 700,
-              boxShadow: '0 6px 16px -4px rgba(255, 122, 89, 0.4)',
+              boxShadow: '0 6px 16px -4px rgba(28, 137, 232, 0.4)',
             }}>
               詳しく見る
               <span style={{ fontSize: 14 }}>→</span>
@@ -2464,7 +2465,7 @@ function HeroSlideshow({ t, events, heroSlides, loading }) {
       {/* phase==='loading' のみ visible、'morphing'/'done' で fade out */}
       <div style={{
         position: 'absolute', inset: 0, overflow: 'hidden',
-        background: '#fffaf3',
+        background: '#ffffff',
         opacity: phase === 'loading' ? 1 : 0,
         transition: 'opacity 0.7s ease-out',
         zIndex: 50,
@@ -2473,7 +2474,7 @@ function HeroSlideshow({ t, events, heroSlides, loading }) {
         {/* レイヤー1: 動くグラデーション */}
         <div style={{
           position:'absolute', inset:0,
-          background: 'linear-gradient(120deg, #fff8ed 0%, #ffe5d2 25%, #ffeed6 50%, #f5dfff 75%, #e8efff 100%)',
+          background: 'linear-gradient(120deg, #ffffff 0%, #f5f7fa 25%, #eef2f7 50%, #e8efff 75%, #d8eaff 100%)',
           backgroundSize: '300% 300%',
           animation: 'heroBgSweep 18s ease-in-out infinite',
         }}/>
@@ -2520,7 +2521,7 @@ function HeroSlideshow({ t, events, heroSlides, loading }) {
               width:'70%', height:'70%',
               marginTop:'-35%', marginLeft:'-35%',
               borderRadius:'50%',
-              border:'1.5px solid rgba(255, 122, 89, 0.5)',
+              border:'1.5px solid rgba(28, 137, 232, 0.5)',
               animation: `heroRipple 3.6s cubic-bezier(0.2, 0.6, 0.2, 1) ${i * 1.2}s infinite`,
             }}/>
           ))}
@@ -2529,7 +2530,7 @@ function HeroSlideshow({ t, events, heroSlides, loading }) {
             width:'90%', height:'90%',
             marginTop:'-45%', marginLeft:'-45%',
             borderRadius:'50%',
-            background:'radial-gradient(circle, rgba(255, 122, 89, 0.18) 0%, rgba(255,122,89,0) 70%)',
+            background:'radial-gradient(circle, rgba(28, 137, 232, 0.18) 0%, rgba(28, 137, 232, 0) 70%)',
             animation:'heroAura 2.8s ease-in-out infinite',
           }}/>
         </div>
@@ -2573,7 +2574,7 @@ function HeroSlideshow({ t, events, heroSlides, loading }) {
         }}>
           <div style={{
             position:'absolute', top:0, left:0, height:'100%', width:'30%',
-            background:'linear-gradient(90deg, transparent, #ff7a59 50%, transparent)',
+            background:'linear-gradient(90deg, transparent, #2c89e8 50%, transparent)',
             animation:'heroLoadBar 2.2s ease-in-out infinite',
           }}/>
         </div>
@@ -2671,8 +2672,8 @@ function HeroSlideshow({ t, events, heroSlides, loading }) {
               ? 'heroLogoFloat 4s ease-in-out infinite'
               : 'none',
             filter: phase === 'loading'
-              ? 'drop-shadow(0 12px 30px rgba(255, 122, 89, 0.35))'
-              : 'drop-shadow(0 6px 14px rgba(255, 122, 89, 0.25))',
+              ? 'drop-shadow(0 12px 30px rgba(28, 137, 232, 0.35))'
+              : 'drop-shadow(0 6px 14px rgba(28, 137, 232, 0.25))',
             transition: 'filter 0.7s ease-out',
           }}
         />
@@ -3143,7 +3144,7 @@ function ConceptSection({ settings }) {
       position:'relative',
       minHeight: SEIBAN_SECTION_HEIGHT,
       padding: `clamp(80px, 12vh, 160px) ${SEIBAN_PAD_X}`,
-      background: 'linear-gradient(135deg, #fffaf3 0%, #fff8ed 50%, #ffeed6 100%)',
+      background: 'linear-gradient(135deg, #ffffff 0%, #f5f7fa 50%, #eef2f7 100%)',
       backgroundSize: '200% 200%',
       animation: 'seibanGradShift 24s ease-in-out infinite',
       overflow: 'hidden',
@@ -3171,23 +3172,7 @@ function ConceptSection({ settings }) {
         ENCOUNTERS
       </div>
 
-      {/* 浮遊ドット装飾 (国旗カラー) */}
-      {[
-        { l: 8,  t: 18, c: '#ff7a59', d: 0   },
-        { l: 14, t: 70, c: '#1c89e8', d: 0.8 },
-        { l: 88, t: 22, c: '#ffc857', d: 1.6 },
-        { l: 92, t: 78, c: '#4ecdc4', d: 2.4 },
-        { l: 50, t: 88, c: '#9b5de5', d: 3.2 },
-      ].map((p, i) => (
-        <span key={i} aria-hidden style={{
-          position:'absolute',
-          left: `${p.l}%`, top: `${p.t}%`,
-          width: 8, height: 8, borderRadius:'50%',
-          background: p.c,
-          animation: `seibanDotBreath 4s ease-in-out ${p.d}s infinite`,
-          pointerEvents:'none',
-        }}/>
-      ))}
+      {/* (Phase 6.12) 浮遊ドット装飾は削除 (米粒のように見える、安っぽさを削減) */}
 
       <div style={{
         position:'relative',
@@ -3350,7 +3335,7 @@ function EventsEntrySection({ settings }) {
 
       <div aria-hidden style={{
         position:'absolute', inset:0,
-        background: 'linear-gradient(135deg, rgba(10,41,96,0.6) 0%, rgba(10,41,96,0.35) 50%, rgba(255,122,89,0.2) 100%)',
+        background: 'linear-gradient(135deg, rgba(10,41,96,0.6) 0%, rgba(10,41,96,0.35) 50%, rgba(28, 137, 232, 0.2) 100%)',
       }}/>
 
       {/* コーナーマーク */}
@@ -3512,7 +3497,7 @@ function NewsSection({ settings, newsList }) {
         minHeight: SEIBAN_SECTION_HEIGHT,
         overflow:'hidden',
         scrollSnapAlign: 'start',
-        background: 'linear-gradient(135deg, #fffaf3 0%, #ffe5d2 30%, #1a3661 70%, #0a2960 100%)',
+        background: 'linear-gradient(135deg, #ffffff 0%, #eef2f7 30%, #1a3661 70%, #0a2960 100%)',
         backgroundSize: '200% 200%',
         animation: bgImage ? 'none' : 'seibanGradShift 16s ease-in-out infinite',
       }}>
@@ -3522,7 +3507,7 @@ function NewsSection({ settings, newsList }) {
 
       <div aria-hidden style={{
         position:'absolute', inset:0,
-        background: 'linear-gradient(135deg, rgba(10,41,96,0.55) 0%, rgba(10,41,96,0.35) 50%, rgba(255,122,89,0.2) 100%)',
+        background: 'linear-gradient(135deg, rgba(10,41,96,0.55) 0%, rgba(10,41,96,0.35) 50%, rgba(28, 137, 232, 0.2) 100%)',
       }}/>
 
       <div aria-hidden style={{
@@ -3887,7 +3872,7 @@ function PageHome({ lang, t, events, ads, heroSlides, loading, siteSettings, fro
                       zIndex: -1,
                     }} viewBox="0 0 200 16" preserveAspectRatio="none">
                       <path d="M2,8 Q40,2 80,8 Q120,14 160,7 Q180,4 198,8 L198,14 Q180,11 160,14 Q120,18 80,14 Q40,10 2,14 Z"
-                            fill="#ff7a59" opacity="0.85"/>
+                            fill="#2c89e8" opacity="0.85"/>
                     </svg>
                   </span>
                 </h2>
@@ -5435,26 +5420,9 @@ function OpeningCurtain({ phase, settings }) {
         background: '#ffffff',
         transform: isSplitting ? 'translateY(-100%)' : 'translateY(0)',
         transition: 'transform 1.2s cubic-bezier(0.76, 0, 0.24, 1)',
-        boxShadow: isSplitting ? '0 12px 40px -8px rgba(0,0,0,0.15)' : 'none',
+        boxShadow: isSplitting ? '0 12px 40px -8px rgba(28,86,176,0.12)' : 'none',
         overflow:'hidden',
-      }}>
-        {/* 上カーテンの装飾: 浮遊ドット (国旗カラー) */}
-        {[
-          { l: 12, t: 25, c: '#ff7a59' },
-          { l: 78, t: 18, c: '#1c89e8' },
-          { l: 30, t: 70, c: '#ffc857' },
-          { l: 88, t: 60, c: '#4ecdc4' },
-        ].map((p, i) => (
-          <span key={i} style={{
-            position:'absolute',
-            left: `${p.l}%`, top: `${p.t}%`,
-            width: 10, height: 10, borderRadius:'50%',
-            background: p.c,
-            opacity: 0.85,
-            animation: `openingDotFloat 3s ease-in-out ${i * 0.5}s infinite`,
-          }}/>
-        ))}
-      </div>
+      }}/>
 
       {/* 下半分カーテン */}
       <div style={{
@@ -5464,25 +5432,9 @@ function OpeningCurtain({ phase, settings }) {
         background: '#ffffff',
         transform: isSplitting ? 'translateY(100%)' : 'translateY(0)',
         transition: 'transform 1.2s cubic-bezier(0.76, 0, 0.24, 1)',
-        boxShadow: isSplitting ? '0 -12px 40px -8px rgba(0,0,0,0.15)' : 'none',
+        boxShadow: isSplitting ? '0 -12px 40px -8px rgba(28,86,176,0.12)' : 'none',
         overflow:'hidden',
-      }}>
-        {[
-          { l: 22, t: 30, c: '#9b5de5' },
-          { l: 66, t: 50, c: '#ff6b9d' },
-          { l: 8,  t: 70, c: '#56cc7e' },
-          { l: 92, t: 25, c: '#ff7a59' },
-        ].map((p, i) => (
-          <span key={i} style={{
-            position:'absolute',
-            left: `${p.l}%`, top: `${p.t}%`,
-            width: 10, height: 10, borderRadius:'50%',
-            background: p.c,
-            opacity: 0.85,
-            animation: `openingDotFloat 3s ease-in-out ${i * 0.5 + 0.3}s infinite`,
-          }}/>
-        ))}
-      </div>
+      }}/>
 
       {/* 中央コンテンツ: ロゴ + キャッチコピー (splitting時はフェードアウト) */}
       <div style={{
@@ -5507,23 +5459,9 @@ function OpeningCurtain({ phase, settings }) {
             height: 'auto',
             display: 'block',
             animation: 'openingLogoFloat 3.5s ease-in-out infinite, openingLogoEnter 1.2s cubic-bezier(0.2,0.8,0.2,1) both',
-            filter: 'drop-shadow(0 12px 32px rgba(255, 122, 89, 0.45)) drop-shadow(0 4px 12px rgba(28, 109, 208, 0.25))',
+            filter: 'drop-shadow(0 12px 32px rgba(28, 109, 208, 0.25)) drop-shadow(0 4px 12px rgba(28, 109, 208, 0.15))',
           }}
         />
-
-        {/* カラードット帯 */}
-        <div style={{
-          display: 'flex', gap: 8, alignItems: 'center',
-          animation: 'openingDotsEnter 0.8s cubic-bezier(0.2,0.8,0.2,1) 0.6s both',
-        }}>
-          {['#ff7a59', '#1c89e8', '#ffc857', '#4ecdc4', '#9b5de5', '#ff6b9d', '#56cc7e'].map((c, i) => (
-            <span key={i} style={{
-              width: 10, height: 10, borderRadius: '50%',
-              background: c,
-              animation: `openingDotPulse 1.6s ease-in-out ${i * 0.12}s infinite`,
-            }}/>
-          ))}
-        </div>
 
         {/* メインキャッチ */}
         <h1 style={{
@@ -5560,7 +5498,7 @@ function OpeningCurtain({ phase, settings }) {
         transform:'translateX(-50%)',
         width: 'clamp(180px, 30vw, 360px)',
         height: 3,
-        background:'rgba(26, 54, 97, 0.15)',
+        background:'#eef2f7',
         borderRadius: 2,
         zIndex: 3,
         marginBottom: 'clamp(40px, 8vh, 80px)',
@@ -5570,7 +5508,7 @@ function OpeningCurtain({ phase, settings }) {
       }}>
         <div style={{
           position:'absolute', top:0, left:0, height:'100%',
-          background: 'linear-gradient(90deg, #ff7a59, #ffc857, #56cc7e, #4ecdc4, #1c89e8)',
+          background: 'linear-gradient(90deg, #5ba8f5, #2c89e8, #1c6dd0)',
           animation: 'openingProgress 5s linear forwards',
           width: 0,
         }}/>
