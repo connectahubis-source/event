@@ -14,7 +14,7 @@
 <!-- フォント -->
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-<link href="https://fonts.googleapis.com/css2?family=Geist:wght@300;400;500;600;700&family=Zen+Kaku+Gothic+New:wght@300;400;500;700;900&family=Noto+Serif+JP:wght@400;500;700;900&family=JetBrains+Mono:wght@400;500;600&family=Cormorant+Garamond:ital,wght@0,400;0,500;0,600;1,400&display=swap" rel="stylesheet">
+<link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@300;400;500;600;700;800&family=Zen+Maru+Gothic:wght@300;400;500;700;900&family=Zen+Kaku+Gothic+New:wght@300;400;500;700;900&family=Noto+Serif+JP:wght@400;500;700;900&family=JetBrains+Mono:wght@400;500;600&family=Cormorant+Garamond:ital,wght@0,400;0,500;0,600;1,400&family=Fraunces:ital,opsz,wght@0,9..144,300;0,9..144,400;0,9..144,500;0,9..144,600;1,9..144,400&display=swap" rel="stylesheet">
 
 <!-- React + Babel -->
 <script src="https://unpkg.com/react@18.3.1/umd/react.development.js" crossorigin></script>
@@ -55,10 +55,13 @@
   --ink-mute:    var(--sky-700);
   --ink-faint:   var(--sky-500);
 
-  --sans: 'Geist', ui-sans-serif, system-ui, -apple-system, sans-serif;
-  --jp:   'Zen Kaku Gothic New', 'Hiragino Sans', 'Yu Gothic', sans-serif;
+  --sans: 'Plus Jakarta Sans', ui-sans-serif, system-ui, -apple-system, sans-serif;
+  --jp:   'Zen Maru Gothic', 'Hiragino Sans', 'Yu Gothic', sans-serif;
+  --jp-rounded: 'Zen Maru Gothic', 'Hiragino Sans', sans-serif;
+  --jp-kaku: 'Zen Kaku Gothic New', 'Hiragino Sans', 'Yu Gothic', sans-serif;
   --jp-serif: 'Noto Serif JP', 'Yu Mincho', 'Hiragino Mincho ProN', serif;
-  --serif: 'Cormorant Garamond', 'Noto Serif JP', Georgia, serif;
+  --serif: 'Fraunces', 'Cormorant Garamond', 'Noto Serif JP', Georgia, serif;
+  --serif-classic: 'Cormorant Garamond', 'Noto Serif JP', Georgia, serif;
   --mono: 'JetBrains Mono', ui-monospace, Menlo, monospace;
   --r-sm: 4px;
   --r-md: 12px;
@@ -2415,13 +2418,18 @@ function HeroSlideshow({ t, events, heroSlides, loading }) {
   }, [phase]);
 
   // (Phase 6.8) スライド到着で morph トリガー。小ロゴ位置を測ってから morph 開始。
-  // 注: 依存は slides.length のみ。phase を依存に入れると setPhase('morphing') の直後に
+  // (Phase 6.9) 0件のままloading=falseになったケースでも morph をスキップして done に。
+  // 注: 依存は slides.length と loading。phase を依存に入れると setPhase('morphing') の直後に
   //     effect が再実行 → cleanup で clearTimeout が走り、'done' 遷移が起きないバグになる。
   useEffect(() => {
     if (phase !== 'loading') return;
-    if (slides.length === 0) return;
+    // (Phase 6.9) 取得完了後にもスライド0件の場合: morphロゴが画面に張り付くので強制 done
+    if (!loading && slides.length === 0) {
+      setPhase('done');
+      return;
+    }
+    if (slides.length === 0) return;   // まだ取得中
     let cancelled = false;
-    // 次フレームで小ロゴ位置を測定 (DOMにマウント済みのはず)
     const raf = requestAnimationFrame(() => {
       if (cancelled) return;
       if (smallLogoRef.current) {
@@ -2434,7 +2442,7 @@ function HeroSlideshow({ t, events, heroSlides, loading }) {
       if (!cancelled) setPhase('done');
     }, 1500);
     return () => { cancelled = true; cancelAnimationFrame(raf); clearTimeout(t); };
-  }, [slides.length]);
+  }, [slides.length, loading]);
 
   // (Phase 6.8) ロード/morph 画面: phase に応じて装飾フェード + 大ロゴが小ロゴ位置へ縮小・移動
   // パーティクル定義
@@ -2670,267 +2678,278 @@ function HeroSlideshow({ t, events, heroSlides, loading }) {
     </React.Fragment>
   ) : null;
 
+  // (Phase 6.10) seiban風コラージュ Hero
+  // レイアウト:
+  //   ・左 8% : ベージュ縦帯 + SCROLL縦書き
+  //   ・中央~右 : 写真スライドショー (背景)
+  //   ・写真の上に: 白角丸カード (ロゴ + キャッチコピー)
+  //   ・左下 : サブ写真 (オプショナル)
+  //   ・右端 : 青縦帯 + ドットナビ
+  // アニメーションシーケンス:
+  //   1. loading: 中央大ロゴ + 装飾フル (既存loadingUI)
+  //   2. morphing: ロゴが「白カード内の左半分」位置にスライド (既存morph)
+  //   3. done: カードが定位置で表示、右側からキャッチコピーがスライドイン
   return (
     <section data-section="hero" style={{
       position: 'relative',
       width: '100%',
       height: '100vh',
-      minHeight: 600,
+      minHeight: 640,
       maxHeight: 900,
       overflow: 'hidden',
-      background: '#000',
+      background: '#fdf8f0',
     }}>
-      {/* 各スライドをスタックして、現在のスライドだけopacity 1 */}
-      {slides.map((s, i) => (
-        <div key={i} style={{
-          position: 'absolute',
-          inset: 0,
-          opacity: i === idx ? 1 : 0,
-          transition: 'opacity 1.8s cubic-bezier(.4, 0, .2, 1)',
-          zIndex: i === idx ? 2 : 1,
-        }}>
-          {/* 写真 */}
-          <img
-            src={s.img}
-            alt=""
-            style={{
-              position: 'absolute',
-              inset: 0,
-              width: '100%',
-              height: '100%',
-              objectFit: 'cover',
-              display: 'block',
-              animation: i === idx ? 'cca-ken-burns 14s ease-out forwards' : 'none',
-            }}
-          />
-          {/* 暗い半透明オーバーレイ (テキスト読みやすさ) */}
-          <div aria-hidden style={{
-            position: 'absolute',
-            inset: 0,
-            background: s.tone === 'warm'
-              ? 'linear-gradient(180deg, rgba(10,41,96,0.35) 0%, rgba(10,41,96,0.55) 100%)'
-              : s.tone === 'city'
-              ? 'linear-gradient(180deg, rgba(0,0,0,0.35) 0%, rgba(10,41,96,0.65) 100%)'
-              : 'linear-gradient(180deg, rgba(0,0,0,0.45) 0%, rgba(10,41,96,0.65) 100%)',
-            zIndex: 1,
-          }} />
-        </div>
-      ))}
+      {/* 左 8% ベージュ縦帯 */}
+      <div aria-hidden style={{
+        position: 'absolute', top: 0, left: 0, bottom: 0,
+        width: 'clamp(48px, 8%, 110px)',
+        background: '#f0ede5',
+        zIndex: 3,
+      }}/>
 
-      {/* ロゴ (右上、白カードに) - smallLogoRef はinner img に付けて、morph 完了時に img の位置・サイズと完全一致させる */}
+      {/* 写真スライドショー (左帯を除く右側全体) */}
       <div style={{
         position: 'absolute',
-        top: 'clamp(110px, 13vh, 140px)',
-        right: 'clamp(28px, 4vw, 56px)',
-        zIndex: 10,
-        // morphing 中はモーフ用ロゴが上に被さるので非表示。done でフェードイン
-        opacity: phase === 'done' ? 1 : 0,
-        transition: 'opacity 0.5s ease-out',
-      }}>
-        <div style={{
-          background: 'rgba(255, 255, 255, 0.95)',
-          backdropFilter: 'blur(20px)',
-          WebkitBackdropFilter: 'blur(20px)',
-          padding: 12,
-          borderRadius: 16,
-          boxShadow: '0 8px 24px -4px rgba(0,0,0,0.2)',
-        }}>
-          <img ref={smallLogoRef} src={ASSET_LOGO} alt="connec+a" style={{
-            width: 'clamp(48px, 4.5vw, 64px)',
-            height: 'auto',
-            display: 'block',
-          }} />
-        </div>
-      </div>
-
-      {/* テキスト中央配置 */}
-      <div style={{
-        position: 'absolute',
-        inset: 0,
-        zIndex: 5,
-        display: 'flex',
-        flexDirection: 'column',
-        alignItems: 'flex-start',
-        justifyContent: 'center',
-        padding: 'clamp(80px, 12vh, 120px) clamp(28px, 5vw, 80px)',
-        color: '#fff',
-        maxWidth: 1440,
-        margin: '0 auto',
+        top: 0, bottom: 0,
+        left: 'clamp(48px, 8%, 110px)',
+        right: 'clamp(40px, 5%, 80px)',
+        overflow: 'hidden',
       }}>
         {slides.map((s, i) => (
           <div key={i} style={{
-            position: 'absolute',
-            left: 'clamp(28px, 5vw, 80px)',
-            right: 'clamp(28px, 5vw, 80px)',
+            position: 'absolute', inset: 0,
             opacity: i === idx ? 1 : 0,
-            transform: i === idx ? 'translateY(0)' : 'translateY(20px)',
-            transition: 'opacity 1.2s cubic-bezier(.2,.8,.2,1) 0.4s, transform 1.2s cubic-bezier(.2,.8,.2,1) 0.4s',
-            pointerEvents: i === idx ? 'auto' : 'none',
+            transition: 'opacity 1.8s cubic-bezier(.4, 0, .2, 1)',
+            zIndex: i === idx ? 2 : 1,
           }}>
-            {/* eyebrow */}
-            <div style={{
-              fontFamily: 'var(--mono)',
-              fontSize: 'clamp(11px, 1vw, 13px)',
-              letterSpacing: '0.32em',
-              fontWeight: 600,
-              opacity: 0.95,
-              marginBottom: 24,
-              display: 'flex',
-              alignItems: 'center',
-              gap: 14,
-            }}>
-              <span style={{ width: 32, height: 1, background: '#fff', opacity: 0.7 }} />
-              <span>{s.eyebrow}</span>
-            </div>
-
-            {/* メインコピー (英語、明朝) */}
-            <h1 style={{
-              fontFamily: 'var(--serif)',
-              fontSize: 'clamp(40px, 6.5vw, 96px)',
-              fontWeight: 400,
-              lineHeight: 1.05,
-              margin: 0,
-              letterSpacing: '-0.01em',
-              maxWidth: '14ch',
-              textShadow: '0 2px 24px rgba(0,0,0,0.35)',
-            }}>
-              <div style={{ fontStyle: 'normal' }}>{s.mainEn}</div>
-              <div style={{ fontStyle: 'italic', color: '#ffd5c6', marginTop: 4 }}>{s.mainEm}</div>
-            </h1>
-
-            {/* 日本語サブコピー */}
-            <div style={{
-              marginTop: 28,
-              fontFamily: 'var(--jp)',
-              fontSize: 'clamp(15px, 1.4vw, 19px)',
-              fontWeight: 500,
-              letterSpacing: '0.04em',
-              opacity: 0.95,
-              textShadow: '0 2px 12px rgba(0,0,0,0.4)',
-            }}>{s.sub}</div>
+            <img src={s.img} alt="" style={{
+              position: 'absolute', inset: 0,
+              width: '100%', height: '100%',
+              objectFit: 'cover', display: 'block',
+              animation: i === idx ? 'cca-ken-burns 14s ease-out forwards' : 'none',
+            }}/>
+            {/* オーバーレイ (テキスト読みやすさ + 雰囲気) */}
+            <div aria-hidden style={{
+              position: 'absolute', inset: 0,
+              background: s.tone === 'warm'
+                ? 'linear-gradient(180deg, rgba(10,41,96,0.10) 0%, rgba(10,41,96,0.30) 100%)'
+                : s.tone === 'city'
+                ? 'linear-gradient(180deg, rgba(0,0,0,0.10) 0%, rgba(10,41,96,0.40) 100%)'
+                : 'linear-gradient(180deg, rgba(0,0,0,0.15) 0%, rgba(10,41,96,0.40) 100%)',
+              zIndex: 1,
+            }}/>
           </div>
         ))}
       </div>
 
-      {/* 下部のスライドインジケータ */}
-      <div style={{
-        position: 'absolute',
-        bottom: 'clamp(28px, 4vh, 48px)',
-        left: 'clamp(28px, 5vw, 80px)',
-        zIndex: 10,
-        display: 'flex',
-        gap: 10,
-        alignItems: 'center',
+      {/* 右 5% 青縦帯 + ドットナビ */}
+      <div aria-hidden style={{
+        position: 'absolute', top: 0, right: 0, bottom: 0,
+        width: 'clamp(40px, 5%, 80px)',
+        background: 'linear-gradient(180deg, rgba(28,109,208,0.92) 0%, rgba(16,86,176,0.94) 100%)',
+        zIndex: 3,
+        display: 'flex', alignItems: 'center', justifyContent: 'center',
       }}>
-        {slides.map((_, i) => (
-          <button
-            key={i}
-            onClick={() => { setIdx(i); setPaused(true); setTimeout(() => setPaused(false), 8000); }}
-            aria-label={`スライド ${i + 1}`}
-            style={{
-              padding: 0,
-              border: 0,
-              background: 'transparent',
-              cursor: 'pointer',
-              display: 'flex',
-              alignItems: 'center',
-            }}>
-            <span style={{
-              display: 'inline-block',
-              width: i === idx ? 32 : 10,
-              height: 4,
-              background: i === idx ? '#fff' : 'rgba(255,255,255,0.45)',
-              borderRadius: 999,
-              transition: 'all .5s ease',
-            }} />
-          </button>
-        ))}
-        <span style={{
-          marginLeft: 12,
-          fontFamily: 'var(--mono)',
-          fontSize: 11,
-          color: 'rgba(255,255,255,0.85)',
-          letterSpacing: '0.18em',
-          fontWeight: 600,
-        }}>
-          {String(idx + 1).padStart(2, '0')} / {String(slides.length).padStart(2, '0')}
-        </span>
+        {/* ドットナビ */}
+        {slides.length > 1 && phase === 'done' && (
+          <div style={{
+            position: 'absolute', top: '50%', left: '50%',
+            transform: 'translate(-50%, -50%)',
+            display: 'flex', flexDirection: 'column', gap: 14,
+            zIndex: 4,
+          }}>
+            {slides.map((_, i) => (
+              <button key={i} onClick={() => setIdx(i)} aria-label={`Slide ${i+1}`}
+                style={{
+                  width: 8, height: 8, borderRadius: '50%',
+                  border: 'none',
+                  background: i === idx ? '#fff' : 'rgba(255,255,255,0.4)',
+                  cursor: 'pointer',
+                  transition: 'all 0.4s ease',
+                  transform: i === idx ? 'scale(1.4)' : 'scale(1)',
+                  boxShadow: i === idx ? '0 0 0 3px rgba(255,255,255,0.25)' : 'none',
+                  padding: 0,
+                }}/>
+            ))}
+          </div>
+        )}
       </div>
 
-      {/* 右下: SCROLL + CTA (現在のスライドに応じて変化) */}
-      <div style={{
+      {/* 左下 SCROLL縦書き */}
+      <div className="desktop-only" aria-hidden style={{
         position: 'absolute',
-        bottom: 'clamp(28px, 4vh, 48px)',
-        right: 'clamp(28px, 5vw, 80px)',
-        zIndex: 10,
-        display: 'flex',
-        alignItems: 'center',
-        gap: 24,
+        bottom: 'clamp(40px, 8vh, 80px)',
+        left: 0,
+        width: 'clamp(48px, 8%, 110px)',
+        display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 12,
+        color: '#1a3661',
+        zIndex: 4,
       }}>
-        {(() => {
-          const cur = slides[idx];
-          const href = cur && cur.isEvent && cur.eventId
-            ? `#/events/${cur.eventId}`
-            : '#/events';
-          const label = cur && cur.isEvent && cur.eventId
-            ? 'このイベントを見る'
-            : 'イベントを見る';
-          return (
-            <a href={href} style={{
-              display: 'inline-flex',
-              alignItems: 'center',
-              gap: 10,
-              background: 'rgba(255, 255, 255, 0.95)',
-              color: 'var(--sky-900)',
-              padding: '14px 28px',
-              fontFamily: 'var(--jp)',
-              fontSize: 14,
-              fontWeight: 700,
-              borderRadius: 999,
-              textDecoration: 'none',
-              transition: 'all .3s',
-              backdropFilter: 'blur(10px)',
-              WebkitBackdropFilter: 'blur(10px)',
-            }}
-            onMouseEnter={(e) => {
-              e.currentTarget.style.background = '#ff7a59';
-              e.currentTarget.style.color = '#fff';
-              e.currentTarget.style.transform = 'translateY(-2px)';
-            }}
-            onMouseLeave={(e) => {
-              e.currentTarget.style.background = 'rgba(255, 255, 255, 0.95)';
-              e.currentTarget.style.color = 'var(--sky-900)';
-              e.currentTarget.style.transform = 'none';
-            }}>
-              <span>{label}</span>
-              <span style={{ fontSize: 15 }}>→</span>
-            </a>
-          );
-        })()}
-        <div className="desktop-only" style={{
-          display: 'flex',
-          alignItems: 'center',
-          gap: 10,
+        <span style={{
           fontFamily: 'var(--mono)',
           fontSize: 10,
-          color: 'rgba(255,255,255,0.85)',
-          letterSpacing: '0.28em',
+          letterSpacing: '0.32em',
           fontWeight: 600,
+          writingMode: 'horizontal-tb',
+        }}>SCROLL</span>
+        <span style={{
+          display: 'inline-block', width: 1, height: 56,
+          background: '#1a3661',
+          opacity: 0.4,
+          animation: 'cca-scroll-line 2.4s ease-in-out infinite',
+        }}/>
+      </div>
+
+      {/* 中央: 白丸角四角カード (ロゴ + キャッチコピー) */}
+      {/* phase='done' で表示、ビルドインアニメーションでスケール+フェード */}
+      <div style={{
+        position: 'absolute',
+        top: '50%', left: '50%',
+        transform: 'translate(-50%, -55%)',
+        zIndex: 5,
+        opacity: phase === 'done' ? 1 : 0,
+        transition: 'opacity 0.6s ease-out 0.3s',
+      }}>
+        <div style={{
+          background: '#fff',
+          borderRadius: 'clamp(20px, 2.4vw, 32px)',
+          padding: 'clamp(28px, 3.5vw, 48px) clamp(36px, 4.5vw, 64px)',
+          boxShadow: '0 30px 80px -20px rgba(10,41,96,0.35), 0 12px 32px -8px rgba(10,41,96,0.18)',
+          display: 'flex', alignItems: 'center', gap: 'clamp(24px, 3vw, 56px)',
+          minWidth: 'clamp(420px, 56vw, 760px)',
+          animation: phase === 'done' ? 'heroCardBuildIn 1.2s cubic-bezier(.2,.8,.2,1) 0.2s both' : 'none',
         }}>
-          <span>SCROLL</span>
-          <span style={{
-            display: 'inline-block', width: 1, height: 24,
-            background: '#fff',
-            animation: 'cca-scroll-line 2.4s ease-in-out infinite',
-          }} />
+          {/* 左: ロゴ (smallLogoRef がここを指す morph終点) */}
+          <div ref={smallLogoRef} style={{
+            flexShrink: 0,
+            display: 'flex', alignItems: 'center', justifyContent: 'center',
+          }}>
+            <img src={ASSET_LOGO} alt="connec+a" style={{
+              width: 'clamp(80px, 10vw, 140px)',
+              height: 'auto',
+              display: 'block',
+            }}/>
+          </div>
+
+          {/* 区切り縦線 */}
+          <div style={{
+            width: 1, alignSelf: 'stretch',
+            background: 'linear-gradient(180deg, transparent, rgba(26,54,97,0.2) 30%, rgba(26,54,97,0.2) 70%, transparent)',
+            animation: phase === 'done' ? 'heroDividerGrow 1s ease-out 1.0s both' : 'none',
+          }}/>
+
+          {/* 右: キャッチコピー (右からスライドイン) */}
+          <div style={{
+            display: 'flex', flexDirection: 'column', gap: 12,
+            animation: phase === 'done' ? 'heroCatchSlideIn 1.2s cubic-bezier(.2,.8,.2,1) 1.2s both' : 'none',
+          }}>
+            {/* カラードット帯 (国際交流カラー) */}
+            <div style={{display: 'flex', gap: 4, alignItems: 'center'}}>
+              {['#ff7a59', '#1c89e8', '#ffc857', '#4ecdc4', '#9b5de5', '#ff6b9d', '#56cc7e'].map((c, i) => (
+                <span key={i} style={{
+                  width: 6, height: 6, borderRadius: '50%',
+                  background: c,
+                  animation: phase === 'done'
+                    ? `heroDotPop 0.5s cubic-bezier(.2,.8,.2,1) ${1.5 + i*0.08}s both`
+                    : 'none',
+                  opacity: 0,
+                }}/>
+              ))}
+            </div>
+            {/* キャッチコピー (Adminで後から設定可能) */}
+            <h1 style={{
+              margin: 0,
+              fontFamily: 'var(--jp)',
+              fontSize: 'clamp(20px, 2.4vw, 32px)',
+              fontWeight: 500,
+              color: '#1a3661',
+              letterSpacing: '0.04em',
+              lineHeight: 1.4,
+              whiteSpace: 'nowrap',
+            }}>
+              一緒に、東京を歩こう
+            </h1>
+            {/* 英文サブ */}
+            <div style={{
+              fontFamily: 'var(--serif)',
+              fontStyle: 'italic',
+              fontSize: 'clamp(13px, 1.1vw, 15px)',
+              color: 'rgba(26,54,97,0.6)',
+              letterSpacing: '0.02em',
+              fontWeight: 400,
+            }}>
+              Where strangers become friends.
+            </div>
+          </div>
+        </div>
+      </div>
+
+      {/* 左下: サブ写真エリア (Adminで設定、無い時は装飾円) */}
+      <div className="desktop-only" style={{
+        position: 'absolute',
+        bottom: 'clamp(60px, 8vh, 120px)',
+        left: 'clamp(80px, 14%, 180px)',
+        width: 'clamp(160px, 18vw, 260px)',
+        height: 'clamp(110px, 13vh, 180px)',
+        zIndex: 4,
+        opacity: phase === 'done' ? 1 : 0,
+        transform: phase === 'done' ? 'translateY(0)' : 'translateY(40px)',
+        transition: 'opacity 1s ease-out 1.5s, transform 1s cubic-bezier(.2,.8,.2,1) 1.5s',
+      }}>
+        <div style={{
+          width: '100%', height: '100%',
+          borderRadius: 'clamp(12px, 1.4vw, 20px)',
+          overflow: 'hidden',
+          background: 'linear-gradient(135deg, #ffeed6, #ffd5c6)',
+          boxShadow: '0 20px 50px -16px rgba(10,41,96,0.3)',
+          position: 'relative',
+        }}>
+          {/* サブ写真 (slides[1] か空の時は装飾) */}
+          {slides.length > 1 && slides[(idx + 1) % slides.length]?.img ? (
+            <img src={slides[(idx + 1) % slides.length].img} alt="" style={{
+              width: '100%', height: '100%',
+              objectFit: 'cover', display: 'block',
+              animation: 'cca-ken-burns 18s ease-out infinite alternate',
+            }}/>
+          ) : (
+            <div style={{
+              width: '100%', height: '100%',
+              display: 'flex', alignItems: 'center', justifyContent: 'center',
+              fontFamily: 'var(--serif)',
+              fontStyle: 'italic',
+              fontSize: 'clamp(20px, 2.4vw, 32px)',
+              color: 'rgba(26,54,97,0.4)',
+            }}>+a</div>
+          )}
         </div>
       </div>
 
       {/* (Phase 6.8) ロード装飾 + モーフ用ロゴ。phase==='done' のときは null になる */}
       {loadingUI}
+
+      {/* セクション内アニメーション CSS */}
+      <style>{`
+        @keyframes heroCardBuildIn {
+          from { opacity: 0; transform: scale(0.92); }
+          to   { opacity: 1; transform: scale(1); }
+        }
+        @keyframes heroDividerGrow {
+          from { opacity: 0; transform: scaleY(0); }
+          to   { opacity: 1; transform: scaleY(1); }
+        }
+        @keyframes heroCatchSlideIn {
+          from { opacity: 0; transform: translateX(40px); }
+          to   { opacity: 1; transform: translateX(0); }
+        }
+        @keyframes heroDotPop {
+          from { opacity: 0; transform: scale(0); }
+          to   { opacity: 1; transform: scale(1); }
+        }
+      `}</style>
     </section>
   );
 }
+
 
 // ============================================================================
 // AD ROTATOR (Phase 6: 広告のサイケトリック・タイムローテーション)
@@ -3287,7 +3306,7 @@ function ConceptSection({ settings }) {
           </div>
         </Reveal>
 
-        <Reveal delay={150} y={60}>
+        <BuildInDir delay={150} dir="right" distance={80}>
           <div>
             <h2 style={{
               margin: 0,
@@ -3322,7 +3341,7 @@ function ConceptSection({ settings }) {
               }}/>
             </div>
           </div>
-        </Reveal>
+        </BuildInDir>
 
         <div style={{
           display:'grid',
@@ -3330,7 +3349,7 @@ function ConceptSection({ settings }) {
           gap: 'clamp(24px, 4vw, 64px)',
           alignItems: 'start',
         }}>
-          <Reveal delay={400} y={30}>
+          <BuildInDir delay={400} dir="left" distance={50}>
             <p style={{
               margin: 0,
               fontFamily: SEIBAN_LABEL_EN_FONT,
@@ -3342,7 +3361,7 @@ function ConceptSection({ settings }) {
             }}>
               {bodyEn}
             </p>
-          </Reveal>
+          </BuildInDir>
           <Reveal delay={600} y={30}>
             <p style={{
               margin: 0,
@@ -3448,7 +3467,7 @@ function EventsEntrySection({ settings }) {
         margin:'0 auto',
       }}>
         <div style={{display:'flex', flexDirection:'column', gap: 32, color:'#fff'}}>
-          <Reveal y={20}>
+          <BuildInDir dir="right" distance={60}>
             <p style={{
               margin: 0,
               fontFamily:'var(--jp)',
@@ -3461,7 +3480,7 @@ function EventsEntrySection({ settings }) {
             }}>
               {body}
             </p>
-          </Reveal>
+          </BuildInDir>
           <Reveal delay={200} y={20}>
             <a href={ctaLink} onClick={handleCta} style={{
               display:'inline-flex', alignItems:'center', gap: 24,
@@ -3490,7 +3509,7 @@ function EventsEntrySection({ settings }) {
         </div>
 
         <div style={{display:'flex', flexDirection:'column', gap: 16}}>
-          <Reveal delay={100} y={50} blur={false}>
+          <BuildInDir delay={100} dir="right" distance={100}>
             <h2 style={{
               margin: 0,
               fontFamily: SEIBAN_LABEL_EN_FONT,
@@ -3505,7 +3524,7 @@ function EventsEntrySection({ settings }) {
             }}>
               {labelEn}
             </h2>
-          </Reveal>
+          </BuildInDir>
           <Reveal delay={400} y={20}>
             <div style={{
               fontFamily:'var(--jp)',
@@ -3617,7 +3636,7 @@ function NewsSection({ settings, newsList }) {
         margin:'0 auto',
       }}>
         <div style={{display:'flex', flexDirection:'column', gap: 16}}>
-          <Reveal delay={100} y={50} blur={false}>
+          <BuildInDir delay={100} dir="left" distance={100}>
             <h2 style={{
               margin: 0,
               fontFamily: SEIBAN_LABEL_EN_FONT,
@@ -3632,7 +3651,7 @@ function NewsSection({ settings, newsList }) {
             }}>
               {labelEn}
             </h2>
-          </Reveal>
+          </BuildInDir>
           <Reveal delay={400} y={20}>
             <div style={{
               fontFamily:'var(--jp)',
