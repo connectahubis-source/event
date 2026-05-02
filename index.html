@@ -15,6 +15,8 @@
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@300;400;500;600;700;800&family=Zen+Maru+Gothic:wght@300;400;500;700;900&family=Zen+Kaku+Gothic+New:wght@300;400;500;700;900&family=Noto+Serif+JP:wght@400;500;700;900&family=JetBrains+Mono:wght@400;500;600&family=Cormorant+Garamond:ital,wght@0,400;0,500;0,600;1,400&family=Fraunces:ital,opsz,wght@0,9..144,300;0,9..144,400;0,9..144,500;0,9..144,600;1,9..144,400&display=swap" rel="stylesheet">
+<!-- (Phase 7.2) ヒーローオーバーレイ用手書きフォント -->
+<link href="https://fonts.googleapis.com/css2?family=Caveat:wght@400;700&family=Kalam:wght@400;700&family=Permanent+Marker&family=Yuji+Mai&family=Yuji+Boku&family=Klee+One:wght@400;600&family=Zen+Kurenaido&family=Hachi+Maru+Pop&display=swap" rel="stylesheet">
 
 <!-- React + Babel -->
 <script src="https://unpkg.com/react@18.3.1/umd/react.development.js" crossorigin></script>
@@ -57,7 +59,7 @@
   --ink-faint:   var(--sky-500);
 
   --sans: 'Plus Jakarta Sans', ui-sans-serif, system-ui, -apple-system, sans-serif;
-  --jp:   'Zen Maru Gothic', 'Hiragino Sans', 'Yu Gothic', sans-serif;
+  --jp:   'Zen Kaku Gothic New', 'Hiragino Sans', 'Yu Gothic', sans-serif;
   --jp-rounded: 'Zen Maru Gothic', 'Hiragino Sans', sans-serif;
   --jp-kaku: 'Zen Kaku Gothic New', 'Hiragino Sans', 'Yu Gothic', sans-serif;
   --jp-serif: 'Noto Serif JP', 'Yu Mincho', 'Hiragino Mincho ProN', serif;
@@ -79,13 +81,13 @@
 html, body { margin: 0; padding: 0; }
 body { background: var(--paper); color: var(--ink); font-family: var(--sans); }
 
-/* (Phase 6.9) スクロールスナップ: Hero / Concept / EventsEntry / News の各セクションで止まる */
-html { scroll-snap-type: y proximity; scroll-behavior: smooth; }
-section[data-section] { scroll-snap-align: start; scroll-snap-stop: always; }
+/* (Phase 7.1) スクロールスナップは無効化 (Pg Dn遅延の原因)、smooth scrollだけ残す */
+html { scroll-behavior: smooth; }
 a { color: inherit; text-decoration: none; }
 button { font-family: inherit; cursor: pointer; }
 
 @keyframes cca-rise { from { opacity: 0; transform: translateY(20px) } to { opacity: 1; transform: none } }
+@keyframes fadeInUp { from { opacity: 0; transform: translateY(20px) } to { opacity: 1; transform: none } }
 @keyframes cca-slide-left { from { opacity: 0; transform: translateX(-40px) } to { opacity: 1; transform: none } }
 @keyframes cca-fade { from { opacity: 0 } to { opacity: 1 } }
 @keyframes cca-scroll-line {
@@ -856,6 +858,65 @@ function fmtTimeRange(start, end) {
 //
 // 補助フィルタは別関数:
 //   - isRegistrationOpen(event): 申込が現在受付中か (申込締切で false)
+
+// =============================================================================
+// (Phase 7.1) Events エリア・料金判定ヘルパー
+// =============================================================================
+
+// イベントのエリアを判定 (admin で設定された area フィールド優先、なければ online フラグ → location から推測)
+// 戻り値: '関東' | '関西' | 'web' | '' (不明)
+function detectEventArea(ev) {
+  if (!ev) return '';
+  // adminで明示的にareaが設定されている場合 (Phase 7.4で追加された area フィールド)
+  if (ev.area) {
+    const a = String(ev.area).toLowerCase();
+    if (a === 'web' || a.includes('オンライン') || a.includes('online')) return 'web';
+    if (a.includes('関東') || a === 'kanto') return '関東';
+    if (a.includes('関西') || a === 'kansai') return '関西';
+  }
+  // online フラグが立っていれば Web 開催として扱う (area が空でも判定できる)
+  if (ev.online === true || ev.online === 'true' || ev.online === 'TRUE') return 'web';
+  // フォールバック: location から推測 (旧データ互換)
+  const loc = String(ev.location || '').toLowerCase();
+  if (!loc) return '';
+  if (loc.includes('オンライン') || loc.includes('online') || loc.includes('zoom') || loc.includes('web')) return 'web';
+  // 関東: 東京/神奈川/千葉/埼玉/茨城/栃木/群馬
+  const kanto = ['関東', '東京', '神奈川', '横浜', '川崎', '千葉', '埼玉', '茨城', '栃木', '群馬'];
+  for (const k of kanto) {
+    if (loc.includes(k.toLowerCase()) || (ev.location || '').includes(k)) return '関東';
+  }
+  // 関西: 大阪/京都/兵庫/奈良/滋賀/和歌山
+  const kansai = ['関西', '大阪', '京都', '兵庫', '神戸', '奈良', '滋賀', '和歌山'];
+  for (const k of kansai) {
+    if (loc.includes(k.toLowerCase()) || (ev.location || '').includes(k)) return '関西';
+  }
+  return '';
+}
+
+// イベントが有料か無料かを判定
+// 普通開催: fee > 0 → 有料、fee === 0 → 無料
+// 複数開催 (multi): セッションのどれか1つでも有料 → 有料、全て無料 → 無料
+// 戻り値: 'paid' | 'free' | '' (不明)
+function detectEventFeeType(ev, sessions) {
+  if (!ev) return '';
+  // adminで明示的にfeeTypeが設定されている場合 (今後追加予定)
+  if (ev.feeType) {
+    const ft = String(ev.feeType).toLowerCase();
+    if (ft === '有料' || ft === 'paid') return 'paid';
+    if (ft === '無料' || ft === 'free') return 'free';
+  }
+  // 複数開催の場合
+  if (ev.format === 'multi' && Array.isArray(sessions) && sessions.length > 0) {
+    const anyPaid = sessions.some(s => typeof s.fee === 'number' && s.fee > 0);
+    return anyPaid ? 'paid' : 'free';
+  }
+  // 普通開催の場合
+  if (typeof ev.fee === 'number') {
+    return ev.fee > 0 ? 'paid' : 'free';
+  }
+  return '';
+}
+
 function filterPublicEvents(events) {
   if (!Array.isArray(events)) {
     console.warn('[Participants] filterPublicEvents: events is not array', events);
@@ -1163,43 +1224,45 @@ function Nav({ lang, setLang, t, transparent }) {
     <React.Fragment>
       <nav style={{
         position: 'fixed', top: 0, left: 0, right: 0, zIndex: 100,
-        background: 'rgba(255,255,255,0.85)',
-        backdropFilter: 'blur(20px) saturate(180%)',
-        WebkitBackdropFilter: 'blur(20px) saturate(180%)',
-        borderBottom: scrolled ? '1px solid var(--sky-100)' : '1px solid transparent',
-        boxShadow: scrolled ? '0 4px 30px -10px rgba(28,86,176,0.08)' : 'none',
+        background: '#ffffff',
+        borderBottom: scrolled ? '1px solid #e5e7eb' : '1px solid transparent',
         transition: 'all .3s',
       }}>
         <div style={{
-          maxWidth: 1440, margin: '0 auto',
-          padding: '18px 36px',
-          display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 20,
+          maxWidth: 1600, margin: '0 auto',
+          padding: '20px 56px',
+          display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 32,
         }}>
-          {/* Logo */}
+          {/* 左: ブランド名 + サブテキスト (KURASHITO風) */}
           <a href="#/" style={{
-            display: 'flex', alignItems: 'center', gap: 10,
-            color: 'var(--sky-900)',
-            fontSize: 20, fontWeight: 700, letterSpacing: '-0.02em',
+            display: 'flex', flexDirection: 'column', gap: 4,
+            color: '#0a2960',
             textDecoration: 'none',
           }}>
             <span style={{
-              display: 'inline-flex', alignItems: 'center', justifyContent: 'center',
-              width: 34, height: 34,
-              background: 'var(--sky-700)',
-              color: '#fff',
-              borderRadius: 10,
-              fontSize: 14, fontWeight: 800, letterSpacing: '-0.05em',
-              boxShadow: '0 4px 12px -2px rgba(28,86,176,0.3)',
-            }}>+a</span>
-            connec+a
+              fontFamily: 'var(--sans)',
+              fontSize: 26,
+              fontWeight: 800,
+              letterSpacing: '0.08em',
+              lineHeight: 1,
+              color: '#0a2960',
+            }}>connec+a</span>
+            <span style={{
+              fontFamily: 'var(--jp)',
+              fontSize: 11,
+              fontWeight: 400,
+              color: '#6b7280',
+              letterSpacing: '0.04em',
+              lineHeight: 1.4,
+            }}>留学生と日本人を、東京の日常でつなぐ</span>
           </a>
 
           {/* Desktop nav */}
-          <div className="desktop-only" style={{ display: 'flex', gap: 32, alignItems: 'center' }}>
-            <a href="#/events" className="link-slide" style={{ color: 'var(--sky-800)', fontSize: 14, fontWeight: 600, fontFamily: 'var(--jp)' }}>{t.nav.events}</a>
-            <a href="#/about" className="link-slide" style={{ color: 'var(--sky-800)', fontSize: 14, fontWeight: 600, fontFamily: 'var(--jp)' }}>{t.nav.about}</a>
-            <a href="#/news" className="link-slide" style={{ color: 'var(--sky-800)', fontSize: 14, fontWeight: 600, fontFamily: 'var(--jp)' }}>{t.nav.news}</a>
-            <a href="#/contact" className="link-slide" style={{ color: 'var(--sky-800)', fontSize: 14, fontWeight: 600, fontFamily: 'var(--jp)' }}>{t.nav.contact}</a>
+          <div className="desktop-only" style={{ display: 'flex', gap: 36, alignItems: 'center' }}>
+            <a href="#/events" style={{ color: '#1f2937', fontSize: 14, fontWeight: 500, fontFamily: 'var(--jp)', textDecoration:'none', letterSpacing: '0.04em' }}>{t.nav.events}</a>
+            <a href="#/about" style={{ color: '#1f2937', fontSize: 14, fontWeight: 500, fontFamily: 'var(--jp)', textDecoration:'none', letterSpacing: '0.04em' }}>{t.nav.about}</a>
+            <a href="#/news" style={{ color: '#1f2937', fontSize: 14, fontWeight: 500, fontFamily: 'var(--jp)', textDecoration:'none', letterSpacing: '0.04em' }}>{t.nav.news}</a>
+            <a href="#/contact" style={{ color: '#1f2937', fontSize: 14, fontWeight: 500, fontFamily: 'var(--jp)', textDecoration:'none', letterSpacing: '0.04em' }}>{t.nav.contact}</a>
 
             {/* Lang picker */}
             <LangPicker lang={lang} setLang={setLang} t={t} transparent={false} />
@@ -2273,7 +2336,7 @@ function PageHero({
 // HERO SLIDESHOW (西武鉄道スタイル: 時間帯で切り替わるフルブリード写真)
 // Phase 6: 公開中イベントのポスターを優先表示、無ければ既定スライドにフォールバック
 // ============================================================================
-function HeroSlideshow({ t, events, heroSlides, loading }) {
+function HeroSlideshow({ t, events, heroSlides, loading, frontNews }) {
   // Google Drive の URL を表示可能な形式に正規化 (Phase 6 fix)
   const normalizeImageUrl = (url) => {
     if (!url || typeof url !== 'string') return url;
@@ -2313,21 +2376,30 @@ function HeroSlideshow({ t, events, heroSlides, loading }) {
       return true;
     })
     .slice(0, 4)   // イベントは最大4件
-    .map(e => ({
-      img: normalizeImageUrl(e.heroImageUrl || e.posterUrl),
-      eyebrow: e.category ? String(e.category).toUpperCase() : 'EVENT',
-      mainEn: e.title || 'Upcoming Event',
-      mainEm: e.format === 'multi' ? `${e.sessionCount || ''} sessions` : (e.date || ''),
-      sub: e.summary ? e.summary.slice(0, 60) : (e.venue || ''),
-      tone: e.status === '満員' ? 'night' : 'warm',
-      isEvent: true,
-      eventId: e.id,
-      eventTitle: e.title,
-      eventStatus: e.status,
-      eventDate: e.date,
-      eventVenue: e.venue,
-      accent: e.accent,
-    }));
+    .map(e => {
+      // (Phase 7.2) heroOverlay: JSON文字列または配列
+      let overlay = [];
+      try {
+        if (Array.isArray(e.heroOverlay)) overlay = e.heroOverlay;
+        else if (typeof e.heroOverlay === 'string' && e.heroOverlay) overlay = JSON.parse(e.heroOverlay);
+      } catch (err) { overlay = []; }
+      return {
+        img: normalizeImageUrl(e.heroImageUrl || e.posterUrl),
+        eyebrow: e.category ? String(e.category).toUpperCase() : 'EVENT',
+        mainEn: e.title || 'Upcoming Event',
+        mainEm: e.format === 'multi' ? `${e.sessionCount || ''} sessions` : (e.date || ''),
+        sub: e.summary ? e.summary.slice(0, 60) : (e.venue || ''),
+        tone: e.status === '満員' ? 'night' : 'warm',
+        isEvent: true,
+        eventId: e.id,
+        eventTitle: e.title,
+        eventStatus: e.status,
+        eventDate: e.date,
+        eventVenue: e.venue,
+        accent: e.accent,
+        heroOverlay: overlay,
+      };
+    });
 
   // ② Adminで管理するヒーロースライド (有効・画像ありのみ)
   const adminSlides = (heroSlides || [])
@@ -2681,192 +2753,556 @@ function HeroSlideshow({ t, events, heroSlides, loading }) {
     </React.Fragment>
   ) : null;
 
-  // (Phase 6.11) Hero: オープニング画面後のメイン画面
-  //   ・写真スライドショー全画面
-  //   ・右上に小ロゴ (smallLogoRef = morph終点)
-  //   ・スライドナビ (右端ドット)
-  //   ・SCROLL左下
-  // オープニング画面 (OpeningCurtain) は別途 App ルートで管理されるので、Hero はシンプル化。
+  // (Phase 7.0) Hero: seiban 完全再現コラージュレイアウト
+  //
+  // レイアウト:
+  //   ┌──────┬──────────────────────┬─────────────────┬────┐
+  //   │ 左   │  装飾線              │                 │ 紺 │
+  //   │ベー  │  キャッチコピー        │  メイン写真     │ 縦 │
+  //   │ジュ  │  ロゴ                │  (60% 幅)       │ 帯 │
+  //   │ 縦   │  ドット帯            │                 │ ●  │
+  //   │ 帯   │                      │                 │ ●  │
+  //   │      │  ┌────┐              ├─────────────────┤ ●  │
+  //   │ S    │  │サブ│              │  トップニュース   │    │
+  //   │ C    │  │写真│              │                 │    │
+  //   │ R    │  └────┘              │  余白           │    │
+  //   │ L    │                      │                 │    │
+  //   └──────┴──────────────────────┴─────────────────┴────┘
+  //      8%          27%                  60%              5%
+  // (Phase 7.0) TOP NEWS: 公開日が直近7日以内のものを 5秒ごとにローテーション。
+  // 7日以内が1件もなければ、最新1件のみ表示 (フォールバック)。
+  const topNewsList = React.useMemo(() => {
+    const list = frontNews || [];
+    if (list.length === 0) return [];
+    const sevenDaysAgo = new Date();
+    sevenDaysAgo.setDate(sevenDaysAgo.getDate() - 7);
+    // publishedAt or publishAt or date を見て 7日以内のみ抽出
+    const recent = list.filter(n => {
+      const dStr = n.publishedAt || n.publishAt || n.date;
+      if (!dStr) return false;
+      const d = new Date(dStr);
+      if (isNaN(d.getTime())) return false;
+      return d >= sevenDaysAgo;
+    });
+    if (recent.length > 0) {
+      // 新しい順にソート
+      recent.sort((a, b) => {
+        const da = new Date(a.publishedAt || a.publishAt || a.date);
+        const db = new Date(b.publishedAt || b.publishAt || b.date);
+        return db - da;
+      });
+      return recent;
+    }
+    // 7日以内が無ければ最新1件 (= frontNews 先頭)
+    return [list[0]];
+  }, [frontNews]);
+
+  const [newsIdx, setNewsIdx] = useState(0);
+  useEffect(() => {
+    if (topNewsList.length <= 1) return;
+    const t = setInterval(() => {
+      setNewsIdx(i => (i + 1) % topNewsList.length);
+    }, 5000);
+    return () => clearInterval(t);
+  }, [topNewsList.length]);
+
+  // 範囲外 idx の保護
+  const topNews = topNewsList[Math.min(newsIdx, topNewsList.length - 1)] || null;
+  const subSlide = slides.length > 1 ? slides[(idx + 1) % slides.length] : null;
+
   return (
     <section data-section="hero" style={{
       position: 'relative',
       width: '100%',
       height: '100vh',
-      minHeight: 600,
-      maxHeight: 900,
+      minHeight: 640,
+      maxHeight: 920,
       overflow: 'hidden',
-      background: '#000',
+      background: '#ffffff',
+      display: 'grid',
+      gridTemplateColumns: 'clamp(48px, 8%, 110px) minmax(280px, 28%) 1fr clamp(40px, 5%, 80px)',
+      gridTemplateRows: '1fr',
     }}>
-      {/* 各スライドをスタックして、現在のスライドだけopacity 1 */}
-      {slides.map((s, i) => (
-        <div key={i} style={{
+
+      {/* === 左ベージュ縦帯 === */}
+      <div style={{
+        background: '#f5f0e8',
+        position: 'relative',
+        zIndex: 2,
+      }}>
+        {/* SCROLL 縦書き (下部) */}
+        <div className="desktop-only" aria-hidden style={{
+          position: 'absolute',
+          bottom: 'clamp(40px, 8vh, 80px)',
+          left: '50%',
+          transform: 'translateX(-50%)',
+          display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 12,
+          color: '#0a2960',
+        }}>
+          <span style={{
+            fontFamily: 'var(--mono)',
+            fontSize: 10,
+            letterSpacing: '0.32em',
+            fontWeight: 600,
+          }}>SCROLL</span>
+          <span style={{
+            display: 'inline-block', width: 1, height: 56,
+            background: '#0a2960',
+            opacity: 0.4,
+            animation: 'cca-scroll-line 2.4s ease-in-out infinite',
+          }}/>
+        </div>
+      </div>
+
+      {/* === 左コンテンツエリア (スペーサー、中身は絶対配置の白パネル側に) === */}
+      <div style={{
+        position: 'relative',
+        zIndex: 1,
+      }}/>
+
+      {/* === 右側エリア (メイン写真フル + TOP NEWSは絶対配置で半透明) === */}
+      <div style={{
+        position: 'relative',
+        zIndex: 1,
+      }}>
+        {/* メイン写真 (全高さ) */}
+        <div style={{
           position: 'absolute',
           inset: 0,
-          opacity: i === idx ? 1 : 0,
-          transition: 'opacity 1.8s cubic-bezier(.4, 0, .2, 1)',
-          zIndex: i === idx ? 2 : 1,
+          overflow: 'hidden',
+          background: '#0a2960',
         }}>
-          <img src={s.img} alt="" style={{
-            position: 'absolute', inset: 0,
-            width: '100%', height: '100%',
-            objectFit: 'cover', display: 'block',
-            animation: i === idx ? 'cca-ken-burns 14s ease-out forwards' : 'none',
-          }}/>
-          {/* オーバーレイ */}
-          <div aria-hidden style={{
-            position: 'absolute', inset: 0,
-            background: s.tone === 'warm'
-              ? 'linear-gradient(180deg, rgba(10,41,96,0.35) 0%, rgba(10,41,96,0.55) 100%)'
-              : s.tone === 'city'
-              ? 'linear-gradient(180deg, rgba(0,0,0,0.35) 0%, rgba(10,41,96,0.65) 100%)'
-              : 'linear-gradient(180deg, rgba(0,0,0,0.45) 0%, rgba(10,41,96,0.65) 100%)',
-            zIndex: 1,
-          }}/>
-        </div>
-      ))}
-
-      {/* 右上の小ロゴカード (smallLogoRef = morph終点) */}
-      <div style={{
-        position: 'absolute',
-        top: 'clamp(110px, 13vh, 140px)',
-        right: 'clamp(28px, 4vw, 56px)',
-        zIndex: 10,
-        opacity: phase === 'done' ? 1 : 0,
-        transition: 'opacity 0.5s ease-out',
-      }}>
-        <div style={{
-          background: 'rgba(255, 255, 255, 0.95)',
-          backdropFilter: 'blur(20px)',
-          WebkitBackdropFilter: 'blur(20px)',
-          padding: 12,
-          borderRadius: 16,
-          boxShadow: '0 8px 24px -4px rgba(0,0,0,0.2)',
-        }}>
-          <img ref={smallLogoRef} src={ASSET_LOGO} alt="connec+a" style={{
-            width: 'clamp(48px, 4.5vw, 64px)',
-            height: 'auto',
-            display: 'block',
-          }}/>
-        </div>
-      </div>
-
-      {/* スライド本文 (タイトル+サブコピー、左下寄せ) */}
-      <div style={{
-        position: 'absolute',
-        inset: 0,
-        zIndex: 5,
-        display: 'flex',
-        flexDirection: 'column',
-        alignItems: 'flex-start',
-        justifyContent: 'center',
-        padding: 'clamp(80px, 12vh, 120px) clamp(28px, 5vw, 80px)',
-        color: '#fff',
-        maxWidth: 1440,
-        margin: '0 auto',
-        pointerEvents: 'none',
-      }}>
-        {slides.map((s, i) => (
-          <div key={i} style={{
-            position: 'absolute',
-            left: 'clamp(28px, 5vw, 80px)',
-            right: 'clamp(28px, 5vw, 80px)',
-            opacity: i === idx ? 1 : 0,
-            transform: i === idx ? 'translateY(0)' : 'translateY(20px)',
-            transition: 'opacity 1.2s cubic-bezier(.2,.8,.2,1) 0.4s, transform 1.2s cubic-bezier(.2,.8,.2,1) 0.4s',
-            pointerEvents: i === idx ? 'auto' : 'none',
-          }}>
-            {s.eyebrow && (
-              <div style={{
-                fontFamily: 'var(--mono)',
-                fontSize: 11,
-                fontWeight: 600,
-                letterSpacing: '0.28em',
-                color: 'rgba(255,255,255,0.8)',
-                marginBottom: 16,
-              }}>{s.eyebrow}</div>
-            )}
-            <h1 style={{
-              margin: 0,
-              fontFamily: 'var(--serif)',
-              fontStyle: 'italic',
-              fontWeight: 400,
-              fontSize: 'clamp(40px, 6vw, 80px)',
-              lineHeight: 1.05,
-              letterSpacing: '-0.02em',
-              color: '#fff',
-              maxWidth: '60vw',
-              textShadow: '0 4px 30px rgba(0,0,0,0.4)',
+          {slides.map((s, i) => (
+            <div key={i} style={{
+              position: 'absolute', inset: 0,
+              opacity: i === idx ? 1 : 0,
+              transition: 'opacity 1.8s cubic-bezier(0.4, 0, 0.2, 1)',
+              zIndex: i === idx ? 2 : 1,
             }}>
-              {s.titleEn}
-              {s.titleEm && <span style={{display:'block', fontStyle:'italic'}}>{s.titleEm}</span>}
-            </h1>
-            {s.sub && (
-              <div style={{
-                marginTop: 24,
-                fontFamily: 'var(--jp)',
-                fontSize: 'clamp(14px, 1.2vw, 16px)',
-                color: 'rgba(255,255,255,0.85)',
-                letterSpacing: '0.06em',
-                maxWidth: 480,
-                textShadow: '0 2px 20px rgba(0,0,0,0.4)',
-              }}>{s.sub}</div>
-            )}
-          </div>
-        ))}
-      </div>
+              <img src={s.img} alt="" style={{
+                width: '100%', height: '100%',
+                objectFit: 'cover', display: 'block',
+                animation: i === idx ? 'cca-ken-burns 14s ease-out forwards' : 'none',
+              }}/>
+              {/* (Phase 7.2) ヒーローオーバーレイ — adminで設定したテキスト/図形 */}
+              {Array.isArray(s.heroOverlay) && s.heroOverlay.length > 0 && (
+                <div style={{position:'absolute', inset:0, pointerEvents:'none', zIndex:3}}>
+                  {s.heroOverlay.map((item) => {
+                    const baseStyle = {
+                      position:'absolute',
+                      left: item.x + '%',
+                      top: item.y + '%',
+                      width: item.w + '%',
+                      height: item.h + '%',
+                      transform: `rotate(${item.rotation||0}deg)`,
+                      boxSizing: 'border-box',
+                    };
+                    if (item.type === 'text') {
+                      return (
+                        <div key={item.id} style={{
+                          ...baseStyle,
+                          display:'flex',
+                          alignItems:'center',
+                          justifyContent: item.textAlign === 'left' ? 'flex-start' : item.textAlign === 'right' ? 'flex-end' : 'center',
+                          fontSize: item.fontSize ? `clamp(${Math.round(item.fontSize*0.5)}px, ${item.fontSize/16}vw, ${item.fontSize}px)` : 'clamp(18px, 2.5vw, 36px)',
+                          color: item.color || '#fff',
+                          fontFamily: item.fontFamily,
+                          fontWeight: item.fontWeight || 400,
+                          textAlign: item.textAlign || 'center',
+                          lineHeight: 1.1,
+                          whiteSpace: 'pre-wrap',
+                          wordBreak: 'break-word',
+                          padding: 4,
+                          textShadow: '0 2px 16px rgba(0,0,0,0.3)',
+                        }}>{item.text || ''}</div>
+                      );
+                    } else if (item.type === 'circle') {
+                      return (
+                        <div key={item.id} style={{
+                          ...baseStyle,
+                          borderRadius: '50%',
+                          background: item.color || 'transparent',
+                          border: `${item.borderWidth || 0}px solid ${item.borderColor || 'transparent'}`,
+                        }}/>
+                      );
+                    } else if (item.type === 'rect') {
+                      return (
+                        <div key={item.id} style={{
+                          ...baseStyle,
+                          background: item.color || 'transparent',
+                          border: `${item.borderWidth || 0}px solid ${item.borderColor || 'transparent'}`,
+                        }}/>
+                      );
+                    } else if (item.type === 'triangle') {
+                      return (
+                        <div key={item.id} style={baseStyle}>
+                          <svg width="100%" height="100%" viewBox="0 0 100 100" preserveAspectRatio="none" style={{display:'block'}}>
+                            <polygon points="50,5 95,95 5,95" fill={item.color || 'transparent'} stroke={item.borderColor || 'transparent'} strokeWidth={item.borderWidth || 0}/>
+                          </svg>
+                        </div>
+                      );
+                    }
+                    return null;
+                  })}
+                </div>
+              )}
+            </div>
+          ))}
+          {slides.length === 0 && (
+            <div style={{
+              width:'100%', height:'100%',
+              display:'flex', alignItems:'center', justifyContent:'center',
+              fontFamily: 'var(--serif)', fontStyle:'italic',
+              fontSize: 'clamp(40px, 4vw, 56px)',
+              color: 'rgba(255,255,255,0.2)',
+            }}>connec+a</div>
+          )}
+        </div>
 
-      {/* 右下: スライドナビ (ドット) */}
-      {slides.length > 1 && phase === 'done' && (
+        {/* トップニュース (絶対配置、写真の上に半透明で重ねる) */}
         <div style={{
           position: 'absolute',
-          right: 'clamp(28px, 4vw, 56px)',
-          bottom: 'clamp(40px, 8vh, 80px)',
-          zIndex: 8,
-          display: 'flex', flexDirection: 'column', gap: 14,
+          left: 0, right: 0, bottom: 0,
+          zIndex: 6,
+          background: 'rgba(255, 255, 255, 0.78)',
+          backdropFilter: 'blur(12px) saturate(140%)',
+          WebkitBackdropFilter: 'blur(12px) saturate(140%)',
+          padding: 'clamp(18px, 2.2vh, 28px) clamp(28px, 4vw, 56px)',
+          display: 'flex',
+          alignItems: 'center',
+          gap: 'clamp(20px, 3vw, 40px)',
+          borderTop: '1px solid rgba(255,255,255,0.4)',
+          opacity: phase === 'done' ? 1 : 0,
+          transform: phase === 'done' ? 'translateY(0)' : 'translateY(20px)',
+          transition: 'opacity 1.0s ease-out 1.0s, transform 1.0s ease-out 1.0s',
         }}>
-          {slides.map((_, i) => (
-            <button key={i} onClick={() => setIdx(i)} aria-label={`Slide ${i+1}`}
-              style={{
-                width: 8, height: 8, borderRadius: '50%',
-                border: 'none',
-                background: i === idx ? '#fff' : 'rgba(255,255,255,0.4)',
-                cursor: 'pointer',
-                transition: 'all 0.4s ease',
-                transform: i === idx ? 'scale(1.4)' : 'scale(1)',
-                boxShadow: i === idx ? '0 0 0 3px rgba(255,255,255,0.25)' : 'none',
-                padding: 0,
-              }}/>
-          ))}
-        </div>
-      )}
+          {/* "TOP NEWS" ラベル */}
+          <div style={{
+            display:'flex', alignItems:'center', gap: 12,
+            flexShrink: 0,
+          }}>
+            <span style={{
+              display:'inline-block', width: 24, height: 1,
+              background: '#0a2960',
+              opacity: 0.4,
+            }}/>
+            <span style={{
+              fontFamily: 'var(--mono)',
+              fontSize: 10,
+              fontWeight: 600,
+              letterSpacing: '0.28em',
+              color: '#0a2960',
+            }}>TOP NEWS</span>
+          </div>
 
-      {/* 左下: SCROLL */}
+          {/* News 内容 (5秒ごとにローテーション、key で再マウント→フェードイン) */}
+          {topNews ? (
+            <div key={newsIdx} style={{
+              flex: 1,
+              minWidth: 0,
+              display: 'flex',
+              alignItems: 'baseline',
+              gap: 'clamp(16px, 2vw, 24px)',
+              animation: 'heroNewsFade 0.6s cubic-bezier(0.2, 0.8, 0.2, 1) both',
+            }}>
+              {/* カテゴリ */}
+              {topNews.category && (
+                <span style={{
+                  fontFamily: 'var(--jp)',
+                  fontSize: 11, fontWeight: 600,
+                  color: '#2c89e8',
+                  letterSpacing: '0.1em',
+                  flexShrink: 0,
+                }}>{topNews.category}</span>
+              )}
+              {/* タイトル */}
+              <span style={{
+                fontFamily: 'var(--jp)',
+                fontSize: 'clamp(13px, 1vw, 15px)',
+                fontWeight: 500,
+                color: '#1f2937',
+                letterSpacing: '0.02em',
+                whiteSpace:'nowrap', overflow:'hidden', textOverflow:'ellipsis',
+                minWidth: 0,
+              }}>{topNews.title}</span>
+            </div>
+          ) : (
+            <div style={{
+              flex: 1,
+              fontFamily: 'var(--jp)',
+              fontSize: 'clamp(12px, 0.9vw, 14px)',
+              color: '#9ca3af',
+            }}>新着のお知らせはありません</div>
+          )}
+
+          {/* インジケーター (複数あるときだけ) */}
+          {topNewsList.length > 1 && (
+            <div style={{
+              display: 'flex',
+              gap: 6,
+              flexShrink: 0,
+            }}>
+              {topNewsList.map((_, i) => (
+                <button
+                  key={i}
+                  onClick={() => setNewsIdx(i)}
+                  aria-label={`News ${i+1}`}
+                  style={{
+                    width: 6, height: 6,
+                    borderRadius: '50%',
+                    background: i === newsIdx ? '#0a2960' : 'rgba(10, 41, 96, 0.25)',
+                    border: 'none',
+                    cursor: 'pointer',
+                    padding: 0,
+                    transition: 'all 0.3s ease',
+                    transform: i === newsIdx ? 'scale(1.3)' : 'scale(1)',
+                  }}
+                />
+              ))}
+            </div>
+          )}
+
+          {/* 矢印 */}
+          {topNewsList.length > 0 && (
+            <a href="#news" onClick={(e) => {
+              e.preventDefault();
+              const target = document.querySelector('[data-section="news"]');
+              if (target) target.scrollIntoView({behavior:'smooth'});
+            }} style={{
+              flexShrink: 0,
+              width: 32, height: 32,
+              borderRadius: '50%',
+              border: '1px solid #0a2960',
+              display: 'flex', alignItems: 'center', justifyContent: 'center',
+              color: '#0a2960',
+              cursor: 'pointer',
+              transition: 'all 0.3s ease',
+            }} onMouseEnter={e => { e.currentTarget.style.background = '#0a2960'; e.currentTarget.style.color = '#fff'; }}
+              onMouseLeave={e => { e.currentTarget.style.background = 'transparent'; e.currentTarget.style.color = '#0a2960'; }}>
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"><path d="M5 12h14"/><polyline points="12 5 19 12 12 19"/></svg>
+            </a>
+          )}
+        </div>
+      </div>
+
+      {/* === 右紺縦帯 + ドットナビ === */}
+      <div style={{
+        background: 'linear-gradient(180deg, #1a3661 0%, #0a2960 100%)',
+        position: 'relative',
+        zIndex: 2,
+      }}>
+        {/* ドットナビ (中央) */}
+        {slides.length > 1 && (
+          <div style={{
+            position: 'absolute',
+            top: '50%', left: '50%',
+            transform: 'translate(-50%, -50%)',
+            display: 'flex', flexDirection: 'column', gap: 14,
+          }}>
+            {slides.map((_, i) => (
+              <button key={i} onClick={() => setIdx(i)} aria-label={`Slide ${i+1}`}
+                style={{
+                  width: 8, height: 8, borderRadius: '50%',
+                  border: 'none',
+                  background: i === idx ? '#fff' : 'rgba(255,255,255,0.4)',
+                  cursor: 'pointer',
+                  transition: 'all 0.4s ease',
+                  transform: i === idx ? 'scale(1.4)' : 'scale(1)',
+                  boxShadow: i === idx ? '0 0 0 3px rgba(255,255,255,0.25)' : 'none',
+                  padding: 0,
+                }}/>
+            ))}
+          </div>
+        )}
+      </div>
+
+      {/* === 左コンテンツコンテナ (白パネル + クイックアクセス) === */}
       <div className="desktop-only" style={{
         position: 'absolute',
-        left: 'clamp(28px, 5vw, 80px)',
-        bottom: 'clamp(40px, 8vh, 80px)',
-        zIndex: 8,
-        display: 'flex', alignItems: 'center', gap: 10,
-        fontFamily: 'var(--mono)',
-        fontSize: 10,
-        color: 'rgba(255,255,255,0.85)',
-        letterSpacing: '0.28em',
-        fontWeight: 600,
+        top: 'clamp(110px, 13vh, 140px)',
+        left: 'clamp(48px, 8%, 110px)',  /* ベージュ帯の幅と一致 = 余白ゼロ */
+        width: 'clamp(380px, 33%, 520px)',
+        zIndex: 4,
+        display: 'flex',
+        flexDirection: 'column',
+        gap: 20,
       }}>
-        <span>SCROLL</span>
-        <span style={{
-          display: 'inline-block', width: 1, height: 24,
-          background: '#fff',
-          animation: 'cca-scroll-line 2.4s ease-in-out infinite',
-        }}/>
+        {/* 白パネル */}
+        <div style={{
+          padding: 'clamp(32px, 4vh, 48px) clamp(28px, 3vw, 44px)',
+          background: 'rgba(255, 255, 255, 0.92)',
+          backdropFilter: 'blur(16px) saturate(140%)',
+          WebkitBackdropFilter: 'blur(16px) saturate(140%)',
+          border: '1px solid rgba(255, 255, 255, 0.7)',
+          boxShadow: '0 30px 80px -20px rgba(10, 41, 96, 0.2), 0 12px 32px -8px rgba(10, 41, 96, 0.1)',
+          display: 'flex',
+          flexDirection: 'column',
+          gap: 24,
+          animation: phase === 'done' ? 'heroPanelBuildIn 1.4s cubic-bezier(0.2, 0.8, 0.2, 1) 0.2s both' : 'none',
+        }}>
+          {/* 装飾線 */}
+          <div style={{
+            width: 60, height: 1,
+            background: '#0a2960',
+            opacity: 0.35,
+            animation: 'heroLineGrow 1.2s cubic-bezier(0.2,0.8,0.2,1) 0.6s both',
+          }}/>
+
+          {/* キャッチコピー */}
+          <h1 style={{
+            margin: 0,
+            fontFamily: 'var(--jp)',
+            fontSize: 'clamp(22px, 2.4vw, 32px)',
+            fontWeight: 500,
+            color: '#0a2960',
+            letterSpacing: '0.04em',
+            lineHeight: 1.45,
+            animation: 'heroCatchSlideIn 1.4s cubic-bezier(0.2,0.8,0.2,1) 0.8s both',
+          }}>
+            一緒に、東京を歩こう
+          </h1>
+
+          {/* ロゴ (smallLogoRef = morph終点) */}
+          <div ref={smallLogoRef} style={{
+            animation: 'heroLogoFadeIn 1.4s cubic-bezier(0.2,0.8,0.2,1) 1.2s both',
+          }}>
+            <img src={ASSET_LOGO} alt="connec+a" style={{
+              width: 'clamp(110px, 10vw, 140px)',
+              height: 'auto',
+              display: 'block',
+            }}/>
+          </div>
+
+          {/* 国旗カラードット帯 */}
+          <div style={{
+            display: 'flex', gap: 6, alignItems: 'center',
+            animation: 'heroDotsFadeIn 1.0s ease-out 1.7s both',
+          }}>
+            {['#ff7a59', '#1c89e8', '#ffc857', '#4ecdc4', '#9b5de5', '#ff6b9d', '#56cc7e'].map((c, i) => (
+              <span key={i} style={{
+                width: 6, height: 6, borderRadius: '50%',
+                background: c,
+                opacity: 0.7,
+              }}/>
+            ))}
+          </div>
+        </div>
+
+        {/* クイックアクセス (ソリッドボタン、青と紺の2色) */}
+        <div style={{
+          display: 'flex',
+          flexDirection: 'column',
+          gap: 12,
+          animation: phase === 'done' ? 'heroQuickFadeIn 1.0s ease-out 2.0s both' : 'none',
+        }}>
+          <a href="#/events" className="hero-quick-btn hero-quick-btn-blue" style={{
+            display: 'flex',
+            alignItems: 'center',
+            gap: 16,
+            padding: '20px 28px',
+            color: '#2c89e8',
+            fontFamily: 'var(--jp)',
+            fontSize: 16,
+            fontWeight: 600,
+            letterSpacing: '0.04em',
+            textDecoration: 'none',
+            background: '#ffffff',
+            border: '2px solid #2c89e8',
+            borderRadius: 999,
+            transition: 'all 0.2s cubic-bezier(0.2, 0.8, 0.2, 1)',
+            boxShadow: '0 8px 24px -8px rgba(44, 137, 232, 0.25)',
+          }}>
+            <span style={{ flex: 1 }}>イベントを見る</span>
+            <span className="hero-quick-btn-arrow" style={{
+              display: 'inline-block',
+              fontSize: 18,
+              transition: 'transform 0.3s cubic-bezier(0.2, 0.8, 0.2, 1)',
+            }}>→</span>
+          </a>
+          <a href="#/signup" className="hero-quick-btn hero-quick-btn-navy" style={{
+            display: 'flex',
+            alignItems: 'center',
+            gap: 16,
+            padding: '20px 28px',
+            color: '#0a2960',
+            fontFamily: 'var(--jp)',
+            fontSize: 16,
+            fontWeight: 600,
+            letterSpacing: '0.04em',
+            textDecoration: 'none',
+            background: '#ffffff',
+            border: '2px solid #0a2960',
+            borderRadius: 999,
+            transition: 'all 0.2s cubic-bezier(0.2, 0.8, 0.2, 1)',
+            boxShadow: '0 8px 24px -8px rgba(10, 41, 96, 0.25)',
+          }}>
+            <span style={{ flex: 1 }}>会員登録またはログイン</span>
+            <span className="hero-quick-btn-arrow" style={{
+              display: 'inline-block',
+              fontSize: 18,
+              transition: 'transform 0.3s cubic-bezier(0.2, 0.8, 0.2, 1)',
+            }}>→</span>
+          </a>
+        </div>
       </div>
 
       {/* (Phase 6.8) ロード装飾 + モーフ用ロゴ。phase==='done' のときは null になる */}
       {loadingUI}
+
+      <style>{`
+        .hero-quick-btn {
+          will-change: transform;
+        }
+        .hero-quick-btn:hover .hero-quick-btn-arrow {
+          transform: translateX(6px);
+        }
+        /* クリック中 (押した瞬間) は塗りつぶし */
+        .hero-quick-btn-blue:active {
+          background: #2c89e8 !important;
+          color: #ffffff !important;
+          transform: scale(0.98);
+        }
+        .hero-quick-btn-navy:active {
+          background: #0a2960 !important;
+          color: #ffffff !important;
+          transform: scale(0.98);
+        }
+        @keyframes heroQuickFadeIn {
+          from { opacity: 0; transform: translateY(8px); }
+          to   { opacity: 1; transform: translateY(0); }
+        }
+        @keyframes heroQuickDividerFade {
+          from { opacity: 0; transform: scaleX(0); }
+          to   { opacity: 1; transform: scaleX(1); }
+        }
+        @keyframes heroNewsFade {
+          from { opacity: 0; transform: translateY(8px); }
+          to   { opacity: 1; transform: translateY(0); }
+        }
+        @keyframes heroPanelBuildIn {
+          from { opacity: 0; transform: scale(0.96); }
+          to   { opacity: 1; transform: scale(1); }
+        }
+        @keyframes heroLineGrow {
+          from { width: 0; opacity: 0; }
+          to   { width: 60px; opacity: 0.35; }
+        }
+        @keyframes heroCatchSlideIn {
+          from { opacity: 0; transform: translateY(20px); filter: blur(6px); }
+          to   { opacity: 1; transform: translateY(0); filter: blur(0); }
+        }
+        @keyframes heroLogoFadeIn {
+          from { opacity: 0; transform: translateY(16px); }
+          to   { opacity: 1; transform: translateY(0); }
+        }
+        @keyframes heroDotsFadeIn {
+          from { opacity: 0; transform: translateX(-12px); }
+          to   { opacity: 0.7; transform: translateX(0); }
+        }
+      `}</style>
     </section>
   );
 }
-
 
 
 // ============================================================================
@@ -3134,325 +3570,657 @@ function SeibanBackgroundImage({ src }) {
 // (Phase 6.9) ConceptSection
 // ============================================================================
 function ConceptSection({ settings }) {
-  const mainEn = settings.concept_main_en || 'Make Tokyo home.';
-  const mainJa = settings.concept_main_ja || '東京を、もうひとつのふるさとに。';
+  const mainEn = settings.concept_main_en || 'Where strangers become friends.';
+  const mainJa = settings.concept_main_ja || '一緒に、東京を歩こう';
   const bodyEn = settings.concept_body_en || "For international students arriving in Tokyo, we don't host events. We host encounters — small, daily, real.";
   const bodyJa = settings.concept_body_ja || 'イベントではなく、出会いを。\n一夜限りでなく、日常のなかで。';
 
+  // (Phase 7.1) Conceptセクション全体を額縁とし、内部で青ノーズが下→上にビルドイン・ビルドアウト
+  // 内容はHero流の左寄せ白パネル
+  const sectionRef = useRef(null);
+  const noseRef = useRef(null);
+  const tickingRef = useRef(false);
+  const visibleRef = useRef(false);
+
+  useEffect(() => {
+    const sec = sectionRef.current;
+    if (!sec) return;
+
+    const io = new IntersectionObserver((entries) => {
+      visibleRef.current = entries[0].isIntersecting;
+      if (visibleRef.current) computeAndApply();
+    }, { threshold: 0 });
+    io.observe(sec);
+
+    const computeAndApply = () => {
+      tickingRef.current = false;
+      if (!visibleRef.current) return;
+      const nose = noseRef.current;
+      if (!nose) return;
+
+      const rect = sec.getBoundingClientRect();
+      const vh = window.innerHeight;
+      const total = vh + rect.height;
+      const passed = vh - rect.top;
+      let p = passed / total;
+      if (p < 0) p = 0;
+      if (p > 1) p = 1;
+
+      let translateY = 110;
+      if (p < 0.4) {
+        translateY = 110 - (p / 0.4) * 110;
+      } else if (p < 0.85) {
+        translateY = 0;
+      } else {
+        translateY = -((p - 0.85) / 0.15) * 110;
+      }
+      nose.style.transform = `translateY(${translateY}%)`;
+    };
+
+    const onScroll = () => {
+      if (!visibleRef.current || tickingRef.current) return;
+      tickingRef.current = true;
+      window.requestAnimationFrame(computeAndApply);
+    };
+
+    window.addEventListener('scroll', onScroll, { passive: true });
+    computeAndApply();
+    return () => {
+      window.removeEventListener('scroll', onScroll);
+      io.disconnect();
+    };
+  }, []);
+
   return (
-    <section data-section="concept" style={{
-      position:'relative',
-      minHeight: SEIBAN_SECTION_HEIGHT,
-      padding: `clamp(80px, 12vh, 160px) ${SEIBAN_PAD_X}`,
-      background: 'linear-gradient(135deg, #ffffff 0%, #f5f7fa 50%, #eef2f7 100%)',
-      backgroundSize: '200% 200%',
-      animation: 'seibanGradShift 24s ease-in-out infinite',
+    <section ref={sectionRef} data-section="concept" style={{
+      position: 'relative',
+      minHeight: '100vh',
+      background: '#ffffff',
       overflow: 'hidden',
-      scrollSnapAlign: 'start',
     }}>
-      <style>{SEIBAN_ANIM_STYLE}</style>
-
-      {/* 背景大英文タイポ (動く + フェード) */}
-      <div aria-hidden style={{
-        position:'absolute',
-        top:'50%', left:'50%',
-        transform:'translate(-50%, -50%)',
-        fontFamily: SEIBAN_LABEL_EN_FONT,
-        fontStyle:'italic',
-        fontSize:'clamp(120px, 22vw, 360px)',
-        fontWeight: 400,
-        color: 'rgba(26, 54, 97, 1)',
-        whiteSpace:'nowrap',
-        letterSpacing:'-0.04em',
-        userSelect:'none',
-        pointerEvents:'none',
-        lineHeight: 1,
-        animation: 'seibanBgFloat 22s ease-in-out infinite, seibanBgFade 8s ease-in-out infinite',
-      }}>
-        ENCOUNTERS
-      </div>
-
-      {/* (Phase 6.12) 浮遊ドット装飾は削除 (米粒のように見える、安っぽさを削減) */}
-
-      <div style={{
-        position:'relative',
-        maxWidth: 1200,
-        margin: '0 auto',
-        display:'grid',
-        gridTemplateColumns: 'minmax(0, 1fr)',
-        gap: 'clamp(48px, 6vh, 96px)',
+      {/* 青ノーズ (絶対配置でセクション全体を覆う、transformで上下動) */}
+      <div ref={noseRef} aria-hidden style={{
+        position: 'absolute',
+        inset: 0,
+        background: 'linear-gradient(180deg, #2c89e8 0%, #1c56b0 60%, #0a2960 100%)',
+        clipPath: 'polygon(0% 8%, 50% 0%, 100% 8%, 100% 100%, 0% 100%)',
+        transform: 'translateY(110%)',
+        willChange: 'transform',
         zIndex: 1,
-      }}>
-        <Reveal y={0} blur={false}>
-          <div style={{display:'flex', alignItems:'center', gap:14}}>
-            <span style={{
-              display:'inline-block', width:32, height:1,
-              background:'rgba(26, 54, 97, 0.4)',
-              animation: 'seibanLineGrow 1s ease-out 0.2s both',
-            }}/>
-            <span style={{
-              fontFamily:'var(--sans, system-ui)',
-              fontSize:11, fontWeight:600,
-              letterSpacing:'0.18em',
-              textTransform:'uppercase',
-              color:'rgba(26, 54, 97, 0.7)',
-              animation: 'seibanLabelDrop 0.8s ease-out 0.3s both',
-            }}>About</span>
-            <span style={{
-              fontFamily:'var(--jp)',
-              fontSize:11, fontWeight:500,
-              color:'rgba(26, 54, 97, 0.45)',
-              letterSpacing:'0.08em',
-              animation: 'seibanLabelDrop 0.8s ease-out 0.5s both',
-            }}>私たちについて</span>
-          </div>
-        </Reveal>
+      }}/>
 
-        <BuildInDir delay={150} dir="right" distance={80}>
-          <div>
+      {/* コンテンツ (左寄せ白パネル、Hero流) */}
+      <div style={{
+        position: 'relative',
+        zIndex: 3,
+        minHeight: '100vh',
+        display: 'flex',
+        alignItems: 'center',
+        padding: 'clamp(80px, 12vh, 160px) clamp(40px, 6vw, 96px)',
+      }}>
+        {/* 白パネル (Heroと同じスタイル) */}
+        <div style={{
+          width: 'clamp(420px, 50%, 720px)',
+          background: 'rgba(255, 255, 255, 0.94)',
+          backdropFilter: 'blur(16px) saturate(140%)',
+          WebkitBackdropFilter: 'blur(16px) saturate(140%)',
+          border: '1px solid rgba(255, 255, 255, 0.7)',
+          boxShadow: '0 30px 80px -20px rgba(10, 41, 96, 0.25), 0 12px 32px -8px rgba(10, 41, 96, 0.12)',
+          padding: 'clamp(40px, 5vh, 64px) clamp(36px, 4vw, 56px)',
+          display: 'flex',
+          flexDirection: 'column',
+          gap: 'clamp(20px, 3vh, 32px)',
+        }}>
+          {/* 装飾線 */}
+          <Reveal y={0} blur={false}>
+            <div style={{
+              width: 60, height: 1,
+              background: '#0a2960',
+              opacity: 0.35,
+            }}/>
+          </Reveal>
+
+          {/* 章番号 "01" */}
+          <Reveal y={20} blur={false} delay={100}>
+            <div style={{
+              fontFamily: 'var(--serif, Fraunces, serif)',
+              fontStyle: 'italic',
+              fontSize: 'clamp(64px, 9vw, 120px)',
+              fontWeight: 300,
+              color: '#0a2960',
+              letterSpacing: '-0.02em',
+              lineHeight: 1,
+              opacity: 0.9,
+            }}>01</div>
+          </Reveal>
+
+          {/* About ラベル */}
+          <Reveal y={20} blur={false} delay={200}>
+            <div style={{display:'flex', alignItems:'center', gap:14}}>
+              <span style={{
+                display:'inline-block', width:32, height:1,
+                background:'rgba(10, 41, 96, 0.4)',
+              }}/>
+              <span style={{
+                fontFamily:'var(--sans, system-ui)',
+                fontSize:11, fontWeight:600,
+                letterSpacing:'0.18em',
+                textTransform:'uppercase',
+                color:'#0a2960',
+              }}>About</span>
+              <span style={{
+                fontFamily:'var(--jp)',
+                fontSize:11, fontWeight:500,
+                color:'rgba(10, 41, 96, 0.7)',
+                letterSpacing:'0.08em',
+              }}>私たちについて</span>
+            </div>
+          </Reveal>
+
+          {/* メインキャッチ (英: Fraunces italic) */}
+          <Reveal y={30} blur={false} delay={300}>
             <h2 style={{
               margin: 0,
-              fontFamily: SEIBAN_LABEL_EN_FONT,
+              fontFamily: 'var(--serif, Fraunces, serif)',
               fontStyle:'italic',
-              fontWeight: 500,
-              fontSize:'clamp(56px, 9vw, 128px)',
-              lineHeight: 1.05,
+              fontWeight: 400,
+              fontSize:'clamp(32px, 4vw, 56px)',
+              lineHeight: 1.2,
               letterSpacing:'-0.025em',
-              color: '#1a3661',
-              animation: 'seibanTitleSlideIn 1.4s cubic-bezier(.2,.8,.2,1) 0.3s both',
+              color: '#0a2960',
             }}>
               {mainEn}
             </h2>
-            <div style={{
-              marginTop: 24,
-              display:'flex', alignItems:'center', gap:16,
-              fontFamily:'var(--jp)',
-              fontSize: 13,
-              color:'rgba(26, 54, 97, 0.55)',
-              letterSpacing:'0.1em',
-              animation: 'seibanBodyRise 1.2s ease-out 0.9s both',
-            }}>
-              <span style={{
-                display:'inline-block', height:1, background:'rgba(26,54,97,0.3)',
-                animation: 'seibanLineGrow 1.2s ease-out 1.1s both',
-              }}/>
-              <span>{mainJa}</span>
-              <span style={{
-                display:'inline-block', height:1, background:'rgba(26,54,97,0.3)',
-                animation: 'seibanLineGrow 1.2s ease-out 1.1s both',
-              }}/>
-            </div>
-          </div>
-        </BuildInDir>
+          </Reveal>
 
-        <div style={{
-          display:'grid',
-          gridTemplateColumns: 'minmax(0, 1fr) minmax(0, 1fr)',
-          gap: 'clamp(24px, 4vw, 64px)',
-          alignItems: 'start',
-        }}>
-          <BuildInDir delay={400} dir="left" distance={50}>
-            <p style={{
-              margin: 0,
-              fontFamily: SEIBAN_LABEL_EN_FONT,
-              fontSize:'clamp(17px, 1.6vw, 21px)',
-              lineHeight: 1.8,
-              color:'#1a3661',
-              fontWeight: 400,
-              whiteSpace: 'pre-wrap',
-            }}>
-              {bodyEn}
-            </p>
-          </BuildInDir>
-          <Reveal delay={600} y={30}>
-            <p style={{
-              margin: 0,
+          {/* メインキャッチ (日: Zen Kaku 500、Heroと同じスタイル) */}
+          <Reveal y={20} blur={false} delay={500}>
+            <div style={{
               fontFamily:'var(--jp)',
-              fontSize:'clamp(14px, 1.2vw, 16px)',
-              lineHeight: 2,
-              color:'rgba(26, 54, 97, 0.7)',
-              fontStyle:'italic',
-              fontWeight: 400,
-              whiteSpace: 'pre-wrap',
-              paddingLeft: 'clamp(0px, 2vw, 24px)',
-              borderLeft: '1px solid rgba(26, 54, 97, 0.12)',
+              fontSize:'clamp(22px, 2.4vw, 32px)',
+              fontWeight: 500,
+              color: '#0a2960',
+              letterSpacing: '0.04em',
+              lineHeight: 1.45,
             }}>
-              {bodyJa}
-            </p>
+              {mainJa}
+            </div>
+          </Reveal>
+
+          {/* 本文 (英 + 日 縦並び) */}
+          <Reveal y={30} blur={false} delay={700}>
+            <div style={{
+              display:'flex',
+              flexDirection: 'column',
+              gap: 'clamp(16px, 2vh, 24px)',
+              marginTop: 'clamp(8px, 1vh, 16px)',
+            }}>
+              <p style={{
+                margin: 0,
+                fontFamily: 'var(--serif, Fraunces, serif)',
+                fontSize:'clamp(15px, 1.4vw, 18px)',
+                lineHeight: 1.8,
+                color:'#1a3661',
+                fontWeight: 400,
+                whiteSpace: 'pre-wrap',
+              }}>
+                {bodyEn}
+              </p>
+              <p style={{
+                margin: 0,
+                fontFamily:'var(--jp)',
+                fontSize:'clamp(13px, 1.1vw, 15px)',
+                lineHeight: 2,
+                color:'rgba(10, 41, 96, 0.7)',
+                fontStyle:'italic',
+                fontWeight: 400,
+                whiteSpace: 'pre-wrap',
+                paddingLeft: 'clamp(0px, 2vw, 24px)',
+                borderLeft: '1px solid rgba(10, 41, 96, 0.15)',
+              }}>
+                {bodyJa}
+              </p>
+            </div>
           </Reveal>
         </div>
       </div>
 
-      {/* スクロールヒント */}
-      <div aria-hidden style={{
-        position:'absolute',
-        bottom: 32, left:'50%',
-        transform:'translateX(-50%)',
-        display:'flex', flexDirection:'column', alignItems:'center', gap: 8,
-        animation: 'seibanScrollHint 2s ease-in-out infinite',
-        color:'rgba(26, 54, 97, 0.5)',
-        fontSize: 10, fontFamily:'var(--mono, monospace)', letterSpacing:'0.3em',
+      {/* 右側: 大きな写真 (白パネルより下のレイヤー) */}
+      <div className="desktop-only" style={{
+        position: 'absolute',
+        top: '50%',
+        right: 0,
+        transform: 'translateY(-50%)',
+        width: 'clamp(420px, 50%, 760px)',
+        zIndex: 2,  /* 青ノーズ(1)より手前、白パネル(3)より背面 */
       }}>
-        <span>SCROLL</span>
-        <span style={{display:'inline-block', width:1, height:24, background:'currentColor'}}/>
+        <Reveal y={30} blur={false} delay={400}>
+          <div style={{
+            width: '100%',
+            aspectRatio: '16 / 11',
+            background: settings.concept_image_url
+              ? `url(${settings.concept_image_url}) center/cover no-repeat`
+              : 'linear-gradient(135deg, #f5f7fa 0%, #e5e7eb 100%)',
+            boxShadow: '0 30px 80px -20px rgba(10, 41, 96, 0.45), 0 16px 40px -12px rgba(10, 41, 96, 0.25)',
+            overflow: 'hidden',
+            position: 'relative',
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+          }}>
+            {!settings.concept_image_url && (
+              <span style={{
+                fontFamily: 'var(--mono, monospace)',
+                fontSize: 13,
+                letterSpacing: '0.3em',
+                color: 'rgba(10, 41, 96, 0.4)',
+              }}>IMAGE</span>
+            )}
+          </div>
+        </Reveal>
       </div>
+
+      {/* 右下: 「もっと知る」ボタン (写真と独立、写真より手前) */}
+      <div className="desktop-only" style={{
+        position: 'absolute',
+        bottom: 'clamp(60px, 10vh, 120px)',
+        right: 'clamp(40px, 6vw, 96px)',
+        zIndex: 3,
+      }}>
+        <Reveal y={20} blur={false} delay={600}>
+          <a href={settings.concept_button_link || '#/about'} className="concept-more-btn" style={{
+            display: 'inline-flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+            gap: 12,
+            padding: '18px 32px',
+            color: '#0a2960',
+            fontFamily: 'var(--jp)',
+            fontSize: 15,
+            fontWeight: 600,
+            letterSpacing: '0.04em',
+            textDecoration: 'none',
+            background: '#ffffff',
+            border: '2px solid #0a2960',
+            borderRadius: 999,
+            transition: 'all 0.3s cubic-bezier(0.2, 0.8, 0.2, 1)',
+            boxShadow: '0 8px 24px -8px rgba(10, 41, 96, 0.35)',
+          }}>
+            <span>もっと知る</span>
+            <span className="concept-more-btn-arrow" style={{
+              display: 'inline-block',
+              fontSize: 17,
+              transition: 'transform 0.3s cubic-bezier(0.2, 0.8, 0.2, 1)',
+            }}>→</span>
+          </a>
+        </Reveal>
+      </div>
+
+      <style>{`
+        .concept-more-btn:hover {
+          background: #0a2960 !important;
+          color: #ffffff !important;
+        }
+        .concept-more-btn:hover .concept-more-btn-arrow {
+          transform: translateX(6px);
+        }
+      `}</style>
     </section>
   );
 }
 
-// ============================================================================
-// (Phase 6.9) EventsEntrySection — 左本文 / 右タイトル (Newsと逆)
-// ============================================================================
 function EventsEntrySection({ settings }) {
   const bgImage  = settings.events_section_bg_image || '';
-  const labelEn  = settings.events_section_label_en || 'Events';
-  const labelJa  = settings.events_section_label_ja || 'イベント一覧';
-  const body     = settings.events_section_body || '初めての方も、一人での参加も大歓迎です。\n毎週末、東京のどこかで出会いが生まれています。';
   const ctaText  = settings.events_section_cta_text || '参加する';
   const ctaLink  = settings.events_section_cta_link || '#events-list';
+  const galleryLink = settings.events_gallery_link || '#/gallery';
 
-  function handleCta(e) {
-    if (ctaLink && ctaLink.startsWith('#')) {
+  // (Phase 7.1) Concept と同じ青ノーズアニメ、左右反対のレイアウト (左写真、右白パネル)
+  const sectionRef = useRef(null);
+  const noseRef = useRef(null);
+  const tickingRef = useRef(false);
+  const visibleRef = useRef(false);
+
+  useEffect(() => {
+    const sec = sectionRef.current;
+    if (!sec) return;
+
+    const io = new IntersectionObserver((entries) => {
+      visibleRef.current = entries[0].isIntersecting;
+      if (visibleRef.current) computeAndApply();
+    }, { threshold: 0 });
+    io.observe(sec);
+
+    const computeAndApply = () => {
+      tickingRef.current = false;
+      if (!visibleRef.current) return;
+      const nose = noseRef.current;
+      if (!nose) return;
+
+      const rect = sec.getBoundingClientRect();
+      const vh = window.innerHeight;
+      const total = vh + rect.height;
+      const passed = vh - rect.top;
+      let p = passed / total;
+      if (p < 0) p = 0;
+      if (p > 1) p = 1;
+
+      let translateY = 110;
+      if (p < 0.4) {
+        translateY = 110 - (p / 0.4) * 110;
+      } else if (p < 0.85) {
+        translateY = 0;
+      } else {
+        translateY = -((p - 0.85) / 0.15) * 110;
+      }
+      nose.style.transform = `translateY(${translateY}%)`;
+    };
+
+    const onScroll = () => {
+      if (!visibleRef.current || tickingRef.current) return;
+      tickingRef.current = true;
+      window.requestAnimationFrame(computeAndApply);
+    };
+
+    window.addEventListener('scroll', onScroll, { passive: true });
+    computeAndApply();
+    return () => {
+      window.removeEventListener('scroll', onScroll);
+      io.disconnect();
+    };
+  }, []);
+
+  function handleCta(e, link) {
+    if (!link) return;
+    // ハッシュルーティング (#/...) はそのまま遷移
+    if (link.startsWith('#/')) return;
+    // ページ内アンカー
+    if (link.startsWith('#')) {
       e.preventDefault();
-      const target = document.querySelector(ctaLink);
-      if (target) target.scrollIntoView({ behavior: 'smooth' });
+      try {
+        const target = document.querySelector(link);
+        if (target) target.scrollIntoView({ behavior: 'smooth' });
+      } catch (err) {}
     }
   }
 
   return (
-    <section data-section="events-entry" style={{
-      position:'relative',
-      minHeight: SEIBAN_SECTION_HEIGHT,
-      overflow:'hidden',
-      scrollSnapAlign: 'start',
-      background: 'linear-gradient(135deg, #1a3661 0%, #0a2960 50%, #1a3661 100%)',
-      backgroundSize: '200% 200%',
-      animation: bgImage ? 'none' : 'seibanGradShift 18s ease-in-out infinite',
+    <section ref={sectionRef} data-section="events-entry" style={{
+      position: 'relative',
+      minHeight: '100vh',
+      background: '#ffffff',
+      overflow: 'hidden',
     }}>
-      <style>{SEIBAN_ANIM_STYLE}</style>
-
-      <SeibanBackgroundImage src={bgImage}/>
-
-      <div aria-hidden style={{
-        position:'absolute', inset:0,
-        background: 'linear-gradient(135deg, rgba(10,41,96,0.6) 0%, rgba(10,41,96,0.35) 50%, rgba(28, 137, 232, 0.2) 100%)',
+      {/* 白ノーズ (Conceptは青、Eventsは白グラデ。境界を影で見せる) */}
+      <div ref={noseRef} aria-hidden style={{
+        position: 'absolute',
+        inset: 0,
+        background: 'linear-gradient(180deg, #ffffff 0%, #fafbfc 60%, #f0f4f8 100%)',
+        clipPath: 'polygon(0% 8%, 50% 0%, 100% 8%, 100% 100%, 0% 100%)',
+        transform: 'translateY(110%)',
+        willChange: 'transform',
+        zIndex: 1,
+        boxShadow: '0 -20px 60px -10px rgba(10, 41, 96, 0.18), 0 -2px 0 rgba(10, 41, 96, 0.08)',
       }}/>
 
-      {/* コーナーマーク */}
-      <div aria-hidden style={{
-        position:'absolute', top: 40, right: 40,
-        width: 60, height: 60,
-        borderTop: '1px solid rgba(255,255,255,0.4)',
-        borderRight: '1px solid rgba(255,255,255,0.4)',
-        animation: 'seibanCornerFade 4s ease-in-out infinite',
-        pointerEvents:'none',
-      }}/>
-      <div aria-hidden style={{
-        position:'absolute', bottom: 40, left: 40,
-        width: 60, height: 60,
-        borderBottom: '1px solid rgba(255,255,255,0.4)',
-        borderLeft: '1px solid rgba(255,255,255,0.4)',
-        animation: 'seibanCornerFade 4s ease-in-out 1s infinite',
-        pointerEvents:'none',
-      }}/>
-
-      <div style={{
-        position:'relative',
+      {/* 左側: 大きな写真 + ボタン (写真の下にボタンが触れる位置) */}
+      <div className="desktop-only" style={{
+        position: 'absolute',
+        top: '50%',
+        left: 0,
+        transform: 'translateY(-50%)',
+        width: 'clamp(420px, 50%, 760px)',
         zIndex: 2,
-        minHeight: SEIBAN_SECTION_HEIGHT,
-        padding: `clamp(80px, 12vh, 140px) ${SEIBAN_PAD_X}`,
-        display:'grid',
-        gridTemplateColumns: 'minmax(0, 1fr) minmax(0, 1fr)',
-        gap: 'clamp(32px, 6vw, 96px)',
-        alignItems:'center',
-        maxWidth: 1440,
-        margin:'0 auto',
+        display: 'flex',
+        flexDirection: 'column',
+        gap: 24,  /* 写真とボタンの間隔 */
       }}>
-        <div style={{display:'flex', flexDirection:'column', gap: 32, color:'#fff'}}>
-          <BuildInDir dir="right" distance={60}>
-            <p style={{
-              margin: 0,
-              fontFamily:'var(--jp)',
-              fontSize:'clamp(15px, 1.3vw, 17px)',
-              lineHeight: 2.1,
-              color:'rgba(255, 255, 255, 0.92)',
-              fontWeight: 300,
-              whiteSpace:'pre-wrap',
-              letterSpacing:'0.02em',
-            }}>
-              {body}
-            </p>
-          </BuildInDir>
-          <Reveal delay={200} y={20}>
-            <a href={ctaLink} onClick={handleCta} style={{
-              display:'inline-flex', alignItems:'center', gap: 24,
-              color:'#fff', textDecoration:'none',
-              fontFamily:'var(--jp)',
-              fontSize: 14, fontWeight: 500,
-              letterSpacing:'0.1em',
-              cursor:'pointer',
+        <Reveal y={30} blur={false} delay={400}>
+          <div style={{
+            width: '100%',
+            aspectRatio: '16 / 11',
+            background: bgImage
+              ? `url(${bgImage}) center/cover no-repeat`
+              : 'linear-gradient(135deg, #f5f7fa 0%, #e5e7eb 100%)',
+            boxShadow: '0 30px 80px -20px rgba(10, 41, 96, 0.45), 0 16px 40px -12px rgba(10, 41, 96, 0.25)',
+            overflow: 'hidden',
+            position: 'relative',
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+          }}>
+            {!bgImage && (
+              <span style={{
+                fontFamily: 'var(--mono, monospace)',
+                fontSize: 13,
+                letterSpacing: '0.3em',
+                color: 'rgba(10, 41, 96, 0.4)',
+              }}>IMAGE</span>
+            )}
+          </div>
+        </Reveal>
+
+        {/* ボタン2つ (写真の真下、左寄せ) */}
+        <Reveal y={20} blur={false} delay={700}>
+          <div style={{
+            display: 'flex',
+            flexDirection: 'row',
+            flexWrap: 'wrap',
+            gap: 12,
+            paddingLeft: 'clamp(40px, 6vw, 96px)',
+            zIndex: 3,
+            position: 'relative',
+          }}>
+            {/* 参加する (ソリッド紺、メイン) */}
+            <a href={ctaLink} onClick={(e) => handleCta(e, ctaLink)} className="events-cta-btn events-cta-btn-primary" style={{
+              display: 'inline-flex',
+              alignItems: 'center',
+              gap: 12,
+              padding: '18px 28px',
+              color: '#ffffff',
+              fontFamily: 'var(--jp)',
+              fontSize: 15,
+              fontWeight: 600,
+              letterSpacing: '0.04em',
+              textDecoration: 'none',
+              background: '#0a2960',
+              border: '2px solid #0a2960',
+              borderRadius: 999,
+              transition: 'all 0.2s cubic-bezier(0.2, 0.8, 0.2, 1)',
+              boxShadow: '0 8px 24px -8px rgba(10, 41, 96, 0.35)',
+              whiteSpace: 'nowrap',
             }}>
               <span>{ctaText}</span>
-              <span style={{
-                width: 56, height: 56,
-                borderRadius:'50%',
-                background:'#fff',
-                display:'flex', alignItems:'center', justifyContent:'center',
-                animation: 'seibanCtaBreath 3s ease-in-out infinite',
-                transition:'transform 0.4s cubic-bezier(.2,.8,.2,1)',
-              }} onMouseEnter={e => { e.currentTarget.style.transform = 'translateX(8px) scale(1.08)'; e.currentTarget.style.animation = 'none'; }}
-                onMouseLeave={e => { e.currentTarget.style.transform = 'translateX(0) scale(1)'; e.currentTarget.style.animation = 'seibanCtaBreath 3s ease-in-out infinite'; }}>
-                <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#1a3661" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" style={{
-                  animation: 'seibanCtaArrow 2s ease-in-out infinite',
-                }}><path d="M5 12h14"/><polyline points="12 5 19 12 12 19"/></svg>
-              </span>
+              <span className="events-cta-btn-arrow" style={{
+                display: 'inline-block',
+                fontSize: 17,
+                transition: 'transform 0.3s cubic-bezier(0.2, 0.8, 0.2, 1)',
+              }}>→</span>
             </a>
-          </Reveal>
-        </div>
 
-        <div style={{display:'flex', flexDirection:'column', gap: 16}}>
-          <BuildInDir delay={100} dir="right" distance={100}>
+            {/* 過去のイベントを見る (アウトライン紺、サブ) */}
+            <a href={galleryLink} onClick={(e) => handleCta(e, galleryLink)} className="events-cta-btn events-cta-btn-sub" style={{
+              display: 'inline-flex',
+              alignItems: 'center',
+              gap: 12,
+              padding: '18px 28px',
+              color: '#0a2960',
+              fontFamily: 'var(--jp)',
+              fontSize: 15,
+              fontWeight: 600,
+              letterSpacing: '0.04em',
+              textDecoration: 'none',
+              background: '#ffffff',
+              border: '2px solid #0a2960',
+              borderRadius: 999,
+              transition: 'all 0.2s cubic-bezier(0.2, 0.8, 0.2, 1)',
+              boxShadow: '0 8px 24px -8px rgba(10, 41, 96, 0.25)',
+              whiteSpace: 'nowrap',
+            }}>
+              <span>過去のイベントを見る</span>
+              <span className="events-cta-btn-arrow" style={{
+                display: 'inline-block',
+                fontSize: 17,
+                transition: 'transform 0.3s cubic-bezier(0.2, 0.8, 0.2, 1)',
+              }}>→</span>
+            </a>
+          </div>
+        </Reveal>
+      </div>
+
+      {/* 右側: 白パネル (Conceptは左、こちらは右) */}
+      <div style={{
+        position: 'relative',
+        zIndex: 3,
+        minHeight: '100vh',
+        display: 'flex',
+        alignItems: 'center',
+        justifyContent: 'flex-end',
+        padding: 'clamp(80px, 12vh, 160px) clamp(40px, 6vw, 96px)',
+      }}>
+        <div style={{
+          width: 'clamp(420px, 50%, 720px)',
+          background: 'rgba(255, 255, 255, 0.94)',
+          backdropFilter: 'blur(16px) saturate(140%)',
+          WebkitBackdropFilter: 'blur(16px) saturate(140%)',
+          border: '1px solid rgba(255, 255, 255, 0.7)',
+          boxShadow: '0 30px 80px -20px rgba(10, 41, 96, 0.25), 0 12px 32px -8px rgba(10, 41, 96, 0.12)',
+          padding: 'clamp(40px, 5vh, 64px) clamp(36px, 4vw, 56px)',
+          display: 'flex',
+          flexDirection: 'column',
+          gap: 'clamp(20px, 3vh, 32px)',
+        }}>
+          {/* 装飾線 */}
+          <Reveal y={0} blur={false}>
+            <div style={{
+              width: 60, height: 1,
+              background: '#0a2960',
+              opacity: 0.35,
+            }}/>
+          </Reveal>
+
+          {/* 章番号 "02" */}
+          <Reveal y={20} blur={false} delay={100}>
+            <div style={{
+              fontFamily: 'var(--serif, Fraunces, serif)',
+              fontStyle: 'italic',
+              fontSize: 'clamp(64px, 9vw, 120px)',
+              fontWeight: 300,
+              color: '#0a2960',
+              letterSpacing: '-0.02em',
+              lineHeight: 1,
+              opacity: 0.9,
+            }}>02</div>
+          </Reveal>
+
+          {/* ラベル */}
+          <Reveal y={20} blur={false} delay={200}>
+            <div style={{display:'flex', alignItems:'center', gap:14}}>
+              <span style={{
+                display:'inline-block', width:32, height:1,
+                background:'rgba(10, 41, 96, 0.4)',
+              }}/>
+              <span style={{
+                fontFamily:'var(--sans, system-ui)',
+                fontSize:11, fontWeight:600,
+                letterSpacing:'0.18em',
+                textTransform:'uppercase',
+                color:'#0a2960',
+              }}>Events</span>
+              <span style={{
+                fontFamily:'var(--jp)',
+                fontSize:11, fontWeight:500,
+                color:'rgba(10, 41, 96, 0.7)',
+                letterSpacing:'0.08em',
+              }}>イベント</span>
+            </div>
+          </Reveal>
+
+          {/* メインキャッチ (英) */}
+          <Reveal y={30} blur={false} delay={300}>
             <h2 style={{
               margin: 0,
-              fontFamily: SEIBAN_LABEL_EN_FONT,
+              fontFamily: 'var(--serif, Fraunces, serif)',
               fontStyle:'italic',
-              fontWeight: 500,
-              fontSize:'clamp(64px, 9vw, 144px)',
-              lineHeight: 1,
+              fontWeight: 400,
+              fontSize:'clamp(32px, 4vw, 56px)',
+              lineHeight: 1.2,
               letterSpacing:'-0.025em',
-              color: '#fff',
-              animation: 'seibanTitleSlideIn 1.4s cubic-bezier(.2,.8,.2,1) 0.3s both',
-              textShadow: '0 4px 30px rgba(0,0,0,0.3)',
+              color: '#0a2960',
             }}>
-              {labelEn}
+              Discover events.
             </h2>
-          </BuildInDir>
-          <Reveal delay={400} y={20}>
+          </Reveal>
+
+          {/* メインキャッチ (日) */}
+          <Reveal y={20} blur={false} delay={500}>
             <div style={{
               fontFamily:'var(--jp)',
-              fontSize: 14,
-              fontWeight: 400,
-              color:'rgba(255, 255, 255, 0.75)',
-              letterSpacing:'0.18em',
-              paddingLeft: 4,
-              display:'flex', alignItems:'center', gap: 12,
+              fontSize:'clamp(22px, 2.4vw, 32px)',
+              fontWeight: 500,
+              color: '#0a2960',
+              letterSpacing: '0.04em',
+              lineHeight: 1.45,
             }}>
-              <span style={{
-                display:'inline-block', height: 1, background:'rgba(255,255,255,0.5)',
-                animation: 'seibanLineGrowLong 1.5s ease-out 0.6s both',
-              }}/>
-              {labelJa}
+              出会いに行く
+            </div>
+          </Reveal>
+
+          {/* 本文 (英 + 日 縦並び、Concept同形) */}
+          <Reveal y={30} blur={false} delay={700}>
+            <div style={{
+              display:'flex',
+              flexDirection: 'column',
+              gap: 'clamp(16px, 2vh, 24px)',
+              marginTop: 'clamp(8px, 1vh, 16px)',
+            }}>
+              <p style={{
+                margin: 0,
+                fontFamily: 'var(--serif, Fraunces, serif)',
+                fontSize:'clamp(15px, 1.4vw, 18px)',
+                lineHeight: 1.8,
+                color:'#1a3661',
+                fontWeight: 400,
+                whiteSpace: 'pre-wrap',
+              }}>
+                {settings.events_section_body_en || "Every weekend, somewhere in Tokyo, encounters are happening. First-timers welcome. Solo participants welcome. Just come as you are."}
+              </p>
+              <p style={{
+                margin: 0,
+                fontFamily:'var(--jp)',
+                fontSize:'clamp(13px, 1.1vw, 15px)',
+                lineHeight: 2,
+                color:'rgba(10, 41, 96, 0.7)',
+                fontStyle:'italic',
+                fontWeight: 400,
+                whiteSpace: 'pre-wrap',
+                paddingLeft: 'clamp(0px, 2vw, 24px)',
+                borderLeft: '1px solid rgba(10, 41, 96, 0.15)',
+              }}>
+                {settings.events_section_body || '初めての方も、一人での参加も大歓迎です。\n毎週末、東京のどこかで出会いが生まれています。'}
+              </p>
             </div>
           </Reveal>
         </div>
       </div>
+
+      <style>{`
+        .events-cta-btn-primary:hover {
+          background: #1c56b0 !important;
+          border-color: #1c56b0 !important;
+        }
+        .events-cta-btn-sub:hover {
+          background: #0a2960 !important;
+          color: #ffffff !important;
+        }
+        .events-cta-btn:hover .events-cta-btn-arrow {
+          transform: translateX(6px);
+        }
+      `}</style>
     </section>
   );
 }
 
-// ============================================================================
-// (Phase 6.9) NewsSection — 左タイトル / 右本文、3件自動切替10秒
-// ============================================================================
 function NewsSection({ settings, newsList }) {
   const bgImage = settings.news_section_bg_image || '';
   const labelEn = settings.news_section_label_en || 'News';
@@ -3467,7 +4235,7 @@ function NewsSection({ settings, newsList }) {
     if (items.length <= 1) return;
     const t = setInterval(() => {
       setIdx(i => (i + 1) % items.length);
-    }, 10000);
+    }, 7000);
     return () => clearInterval(t);
   }, [paused, items.length]);
 
@@ -3481,10 +4249,15 @@ function NewsSection({ settings, newsList }) {
 
   function handleCta(e, link) {
     if (!link) { e.preventDefault(); return; }
+    // ハッシュルーティング (#/...) はそのまま遷移
+    if (link.startsWith('#/')) return;
+    // ページ内アンカー
     if (link.startsWith('#')) {
       e.preventDefault();
-      const target = document.querySelector(link);
-      if (target) target.scrollIntoView({ behavior: 'smooth' });
+      try {
+        const target = document.querySelector(link);
+        if (target) target.scrollIntoView({ behavior: 'smooth' });
+      } catch (err) {}
     }
   }
 
@@ -3604,12 +4377,12 @@ function NewsSection({ settings, newsList }) {
               <h3 style={{
                 margin: 0,
                 fontFamily: SEIBAN_LABEL_EN_FONT,
-                fontSize:'clamp(28px, 3.2vw, 44px)',
-                lineHeight: 1.25,
+                fontSize:'clamp(36px, 4.5vw, 64px)',
+                lineHeight: 1.2,
                 color:'#fff',
                 fontWeight: 500,
                 fontStyle:'italic',
-                letterSpacing:'-0.01em',
+                letterSpacing:'-0.015em',
                 textShadow: '0 2px 20px rgba(0,0,0,0.2)',
               }}>
                 {news.title}
@@ -3625,35 +4398,34 @@ function NewsSection({ settings, newsList }) {
                   whiteSpace:'pre-wrap',
                   letterSpacing:'0.02em',
                 }}>
-                  {news.body}
+                  {news.body.length > 80 ? news.body.slice(0, 80) + '…' : news.body}
                 </p>
               )}
-              {(news.ctaText || news.ctaLink) && (
-                <a href={news.ctaLink || '#'} onClick={(e) => handleCta(e, news.ctaLink)} style={{
-                  display:'inline-flex', alignItems:'center', gap: 24,
-                  color:'#fff', textDecoration:'none',
-                  fontFamily:'var(--jp)',
-                  fontSize: 14, fontWeight: 500,
-                  letterSpacing:'0.1em',
-                  cursor: news.ctaLink ? 'pointer' : 'default',
-                  marginTop: 8,
-                }}>
-                  <span>{news.ctaText || '詳細を見る'}</span>
-                  <span style={{
-                    width: 48, height: 48,
-                    borderRadius:'50%',
-                    background:'#fff',
-                    display:'flex', alignItems:'center', justifyContent:'center',
-                    animation: 'seibanCtaBreath 3s ease-in-out infinite',
-                    transition:'transform 0.4s cubic-bezier(.2,.8,.2,1)',
-                  }} onMouseEnter={e => { e.currentTarget.style.transform = 'translateX(8px) scale(1.08)'; e.currentTarget.style.animation = 'none'; }}
-                    onMouseLeave={e => { e.currentTarget.style.transform = 'translateX(0) scale(1)'; e.currentTarget.style.animation = 'seibanCtaBreath 3s ease-in-out infinite'; }}>
-                    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#1a3661" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" style={{
-                      animation: 'seibanCtaArrow 2s ease-in-out infinite',
-                    }}><path d="M5 12h14"/><polyline points="12 5 19 12 12 19"/></svg>
-                  </span>
-                </a>
-              )}
+              {/* 詳細を見る (常に表示、CTA優先 → 無ければ詳細ページへ) */}
+              <a href={news.ctaLink || `#/news/${news.id || i}`} onClick={(e) => { if (news.ctaLink) handleCta(e, news.ctaLink); }} style={{
+                display:'inline-flex', alignItems:'center', gap: 24,
+                color:'#fff', textDecoration:'none',
+                fontFamily:'var(--jp)',
+                fontSize: 14, fontWeight: 500,
+                letterSpacing:'0.1em',
+                cursor: 'pointer',
+                marginTop: 8,
+              }}>
+                <span>{news.ctaText || '詳細を見る'}</span>
+                <span style={{
+                  width: 48, height: 48,
+                  borderRadius:'50%',
+                  background:'#fff',
+                  display:'flex', alignItems:'center', justifyContent:'center',
+                  animation: 'seibanCtaBreath 3s ease-in-out infinite',
+                  transition:'transform 0.4s cubic-bezier(.2,.8,.2,1)',
+                }} onMouseEnter={e => { e.currentTarget.style.transform = 'translateX(8px) scale(1.08)'; e.currentTarget.style.animation = 'none'; }}
+                  onMouseLeave={e => { e.currentTarget.style.transform = 'translateX(0) scale(1)'; e.currentTarget.style.animation = 'seibanCtaBreath 3s ease-in-out infinite'; }}>
+                  <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#1a3661" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" style={{
+                    animation: 'seibanCtaArrow 2s ease-in-out infinite',
+                  }}><path d="M5 12h14"/><polyline points="12 5 19 12 12 19"/></svg>
+                </span>
+              </a>
             </div>
           ))}
         </div>
@@ -3684,7 +4456,7 @@ function NewsSection({ settings, newsList }) {
                   <span style={{
                     position:'absolute', top:0, left:0, height:'100%',
                     background:'#fff',
-                    animation: 'seibanProgressBar 10s linear infinite',
+                    animation: 'seibanProgressBar 7s linear infinite',
                   }}/>
                 )}
                 {i === idx && (paused || items.length === 1) && (
@@ -3693,6 +4465,85 @@ function NewsSection({ settings, newsList }) {
               </button>
             ))}
           </div>
+
+          {/* 右下: 他のニュースのタイトルプレビュー (現在以外) */}
+          {items.length > 1 && (
+            <div style={{
+              position: 'absolute',
+              bottom: 'clamp(96px, 14vh, 140px)',
+              right: SEIBAN_PAD_X,
+              display: 'flex',
+              flexDirection: 'column',
+              gap: 10,
+              zIndex: 3,
+              maxWidth: 'clamp(280px, 28vw, 380px)',
+            }}>
+              <div style={{
+                fontFamily: 'var(--mono, monospace)',
+                fontSize: 10,
+                letterSpacing: '0.32em',
+                color: 'rgba(255, 255, 255, 0.6)',
+                marginBottom: 4,
+              }}>NEXT</div>
+              {items.map((news, i) => {
+                if (i === idx) return null;
+                return (
+                  <button
+                    key={news.id || i}
+                    onClick={() => setIdx(i)}
+                    aria-label={`ニュース ${i+1} を表示`}
+                    style={{
+                      display: 'block',
+                      textAlign: 'left',
+                      background: 'rgba(255, 255, 255, 0.08)',
+                      border: '1px solid rgba(255, 255, 255, 0.2)',
+                      backdropFilter: 'blur(10px)',
+                      WebkitBackdropFilter: 'blur(10px)',
+                      borderRadius: 8,
+                      padding: '12px 16px',
+                      color: '#ffffff',
+                      cursor: 'pointer',
+                      fontFamily: 'inherit',
+                      transition: 'all 0.3s cubic-bezier(0.2, 0.8, 0.2, 1)',
+                    }}
+                    onMouseEnter={e => {
+                      e.currentTarget.style.background = 'rgba(255, 255, 255, 0.18)';
+                      e.currentTarget.style.borderColor = 'rgba(255, 255, 255, 0.4)';
+                      e.currentTarget.style.transform = 'translateX(-4px)';
+                    }}
+                    onMouseLeave={e => {
+                      e.currentTarget.style.background = 'rgba(255, 255, 255, 0.08)';
+                      e.currentTarget.style.borderColor = 'rgba(255, 255, 255, 0.2)';
+                      e.currentTarget.style.transform = 'translateX(0)';
+                    }}
+                  >
+                    {news.category && (
+                      <div style={{
+                        fontSize: 9,
+                        fontWeight: 600,
+                        letterSpacing: '0.18em',
+                        textTransform: 'uppercase',
+                        color: 'rgba(255, 255, 255, 0.6)',
+                        marginBottom: 4,
+                      }}>{news.category}</div>
+                    )}
+                    <div style={{
+                      fontFamily: 'var(--jp)',
+                      fontSize: 13,
+                      fontWeight: 500,
+                      lineHeight: 1.5,
+                      color: '#ffffff',
+                      whiteSpace: 'nowrap',
+                      overflow: 'hidden',
+                      textOverflow: 'ellipsis',
+                    }}>
+                      {news.title}
+                    </div>
+                  </button>
+                );
+              })}
+            </div>
+          )}
 
           <div style={{
             position:'absolute',
@@ -3732,6 +4583,476 @@ function NewsSection({ settings, newsList }) {
   );
 }
 
+function UpcomingEventsSection({ settings, events }) {
+  const labelEn = settings.upcoming_events_label_en || 'Events';
+  const labelJa = settings.upcoming_events_label_ja || '近日開催';
+
+  // 公開中の近日開催イベントを最大3件
+  const items = (events || []).slice(0, 3);
+  const [idx, setIdx] = useState(0);
+  const [paused, setPaused] = useState(false);
+
+  // Google Drive URL を表示可能な形式に正規化
+  const normalizeImageUrl = (url) => {
+    if (!url || typeof url !== 'string') return url;
+    let m = url.match(/drive\.google\.com\/file\/d\/([^/]+)/);
+    if (m) return `https://drive.google.com/thumbnail?id=${m[1]}&sz=w2000`;
+    m = url.match(/drive\.google\.com\/uc.*?[?&]id=([^&]+)/);
+    if (m) return `https://drive.google.com/thumbnail?id=${m[1]}&sz=w2000`;
+    return url;
+  };
+
+  useEffect(() => {
+    if (paused) return;
+    if (items.length <= 1) return;
+    const t = setInterval(() => {
+      setIdx(i => (i + 1) % items.length);
+    }, 7000);
+    return () => clearInterval(t);
+  }, [paused, items.length]);
+
+  useEffect(() => {
+    if (idx >= items.length && items.length > 0) setIdx(0);
+  }, [items.length]);
+
+  // 0件時: 「近日開催イベントは現在準備中」のプレースホルダー表示
+  if (items.length === 0) {
+    return (
+      <section data-section="upcoming-events" style={{
+        position: 'relative',
+        minHeight: SEIBAN_SECTION_HEIGHT,
+        overflow: 'hidden',
+        background: 'linear-gradient(135deg, #1a3661 0%, #0a2960 50%, #1a3661 100%)',
+        backgroundSize: '200% 200%',
+        animation: 'seibanGradShift 16s ease-in-out infinite',
+      }}>
+        <style>{SEIBAN_ANIM_STYLE}</style>
+        <div aria-hidden style={{
+          position: 'absolute', inset: 0,
+          background: 'linear-gradient(135deg, rgba(10,41,96,0.55) 0%, rgba(10,41,96,0.35) 50%, rgba(28, 137, 232, 0.2) 100%)',
+        }}/>
+        <div style={{
+          position: 'relative', zIndex: 2,
+          minHeight: SEIBAN_SECTION_HEIGHT,
+          padding: `clamp(80px, 12vh, 140px) ${SEIBAN_PAD_X}`,
+          display: 'grid',
+          gridTemplateColumns: 'minmax(0, 1fr) minmax(0, 1fr)',
+          gap: 'clamp(32px, 6vw, 96px)',
+          alignItems: 'center',
+          maxWidth: 1440, margin: '0 auto',
+        }}>
+          <div style={{display:'flex', flexDirection:'column', gap: 16}}>
+            <h2 style={{
+              margin: 0,
+              fontFamily: SEIBAN_LABEL_EN_FONT,
+              fontStyle: 'italic',
+              fontWeight: 500,
+              fontSize: 'clamp(64px, 9vw, 144px)',
+              lineHeight: 1,
+              letterSpacing: '-0.025em',
+              color: '#fff',
+              textShadow: '0 4px 30px rgba(0,0,0,0.3)',
+            }}>{settings.upcoming_events_label_en || 'Events'}</h2>
+            <div style={{
+              fontFamily:'var(--jp)',
+              fontSize: 14, fontWeight: 400,
+              color:'rgba(255, 255, 255, 0.75)',
+              letterSpacing:'0.18em',
+              paddingLeft: 4,
+              display:'flex', alignItems:'center', gap: 12,
+            }}>
+              <span style={{display:'inline-block', height: 1, width: 40, background:'rgba(255,255,255,0.5)'}}/>
+              {settings.upcoming_events_label_ja || '近日開催'}
+            </div>
+          </div>
+          <div style={{color: 'rgba(255,255,255,0.85)', fontFamily: 'var(--jp)', fontSize: 18, lineHeight: 2}}>
+            近日開催のイベントは現在準備中です。
+          </div>
+        </div>
+      </section>
+    );
+  }
+
+  function handleCta(e, link) {
+    if (!link) { e.preventDefault(); return; }
+    // ハッシュルーティング (#/...) はそのまま遷移させる (preventDefault しない)
+    if (link.startsWith('#/')) return;
+    // ページ内アンカー (#section-id) はスクロール処理
+    if (link.startsWith('#')) {
+      e.preventDefault();
+      try {
+        const target = document.querySelector(link);
+        if (target) target.scrollIntoView({ behavior: 'smooth' });
+      } catch (err) {
+        // 無効なセレクタはスキップ
+      }
+    }
+  }
+
+  // 現在のイベントの背景画像
+  const currentEvent = items[idx];
+  const currentBg = normalizeImageUrl(currentEvent.heroImageUrl || currentEvent.posterUrl);
+
+  return (
+    <section data-section="upcoming-events"
+      onMouseEnter={() => setPaused(true)}
+      onMouseLeave={() => setPaused(false)}
+      style={{
+        position: 'relative',
+        minHeight: SEIBAN_SECTION_HEIGHT,
+        overflow: 'hidden',
+        background: '#0a2960',  /* 背景画像が無いときのフォールバック */
+      }}>
+      <style>{SEIBAN_ANIM_STYLE}</style>
+
+      {/* 背景画像 (イベントごとに切替、フェード) */}
+      {items.map((ev, i) => {
+        const bgUrl = normalizeImageUrl(ev.heroImageUrl || ev.posterUrl);
+        if (!bgUrl) return null;
+        return (
+          <div key={ev.id || i} aria-hidden style={{
+            position: 'absolute',
+            inset: 0,
+            background: `url(${bgUrl}) center/cover no-repeat`,
+            opacity: i === idx ? 1 : 0,
+            transition: 'opacity 1.2s ease-out',
+            zIndex: 0,
+          }}/>
+        );
+      })}
+
+      {/* 背景オーバーレイ (Newsと同じ) */}
+      <div aria-hidden style={{
+        position: 'absolute', inset: 0,
+        background: 'linear-gradient(135deg, rgba(10,41,96,0.55) 0%, rgba(10,41,96,0.35) 50%, rgba(28, 137, 232, 0.2) 100%)',
+        zIndex: 1,
+      }}/>
+
+      {/* コーナーマーク */}
+      <div aria-hidden style={{
+        position: 'absolute', top: 40, left: 40,
+        width: 60, height: 60,
+        borderTop: '1px solid rgba(255,255,255,0.4)',
+        borderLeft: '1px solid rgba(255,255,255,0.4)',
+        animation: 'seibanCornerFade 4s ease-in-out infinite',
+        zIndex: 2,
+      }}/>
+      <div aria-hidden style={{
+        position: 'absolute', bottom: 40, right: 40,
+        width: 60, height: 60,
+        borderBottom: '1px solid rgba(255,255,255,0.4)',
+        borderRight: '1px solid rgba(255,255,255,0.4)',
+        animation: 'seibanCornerFade 4s ease-in-out 1s infinite',
+        zIndex: 2,
+      }}/>
+
+      <div style={{
+        position: 'relative',
+        zIndex: 2,
+        minHeight: SEIBAN_SECTION_HEIGHT,
+        padding: `clamp(80px, 12vh, 140px) ${SEIBAN_PAD_X}`,
+        display: 'flex',
+        flexDirection: 'column',
+        justifyContent: 'center',
+        gap: 'clamp(32px, 6vh, 64px)',
+        maxWidth: 1440,
+        margin: '0 auto',
+      }}>
+        {/* ラベル */}
+        <div style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
+          <BuildInDir delay={100} dir="left" distance={100}>
+            <h2 style={{
+              margin: 0,
+              fontFamily: SEIBAN_LABEL_EN_FONT,
+              fontStyle: 'italic',
+              fontWeight: 500,
+              fontSize: 'clamp(64px, 9vw, 144px)',
+              lineHeight: 1,
+              letterSpacing: '-0.025em',
+              color: '#fff',
+              animation: 'seibanTitleSlideIn 1.4s cubic-bezier(.2,.8,.2,1) 0.3s both',
+              textShadow: '0 4px 30px rgba(0,0,0,0.3)',
+            }}>
+              {labelEn}
+            </h2>
+          </BuildInDir>
+          <Reveal delay={400} y={20}>
+            <div style={{
+              fontFamily: 'var(--jp)',
+              fontSize: 14, fontWeight: 400,
+              color: 'rgba(255, 255, 255, 0.75)',
+              letterSpacing: '0.18em',
+              paddingLeft: 4,
+              display: 'flex', alignItems: 'center', gap: 12,
+            }}>
+              <span style={{
+                display: 'inline-block', height: 1, background: 'rgba(255,255,255,0.5)',
+                animation: 'seibanLineGrowLong 1.5s ease-out 0.6s both',
+              }}/>
+              {labelJa}
+            </div>
+          </Reveal>
+        </div>
+
+        {/* メインイベント表示 (Events / 近日開催 の真下、ローテーション) */}
+        <div style={{ position: 'relative', minHeight: 280, color: '#fff' }}>
+          {items.map((ev, i) => (
+            <div key={ev.id || i} style={{
+              position: i === idx ? 'relative' : 'absolute',
+              inset: i === idx ? 'auto' : 0,
+              opacity: i === idx ? 1 : 0,
+              transform: i === idx ? 'translateY(0)' : 'translateY(20px)',
+              filter: i === idx ? 'blur(0)' : 'blur(8px)',
+              transition: 'opacity 1s ease-out, transform 1s ease-out, filter 1s ease-out',
+              pointerEvents: i === idx ? 'auto' : 'none',
+              display: 'flex', flexDirection: 'column', gap: 24,
+            }}>
+              {ev.category && (
+                <div style={{
+                  display: 'inline-flex', alignItems: 'center', gap: 8,
+                  fontSize: 11, fontWeight: 600,
+                  letterSpacing: '0.18em',
+                  textTransform: 'uppercase',
+                  color: 'rgba(255, 255, 255, 0.85)',
+                }}>
+                  <span style={{
+                    display: 'inline-block', height: 1, background: 'rgba(255,255,255,0.5)',
+                    animation: i === idx ? 'seibanLineGrow 1s ease-out 0.2s both' : 'none',
+                  }}/>
+                  {ev.category}
+                </div>
+              )}
+              <h3 style={{
+                margin: 0,
+                fontFamily: SEIBAN_LABEL_EN_FONT,
+                fontSize: 'clamp(48px, 6.5vw, 104px)',
+                lineHeight: 1.1,
+                color: '#fff',
+                fontWeight: 500,
+                fontStyle: 'italic',
+                letterSpacing: '-0.02em',
+                textShadow: '0 4px 30px rgba(0,0,0,0.4)',
+              }}>
+                {ev.title}
+              </h3>
+              {/* 日付 + 場所 (大きく) */}
+              {(ev.date || ev.location) && (
+                <div style={{
+                  display: 'flex', flexWrap: 'wrap', gap: 'clamp(20px, 2.4vw, 36px)',
+                  fontFamily: 'var(--jp)',
+                  fontSize: 'clamp(16px, 1.5vw, 22px)',
+                  fontWeight: 500,
+                  color: 'rgba(255, 255, 255, 0.95)',
+                  letterSpacing: '0.04em',
+                  textShadow: '0 2px 12px rgba(0,0,0,0.3)',
+                }}>
+                  {ev.date && (
+                    <span style={{ display: 'inline-flex', alignItems: 'center', gap: 10 }}>
+                      <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5"><rect x="3" y="4" width="18" height="18" rx="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/></svg>
+                      {ev.date}
+                    </span>
+                  )}
+                  {ev.location && (
+                    <span style={{ display: 'inline-flex', alignItems: 'center', gap: 10 }}>
+                      <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5"><path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z"/><circle cx="12" cy="10" r="3"/></svg>
+                      {ev.location}
+                    </span>
+                  )}
+                </div>
+              )}
+              {ev.shortDescription && (
+                <p style={{
+                  margin: 0,
+                  fontFamily: 'var(--jp)',
+                  fontSize: 'clamp(14px, 1.1vw, 16px)',
+                  lineHeight: 2,
+                  color: 'rgba(255, 255, 255, 0.88)',
+                  fontWeight: 300,
+                  whiteSpace: 'pre-wrap',
+                  letterSpacing: '0.02em',
+                }}>
+                  {ev.shortDescription}
+                </p>
+              )}
+              {/* 詳細を見るボタン */}
+              <a href={`#/events/${ev.id}`} onClick={(e) => handleCta(e, `#/events/${ev.id}`)} style={{
+                display: 'inline-flex', alignItems: 'center', gap: 24,
+                color: '#fff', textDecoration: 'none',
+                fontFamily: 'var(--jp)',
+                fontSize: 14, fontWeight: 500,
+                letterSpacing: '0.1em',
+                cursor: 'pointer',
+                marginTop: 8,
+              }}>
+                <span>詳細を見る</span>
+                <span style={{
+                  width: 48, height: 48,
+                  borderRadius: '50%',
+                  background: '#fff',
+                  display: 'flex', alignItems: 'center', justifyContent: 'center',
+                  animation: 'seibanCtaBreath 3s ease-in-out infinite',
+                  transition: 'transform 0.4s cubic-bezier(.2,.8,.2,1)',
+                }} onMouseEnter={e => { e.currentTarget.style.transform = 'translateX(8px) scale(1.08)'; e.currentTarget.style.animation = 'none'; }}
+                  onMouseLeave={e => { e.currentTarget.style.transform = 'translateX(0) scale(1)'; e.currentTarget.style.animation = 'seibanCtaBreath 3s ease-in-out infinite'; }}>
+                  <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#1a3661" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" style={{
+                    animation: 'seibanCtaArrow 2s ease-in-out infinite',
+                  }}><path d="M5 12h14"/><polyline points="12 5 19 12 12 19"/></svg>
+                </span>
+              </a>
+            </div>
+          ))}
+        </div>
+      </div>
+
+      {/* インジケーターと前後ナビ + 右下プレビュー */}
+      {items.length > 1 && (
+        <React.Fragment>
+          {/* 中央下: ドットインジケーター */}
+          <div style={{
+            position: 'absolute',
+            bottom: 32, left: '50%',
+            transform: 'translateX(-50%)',
+            display: 'flex', gap: 12, zIndex: 3,
+          }}>
+            {items.map((_, i) => (
+              <button key={i} onClick={() => setIdx(i)} aria-label={`Event ${i+1}`}
+                style={{
+                  width: i === idx ? 40 : 8,
+                  height: 8,
+                  borderRadius: 4,
+                  border: 'none',
+                  background: 'rgba(255,255,255,0.4)',
+                  cursor: 'pointer',
+                  padding: 0,
+                  transition: 'all 0.5s cubic-bezier(.2,.8,.2,1)',
+                  position: 'relative', overflow: 'hidden',
+                }}>
+                {i === idx && !paused && items.length > 1 && (
+                  <span style={{
+                    position: 'absolute', top: 0, left: 0, height: '100%',
+                    background: '#fff',
+                    animation: 'seibanProgressBar 7s linear infinite',
+                  }}/>
+                )}
+                {i === idx && (paused || items.length === 1) && (
+                  <span style={{ position: 'absolute', inset: 0, background: '#fff' }}/>
+                )}
+              </button>
+            ))}
+          </div>
+
+          {/* 右下: 他のイベントのタイトルプレビュー */}
+          <div style={{
+            position: 'absolute',
+            bottom: 'clamp(96px, 14vh, 140px)',
+            right: SEIBAN_PAD_X,
+            display: 'flex',
+            flexDirection: 'column',
+            gap: 10,
+            zIndex: 3,
+            maxWidth: 'clamp(280px, 28vw, 380px)',
+          }}>
+            <div style={{
+              fontFamily: 'var(--mono, monospace)',
+              fontSize: 10,
+              letterSpacing: '0.32em',
+              color: 'rgba(255, 255, 255, 0.6)',
+              marginBottom: 4,
+            }}>NEXT</div>
+            {items.map((ev, i) => {
+              if (i === idx) return null;
+              return (
+                <button
+                  key={ev.id || i}
+                  onClick={() => setIdx(i)}
+                  aria-label={`イベント ${i+1} を表示`}
+                  style={{
+                    display: 'block',
+                    textAlign: 'left',
+                    background: 'rgba(255, 255, 255, 0.08)',
+                    border: '1px solid rgba(255, 255, 255, 0.2)',
+                    backdropFilter: 'blur(10px)',
+                    WebkitBackdropFilter: 'blur(10px)',
+                    borderRadius: 8,
+                    padding: '12px 16px',
+                    color: '#ffffff',
+                    cursor: 'pointer',
+                    fontFamily: 'inherit',
+                    transition: 'all 0.3s cubic-bezier(0.2, 0.8, 0.2, 1)',
+                  }}
+                  onMouseEnter={e => {
+                    e.currentTarget.style.background = 'rgba(255, 255, 255, 0.18)';
+                    e.currentTarget.style.borderColor = 'rgba(255, 255, 255, 0.4)';
+                    e.currentTarget.style.transform = 'translateX(-4px)';
+                  }}
+                  onMouseLeave={e => {
+                    e.currentTarget.style.background = 'rgba(255, 255, 255, 0.08)';
+                    e.currentTarget.style.borderColor = 'rgba(255, 255, 255, 0.2)';
+                    e.currentTarget.style.transform = 'translateX(0)';
+                  }}
+                >
+                  {ev.category && (
+                    <div style={{
+                      fontSize: 9, fontWeight: 600,
+                      letterSpacing: '0.18em',
+                      textTransform: 'uppercase',
+                      color: 'rgba(255, 255, 255, 0.6)',
+                      marginBottom: 4,
+                    }}>{ev.category}</div>
+                  )}
+                  <div style={{
+                    fontFamily: 'var(--jp)',
+                    fontSize: 13, fontWeight: 500,
+                    lineHeight: 1.5,
+                    color: '#ffffff',
+                    whiteSpace: 'nowrap',
+                    overflow: 'hidden',
+                    textOverflow: 'ellipsis',
+                  }}>
+                    {ev.title}
+                  </div>
+                </button>
+              );
+            })}
+          </div>
+
+          {/* 右下: 前後ナビ */}
+          <div style={{
+            position: 'absolute',
+            bottom: 32, right: SEIBAN_PAD_X,
+            display: 'flex', gap: 8, zIndex: 3,
+          }}>
+            <button onClick={() => setIdx(i => (i - 1 + items.length) % items.length)} aria-label="前のイベント"
+              style={{
+                width: 40, height: 40, borderRadius: '50%',
+                border: '1px solid rgba(255,255,255,0.4)',
+                background: 'rgba(255,255,255,0.1)',
+                color: '#fff', cursor: 'pointer',
+                display: 'flex', alignItems: 'center', justifyContent: 'center',
+                transition: 'all 0.3s ease-out',
+              }} onMouseEnter={e => { e.currentTarget.style.background = 'rgba(255,255,255,0.25)'; e.currentTarget.style.transform = 'scale(1.08)'; }}
+                onMouseLeave={e => { e.currentTarget.style.background = 'rgba(255,255,255,0.1)'; e.currentTarget.style.transform = 'scale(1)'; }}>
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"><polyline points="15 18 9 12 15 6"/></svg>
+            </button>
+            <button onClick={() => setIdx(i => (i + 1) % items.length)} aria-label="次のイベント"
+              style={{
+                width: 40, height: 40, borderRadius: '50%',
+                border: '1px solid rgba(255,255,255,0.4)',
+                background: 'rgba(255,255,255,0.1)',
+                color: '#fff', cursor: 'pointer',
+                display: 'flex', alignItems: 'center', justifyContent: 'center',
+                transition: 'all 0.3s ease-out',
+              }} onMouseEnter={e => { e.currentTarget.style.background = 'rgba(255,255,255,0.25)'; e.currentTarget.style.transform = 'scale(1.08)'; }}
+                onMouseLeave={e => { e.currentTarget.style.background = 'rgba(255,255,255,0.1)'; e.currentTarget.style.transform = 'scale(1)'; }}>
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"><polyline points="9 18 15 12 9 6"/></svg>
+            </button>
+          </div>
+        </React.Fragment>
+      )}
+    </section>
+  );
+}
+
 function PageHome({ lang, t, events, ads, heroSlides, loading, siteSettings, frontNews }) {
   const heroRef = useRef(null);
 
@@ -3742,7 +5063,7 @@ function PageHome({ lang, t, events, ads, heroSlides, loading, siteSettings, fro
       {/* ============================================================ */}
       {/* CONNEC+A HERO v6 (西武鉄道スタイル: シンプル写真スライドショー) */}
       {/* ============================================================ */}
-      <HeroSlideshow t={t} events={events} heroSlides={heroSlides} loading={loading} />
+      <HeroSlideshow t={t} events={events} heroSlides={heroSlides} loading={loading} frontNews={frontNews} />
 
       {/* AD ROTATOR (Phase 6: スポンサー広告のローテーション) */}
       <AdRotator ads={ads} placement="参加者ヒーロー" />
@@ -3755,6 +5076,9 @@ function PageHome({ lang, t, events, ads, heroSlides, loading, siteSettings, fro
 
       {/* (Phase 6.9) News セクション (左タイトル / 右本文 / 自動切替) */}
       <NewsSection settings={siteSettings || {}} newsList={frontNews || []} />
+
+      {/* (Phase 7.1) Upcoming Events セクション (Newsと同構成、イベントごとに背景切替) */}
+      <UpcomingEventsSection settings={siteSettings || {}} events={upcomingEvents} />
 
       {/* PILL STATS PANEL */}
       <section style={{ padding: '100px 24px 60px', position: 'relative' }}>
@@ -3790,196 +5114,6 @@ function PageHome({ lang, t, events, ads, heroSlides, loading, siteSettings, fro
             </div>
           </div>
         </Reveal>
-      </section>
-
-      {/* ============================================================ */}
-      {/* UPCOMING EVENTS v2 (大判イチオシ + サブカード + 動き) */}
-      {/* ============================================================ */}
-      <section id="events-list" style={{
-        position: 'relative',
-        padding: 'clamp(80px, 12vh, 140px) 0 clamp(60px, 10vh, 100px)',
-        background: 'linear-gradient(180deg, #ffffff 0%, var(--sky-50) 100%)',
-        overflow: 'hidden',
-      }}>
-        {/* 大型背景装飾 (薄い数字) */}
-        <div aria-hidden style={{
-          position: 'absolute',
-          top: 'clamp(40px, 6vh, 80px)',
-          right: 'clamp(-20px, -2vw, -40px)',
-          fontFamily: 'var(--mono)',
-          fontSize: 'clamp(180px, 25vw, 380px)',
-          fontWeight: 900,
-          color: 'transparent',
-          WebkitTextStroke: '1.5px rgba(28, 137, 232, 0.08)',
-          letterSpacing: '-0.06em',
-          lineHeight: 0.85,
-          pointerEvents: 'none',
-          userSelect: 'none',
-          zIndex: 0,
-        }}>02</div>
-
-        <div style={{
-          position: 'relative',
-          zIndex: 1,
-          maxWidth: 1320,
-          margin: '0 auto',
-          padding: '0 clamp(28px, 5vw, 64px)',
-        }}>
-          {/* ヘッダー */}
-          <div style={{
-            display: 'flex',
-            alignItems: 'flex-end',
-            justifyContent: 'space-between',
-            marginBottom: 'clamp(48px, 8vh, 80px)',
-            flexWrap: 'wrap',
-            gap: 24,
-          }}>
-            <div>
-              <BuildInDir delay={0} dir="right" distance={30}>
-                <div style={{
-                  display: 'inline-flex',
-                  alignItems: 'center',
-                  gap: 14,
-                  marginBottom: 20,
-                  fontFamily: 'var(--mono)',
-                  fontSize: 12,
-                  color: 'var(--sky-700)',
-                  letterSpacing: '0.28em',
-                  fontWeight: 600,
-                }}>
-                  <span style={{ fontSize: 13, fontWeight: 800, color: 'var(--sky-800)' }}>02</span>
-                  <span style={{ width: 28, height: 1, background: 'var(--sky-700)' }} />
-                  <span>UPCOMING</span>
-                </div>
-              </BuildInDir>
-              <BuildInDir delay={150} dir="right" distance={50}>
-                <h2 style={{
-                  fontFamily: 'var(--jp)',
-                  fontSize: 'clamp(36px, 5.5vw, 64px)',
-                  fontWeight: 900,
-                  margin: 0,
-                  letterSpacing: '-0.03em',
-                  lineHeight: 1.1,
-                  color: 'var(--sky-900)',
-                }}>
-                  近日開催の<br/>
-                  <span style={{ position: 'relative', display: 'inline-block' }}>
-                    イベント
-                    <svg aria-hidden style={{
-                      position: 'absolute',
-                      left: -4, right: -4, bottom: '-10%',
-                      width: 'calc(100% + 8px)', height: '14%',
-                      zIndex: -1,
-                    }} viewBox="0 0 200 16" preserveAspectRatio="none">
-                      <path d="M2,8 Q40,2 80,8 Q120,14 160,7 Q180,4 198,8 L198,14 Q180,11 160,14 Q120,18 80,14 Q40,10 2,14 Z"
-                            fill="#2c89e8" opacity="0.85"/>
-                    </svg>
-                  </span>
-                </h2>
-              </BuildInDir>
-              <BuildInDir delay={300} dir="up" distance={20}>
-                <p style={{
-                  fontFamily: 'var(--jp)',
-                  fontSize: 'clamp(14px, 1.2vw, 16px)',
-                  color: 'var(--sky-800)',
-                  lineHeight: 1.7,
-                  margin: '20px 0 0',
-                  maxWidth: '32em',
-                  fontWeight: 400,
-                }}>
-                  オンライン・オフラインを問わず、<br/>
-                  日本人と留学生が出会える機会を毎月開催しています。
-                </p>
-              </BuildInDir>
-            </div>
-
-            {/* 右上: 統計 + リンク */}
-            <BuildInDir delay={400} dir="left" distance={40}>
-              <div style={{
-                display: 'flex',
-                alignItems: 'center',
-                gap: 24,
-                flexWrap: 'wrap',
-              }}>
-                <div style={{
-                  background: '#fff',
-                  borderRadius: 16,
-                  padding: '14px 22px',
-                  boxShadow: '0 8px 24px -8px rgba(22, 86, 176, 0.15)',
-                  border: '1px solid var(--sky-100)',
-                }}>
-                  <div style={{
-                    fontFamily: 'var(--mono)',
-                    fontSize: 10,
-                    color: 'var(--sky-700)',
-                    letterSpacing: '0.2em',
-                    fontWeight: 600,
-                    marginBottom: 4,
-                  }}>OPEN NOW</div>
-                  <div style={{
-                    fontFamily: 'var(--sans)',
-                    fontSize: 26,
-                    fontWeight: 800,
-                    color: 'var(--sky-900)',
-                    lineHeight: 1,
-                  }}>
-                    <CountUpInline to={upcomingEvents.length} duration={1000} style={{ display: 'inline' }} />
-                    <span style={{ fontSize: 14, fontWeight: 600, marginLeft: 6, color: 'var(--sky-700)' }}>件</span>
-                  </div>
-                </div>
-
-                <a href="#/events" className="btn-flip" style={{
-                  fontSize: 14,
-                  padding: '14px 28px',
-                }}>
-                  <span>すべて見る</span>
-                  <span style={{ fontSize: 16 }}>→</span>
-                </a>
-              </div>
-            </BuildInDir>
-          </div>
-
-          {/* イベントグリッド: 大判1枚 + サブ2枚 */}
-          {loading ? (
-            <div style={{
-              padding: 100,
-              textAlign: 'center',
-              color: 'var(--sky-700)',
-              fontFamily: 'var(--jp)',
-              fontSize: 16,
-            }}>{t.loading}</div>
-          ) : upcomingEvents.length === 0 ? (
-            <BuildInDir>
-              <div style={{
-                padding: 100,
-                textAlign: 'center',
-                background: '#fff',
-                borderRadius: 24,
-                border: '1px solid var(--sky-100)',
-                color: 'var(--sky-700)',
-                fontFamily: 'var(--jp)',
-              }}>
-                <div style={{ marginBottom: 16, color:'var(--sky-300)', display:'flex', justifyContent:'center' }}>
-                  <IconCalendar size={48}/>
-                </div>
-                <div style={{ fontSize: 18, fontWeight: 600 }}>{t.noEvents}</div>
-                <div style={{ fontSize: 14, marginTop: 12, color: 'var(--ink-mute)' }}>新しいイベントが追加されるとここに表示されます。</div>
-              </div>
-            </BuildInDir>
-          ) : (
-            <div style={{
-              display: 'flex',
-              flexDirection: 'column',
-              gap: 'clamp(20px, 2.5vw, 28px)',
-            }}>
-              {upcomingEvents.map((ev, i) => (
-                <BuildInDir key={ev.id} delay={500 + i * 120} dir="up" distance={40}>
-                  <EventPosterRow ev={ev} lang={lang} t={t} />
-                </BuildInDir>
-              ))}
-            </div>
-          )}
-        </div>
       </section>
 
       {/* HOW IT WORKS (illustration band) */}
@@ -4171,101 +5305,1338 @@ function PillStat({ n, suffix = '', label }) {
 }
 
 // ============================================================================
-// EVENTS LIST PAGE
+// (Phase 7.1) NEWS LIST PAGE — ニュース一覧 (Hero流: 白背景 + 左寄せグリッド)
 // ============================================================================
-function PageEvents({ lang, t, events, loading }) {
-  const [category, setCategory] = useState('all');
+function PageNewsList({ lang, t, frontNews, loading, siteSettings }) {
+  const rawItems = frontNews || [];
+  const settings = siteSettings || {};
+  const bgImage = settings.news_section_bg_image || '';
+  const [sortOrder, setSortOrder] = useState('desc');
+  const [page, setPage] = useState(1);
+  const PAGE_SIZE = 3;
 
-  const visibleEvents = filterPublicEvents(events);
-  const categories = useMemo(() => {
-    const set = new Set();
-    visibleEvents.forEach(e => { if (e.category) set.add(e.category); });
-    return Array.from(set).sort();
-  }, [visibleEvents]);
+  const sortedItems = useMemo(() => {
+    const sorted = [...rawItems].sort((a, b) => {
+      const da = new Date(a.publishedAt || a.publishAt || a.date || 0).getTime();
+      const db = new Date(b.publishedAt || b.publishAt || b.date || 0).getTime();
+      return sortOrder === 'desc' ? db - da : da - db;
+    });
+    return sorted;
+  }, [rawItems, sortOrder]);
 
-  const filtered = category === 'all'
-    ? visibleEvents
-    : visibleEvents.filter(e => e.category === category);
+  // ページネーション
+  const totalPages = Math.max(1, Math.ceil(sortedItems.length / PAGE_SIZE));
+  const currentPage = Math.min(page, totalPages);
+  const items = sortedItems.slice((currentPage - 1) * PAGE_SIZE, currentPage * PAGE_SIZE);
+
+  // ソート変更時はページ1に戻す
+  useEffect(() => { setPage(1); }, [sortOrder]);
+
+  // ページ変更時に上にスクロール
+  useEffect(() => {
+    if (typeof window !== 'undefined') {
+      window.scrollTo({ top: 0, behavior: 'smooth' });
+    }
+  }, [page]);
+
+  function fmtDate(d) {
+    if (!d) return '';
+    const date = new Date(d);
+    if (isNaN(date.getTime())) return String(d);
+    const y = date.getFullYear();
+    const m = String(date.getMonth() + 1).padStart(2, '0');
+    const day = String(date.getDate()).padStart(2, '0');
+    return `${y}.${m}.${day}`;
+  }
 
   return (
-    <div>
-      {/* Navy Hero (トップと統一感) */}
-      <PageHero
-        variant="events"
-        marker={`EVENTS / ${new Date().getFullYear()}`}
-        markerRight="ALL UPCOMING"
-        eyebrow={`${visibleEvents.length} ${lang === 'en' ? 'events' : lang === 'easy' ? 'イベント' : '件'} · ${lang === 'en' ? 'OPEN NOW' : '受付中'}`}
-        title={t.sections.allEvents}
-        subtitle={lang === 'en'
-          ? 'Browse all upcoming events organized by connec+a.'
-          : lang === 'easy'
-          ? 'これから ある イベントを ぜんぶ みる。'
-          : 'connec+a が主催する、すべての開催予定イベント。'}
-      />
+    <div style={{
+      position: 'relative',
+      minHeight: '100vh',
+      background: 'linear-gradient(135deg, #1a3661 0%, #0a2960 50%, #1a3661 100%)',
+      backgroundSize: '200% 200%',
+      animation: bgImage ? 'none' : 'seibanGradShift 18s ease-in-out infinite',
+      padding: 'clamp(140px, 18vh, 200px) clamp(24px, 6vw, 96px) clamp(80px, 12vh, 160px)',
+      overflow: 'hidden',
+    }}>
+      <style>{SEIBAN_ANIM_STYLE}</style>
 
-      {/* Filter */}
-      <section style={{ padding: '40px 24px 0', maxWidth: 1280, margin: '0 auto' }}>
-        <div style={{
-          display: 'flex',
-          alignItems: 'center',
-          gap: 12,
-          flexWrap: 'wrap',
-          paddingBottom: 16,
-          borderBottom: '1px solid var(--line)',
-        }}>
-          <span style={{
-            fontFamily: 'var(--mono)', fontSize: 11,
-            color: 'var(--ink-mute)', letterSpacing: '0.1em',
-            marginRight: 8,
-          }}>{t.filter.category}:</span>
-          <FilterPill label={t.filter.all} active={category === 'all'} onClick={() => setCategory('all')} />
-          {categories.map(cat => (
-            <FilterPill key={cat} label={cat} active={category === cat} onClick={() => setCategory(cat)} />
-          ))}
-          <div style={{ flex: 1 }} />
-          <span style={{ fontSize: 13, color: 'var(--ink-mute)' }}>
-            {filtered.length} {lang === 'en' ? 'events' : lang === 'easy' ? 'イベント' : '件'}
-          </span>
-        </div>
-      </section>
+      {/* 背景画像 (NewsSectionと共通の bgImage、SeibanBackgroundImage コンポ) */}
+      <SeibanBackgroundImage src={bgImage}/>
 
-      {/* Events grid */}
-      <section style={{ padding: '40px 24px 120px', maxWidth: 1280, margin: '0 auto' }}>
-        {loading ? (
-          <div style={{ padding: 80, textAlign: 'center', color: 'var(--ink-mute)' }}>{t.loading}</div>
-        ) : filtered.length === 0 ? (
-          <div style={{ padding: 80, textAlign: 'center', color: 'var(--ink-mute)' }}>{t.noEvents}</div>
-        ) : (
+      {/* オーバーレイ (奥行き感、画像の上にも乗る) */}
+      <div aria-hidden style={{
+        position: 'absolute', inset: 0,
+        background: 'linear-gradient(135deg, rgba(10,41,96,0.55) 0%, rgba(10,41,96,0.35) 50%, rgba(28, 137, 232, 0.2) 100%)',
+        pointerEvents: 'none',
+      }}/>
+
+      {/* コーナーマーク */}
+      <div aria-hidden style={{
+        position: 'absolute', top: 'clamp(100px, 14vh, 160px)', left: 40,
+        width: 60, height: 60,
+        borderTop: '1px solid rgba(255,255,255,0.4)',
+        borderLeft: '1px solid rgba(255,255,255,0.4)',
+        animation: 'seibanCornerFade 4s ease-in-out infinite',
+        zIndex: 1,
+      }}/>
+      <div aria-hidden style={{
+        position: 'absolute', bottom: 40, right: 40,
+        width: 60, height: 60,
+        borderBottom: '1px solid rgba(255,255,255,0.4)',
+        borderRight: '1px solid rgba(255,255,255,0.4)',
+        animation: 'seibanCornerFade 4s ease-in-out 1s infinite',
+        zIndex: 1,
+      }}/>
+
+      {/* メインコンテンツ層 */}
+      <div style={{position: 'relative', zIndex: 2}}>
+      {/* ヘッダー (Hero流の左寄せ) */}
+      <div style={{
+        maxWidth: 1320,
+        margin: '0 auto',
+        marginBottom: 'clamp(40px, 6vh, 80px)',
+      }}>
+        <Reveal y={0} blur={false}>
           <div style={{
-            display: 'grid',
-            gridTemplateColumns: 'repeat(auto-fit, minmax(300px, 1fr))',
-            gap: 24,
+            width: 60, height: 1,
+            background: 'rgba(255, 255, 255, 0.5)',
+            marginBottom: 24,
+          }}/>
+        </Reveal>
+
+        <Reveal y={20} blur={false} delay={100}>
+          <div style={{display:'flex', alignItems:'center', gap:14, marginBottom: 24}}>
+            <span style={{
+              fontFamily:'var(--sans, system-ui)',
+              fontSize:11, fontWeight:600,
+              letterSpacing:'0.18em',
+              textTransform:'uppercase',
+              color:'rgba(255, 255, 255, 0.95)',
+            }}>News</span>
+            <span style={{
+              fontFamily:'var(--jp)',
+              fontSize:11, fontWeight:500,
+              color:'rgba(255, 255, 255, 0.7)',
+              letterSpacing:'0.08em',
+            }}>お知らせ</span>
+          </div>
+        </Reveal>
+
+        <Reveal y={30} blur={false} delay={200}>
+          <h1 style={{
+            margin: 0,
+            fontFamily: 'var(--serif, Fraunces, serif)',
+            fontStyle: 'italic',
+            fontWeight: 400,
+            fontSize: 'clamp(48px, 7vw, 96px)',
+            lineHeight: 1.1,
+            letterSpacing: '-0.025em',
+            color: '#ffffff',
+            textShadow: '0 4px 30px rgba(0,0,0,0.2)',
           }}>
-            {filtered.map((ev, i) => (
-              <Reveal key={ev.id} delay={(i % 6) * 50}>
-                <EventCard ev={ev} lang={lang} t={t} />
-              </Reveal>
-            ))}
+            All News.
+          </h1>
+        </Reveal>
+
+        <Reveal y={20} blur={false} delay={400}>
+          <div style={{
+            marginTop: 16,
+            fontFamily: 'var(--jp)',
+            fontSize: 'clamp(18px, 1.8vw, 22px)',
+            fontWeight: 500,
+            color: 'rgba(255, 255, 255, 0.92)',
+            letterSpacing: '0.04em',
+          }}>
+            すべてのお知らせ
+          </div>
+        </Reveal>
+      </div>
+
+      {/* 一覧 */}
+      <div style={{
+        maxWidth: 1320,
+        margin: '0 auto',
+      }}>
+        {/* ソートトグル (件数 + 新しい順/古い順) */}
+        {!loading && items.length > 0 && (
+          <div style={{
+            display: 'flex',
+            justifyContent: 'space-between',
+            alignItems: 'center',
+            paddingBottom: 'clamp(16px, 2vh, 24px)',
+            marginBottom: 'clamp(8px, 1vh, 16px)',
+            borderBottom: '1px solid rgba(255, 255, 255, 0.18)',
+            flexWrap: 'wrap',
+            gap: 16,
+          }}>
+            <div style={{
+              fontFamily: 'var(--mono, monospace)',
+              fontSize: 11,
+              letterSpacing: '0.18em',
+              color: 'rgba(255, 255, 255, 0.7)',
+            }}>
+              {sortedItems.length} ARTICLES <span style={{ marginLeft: 12, opacity: 0.6 }}>/ Page {currentPage} of {totalPages}</span>
+            </div>
+            <div style={{
+              display: 'flex',
+              gap: 4,
+              padding: 4,
+              background: 'rgba(255, 255, 255, 0.08)',
+              border: '1px solid rgba(255, 255, 255, 0.15)',
+              borderRadius: 999,
+            }}>
+              <button
+                onClick={() => setSortOrder('desc')}
+                style={{
+                  padding: '8px 18px',
+                  fontFamily: 'var(--jp)',
+                  fontSize: 12,
+                  fontWeight: 600,
+                  letterSpacing: '0.04em',
+                  color: sortOrder === 'desc' ? '#0a2960' : 'rgba(255, 255, 255, 0.85)',
+                  background: sortOrder === 'desc' ? '#ffffff' : 'transparent',
+                  border: 'none',
+                  borderRadius: 999,
+                  cursor: 'pointer',
+                  transition: 'all 0.3s cubic-bezier(0.2, 0.8, 0.2, 1)',
+                }}
+              >新しい順</button>
+              <button
+                onClick={() => setSortOrder('asc')}
+                style={{
+                  padding: '8px 18px',
+                  fontFamily: 'var(--jp)',
+                  fontSize: 12,
+                  fontWeight: 600,
+                  letterSpacing: '0.04em',
+                  color: sortOrder === 'asc' ? '#0a2960' : 'rgba(255, 255, 255, 0.85)',
+                  background: sortOrder === 'asc' ? '#ffffff' : 'transparent',
+                  border: 'none',
+                  borderRadius: 999,
+                  cursor: 'pointer',
+                  transition: 'all 0.3s cubic-bezier(0.2, 0.8, 0.2, 1)',
+                }}
+              >古い順</button>
+            </div>
           </div>
         )}
-      </section>
+
+        {loading ? (
+          <div style={{
+            textAlign: 'center', padding: 80,
+            fontFamily: 'var(--jp)', fontSize: 14,
+            color: 'rgba(255, 255, 255, 0.5)',
+          }}>読み込み中...</div>
+        ) : items.length === 0 ? (
+          <div style={{
+            textAlign: 'center', padding: 80,
+            fontFamily: 'var(--jp)', fontSize: 14,
+            color: 'rgba(255, 255, 255, 0.5)',
+          }}>お知らせはまだありません。</div>
+        ) : (
+          <div style={{
+            display: 'flex',
+            flexDirection: 'column',
+          }}>
+            {items.map((news, i) => (
+              <Reveal key={news.id || i} y={20} blur={false} delay={i * 80}>
+                <a href={`#/news/${news.id || i}`} style={{
+                  display: 'grid',
+                  gridTemplateColumns: 'minmax(120px, 0.5fr) minmax(0, 3fr) auto',
+                  gap: 'clamp(20px, 3vw, 48px)',
+                  alignItems: 'center',
+                  padding: 'clamp(20px, 3vh, 28px) clamp(8px, 1vw, 16px)',
+                  borderTop: '1px solid rgba(255, 255, 255, 0.18)',
+                  textDecoration: 'none',
+                  color: 'inherit',
+                  transition: 'all 0.3s cubic-bezier(0.2, 0.8, 0.2, 1)',
+                }}
+                  onMouseEnter={e => {
+                    e.currentTarget.style.background = 'rgba(255, 255, 255, 0.05)';
+                    e.currentTarget.style.paddingLeft = 'clamp(16px, 2vw, 24px)';
+                  }}
+                  onMouseLeave={e => {
+                    e.currentTarget.style.background = 'transparent';
+                    e.currentTarget.style.paddingLeft = 'clamp(8px, 1vw, 16px)';
+                  }}
+                >
+                  {/* 日付 + カテゴリ */}
+                  <div style={{
+                    display: 'flex', alignItems: 'center', gap: 16,
+                    fontSize: 11, fontWeight: 600,
+                    letterSpacing: '0.18em',
+                    color: 'rgba(255, 255, 255, 0.7)',
+                    flexWrap: 'wrap',
+                  }}>
+                    <span style={{
+                      fontFamily: 'var(--mono, monospace)',
+                      whiteSpace: 'nowrap',
+                    }}>{fmtDate(news.publishedAt || news.publishAt || news.date)}</span>
+                    {news.category && (
+                      <React.Fragment>
+                        <span style={{width: 1, height: 12, background: 'rgba(255, 255, 255, 0.3)'}}/>
+                        <span style={{
+                          color: '#7cb9f0',
+                          textTransform: 'uppercase',
+                          whiteSpace: 'nowrap',
+                        }}>{news.category}</span>
+                      </React.Fragment>
+                    )}
+                  </div>
+
+                  {/* タイトル */}
+                  <h2 style={{
+                    margin: 0,
+                    fontFamily: 'var(--jp)',
+                    fontWeight: 600,
+                    fontSize: 'clamp(15px, 1.3vw, 18px)',
+                    lineHeight: 1.5,
+                    color: '#ffffff',
+                    letterSpacing: '0.01em',
+                  }}>
+                    {news.title}
+                  </h2>
+
+                  {/* 矢印 */}
+                  <div style={{
+                    fontFamily: 'var(--jp)',
+                    fontSize: 16,
+                    color: 'rgba(255, 255, 255, 0.7)',
+                    flexShrink: 0,
+                  }}>→</div>
+                </a>
+              </Reveal>
+            ))}
+            {/* 最後の区切り線 */}
+            <div style={{borderBottom: '1px solid rgba(255, 255, 255, 0.18)'}}/>
+          </div>
+        )}
+
+        {/* ページネーション */}
+        {!loading && totalPages > 1 && (
+          <div style={{
+            display: 'flex',
+            justifyContent: 'center',
+            alignItems: 'center',
+            gap: 'clamp(8px, 1.5vw, 16px)',
+            marginTop: 'clamp(40px, 6vh, 80px)',
+            flexWrap: 'wrap',
+          }}>
+            {/* 前へ */}
+            <button
+              onClick={() => setPage(p => Math.max(1, p - 1))}
+              disabled={currentPage === 1}
+              style={{
+                display: 'inline-flex',
+                alignItems: 'center', gap: 8,
+                padding: '12px 20px',
+                fontFamily: 'var(--jp)',
+                fontSize: 13, fontWeight: 600,
+                letterSpacing: '0.04em',
+                color: currentPage === 1 ? 'rgba(255, 255, 255, 0.3)' : '#ffffff',
+                background: 'rgba(255, 255, 255, 0.08)',
+                backdropFilter: 'blur(10px)',
+                WebkitBackdropFilter: 'blur(10px)',
+                border: `1px solid ${currentPage === 1 ? 'rgba(255, 255, 255, 0.15)' : 'rgba(255, 255, 255, 0.4)'}`,
+                borderRadius: 999,
+                cursor: currentPage === 1 ? 'default' : 'pointer',
+                transition: 'all 0.3s cubic-bezier(0.2, 0.8, 0.2, 1)',
+              }}
+              onMouseEnter={e => {
+                if (currentPage !== 1) {
+                  e.currentTarget.style.background = '#ffffff';
+                  e.currentTarget.style.color = '#0a2960';
+                }
+              }}
+              onMouseLeave={e => {
+                if (currentPage !== 1) {
+                  e.currentTarget.style.background = 'rgba(255, 255, 255, 0.08)';
+                  e.currentTarget.style.color = '#ffffff';
+                }
+              }}
+            >
+              <span>←</span>
+              <span>前へ</span>
+            </button>
+
+            {/* ページ番号インジケーター */}
+            <div style={{
+              display: 'flex',
+              gap: 4,
+            }}>
+              {Array.from({ length: totalPages }, (_, i) => {
+                const pn = i + 1;
+                const active = pn === currentPage;
+                return (
+                  <button
+                    key={pn}
+                    onClick={() => setPage(pn)}
+                    aria-label={`ページ ${pn}`}
+                    style={{
+                      width: 36, height: 36,
+                      fontFamily: 'var(--mono, monospace)',
+                      fontSize: 12, fontWeight: 600,
+                      letterSpacing: '0.04em',
+                      color: active ? '#0a2960' : 'rgba(255, 255, 255, 0.85)',
+                      background: active ? '#ffffff' : 'transparent',
+                      border: active ? '1px solid #ffffff' : '1px solid transparent',
+                      borderRadius: '50%',
+                      cursor: 'pointer',
+                      transition: 'all 0.3s cubic-bezier(0.2, 0.8, 0.2, 1)',
+                      padding: 0,
+                    }}
+                    onMouseEnter={e => {
+                      if (!active) {
+                        e.currentTarget.style.background = 'rgba(255, 255, 255, 0.1)';
+                      }
+                    }}
+                    onMouseLeave={e => {
+                      if (!active) {
+                        e.currentTarget.style.background = 'transparent';
+                      }
+                    }}
+                  >{String(pn).padStart(2, '0')}</button>
+                );
+              })}
+            </div>
+
+            {/* 次へ */}
+            <button
+              onClick={() => setPage(p => Math.min(totalPages, p + 1))}
+              disabled={currentPage === totalPages}
+              style={{
+                display: 'inline-flex',
+                alignItems: 'center', gap: 8,
+                padding: '12px 20px',
+                fontFamily: 'var(--jp)',
+                fontSize: 13, fontWeight: 600,
+                letterSpacing: '0.04em',
+                color: currentPage === totalPages ? 'rgba(255, 255, 255, 0.3)' : '#0a2960',
+                background: currentPage === totalPages ? 'rgba(255, 255, 255, 0.08)' : '#ffffff',
+                backdropFilter: 'blur(10px)',
+                WebkitBackdropFilter: 'blur(10px)',
+                border: `1px solid ${currentPage === totalPages ? 'rgba(255, 255, 255, 0.15)' : '#ffffff'}`,
+                borderRadius: 999,
+                cursor: currentPage === totalPages ? 'default' : 'pointer',
+                transition: 'all 0.3s cubic-bezier(0.2, 0.8, 0.2, 1)',
+                boxShadow: currentPage === totalPages ? 'none' : '0 8px 24px -8px rgba(0, 0, 0, 0.35)',
+              }}
+              onMouseEnter={e => {
+                if (currentPage !== totalPages) {
+                  e.currentTarget.style.background = '#e8f0fc';
+                  e.currentTarget.style.borderColor = '#e8f0fc';
+                }
+              }}
+              onMouseLeave={e => {
+                if (currentPage !== totalPages) {
+                  e.currentTarget.style.background = '#ffffff';
+                  e.currentTarget.style.borderColor = '#ffffff';
+                }
+              }}
+            >
+              <span>次へ</span>
+              <span>→</span>
+            </button>
+          </div>
+        )}
+      </div>
+      </div>{/* メインコンテンツ層 終わり */}
     </div>
   );
 }
 
-function FilterPill({ label, active, onClick }) {
+// ============================================================================
+// (Phase 7.1) NEWS DETAIL PAGE — ニュース詳細 (Hero流: 白背景 + 左寄せ写真と内容)
+// ============================================================================
+function PageNewsDetail({ lang, t, newsId, frontNews, loading }) {
+  const items = frontNews || [];
+  const news = items.find(n => String(n.id) === String(newsId)) || items[Number(newsId)] || null;
+
+  function fmtDate(d) {
+    if (!d) return '';
+    const date = new Date(d);
+    if (isNaN(date.getTime())) return String(d);
+    const y = date.getFullYear();
+    const m = String(date.getMonth() + 1).padStart(2, '0');
+    const day = String(date.getDate()).padStart(2, '0');
+    return `${y}.${m}.${day}`;
+  }
+
+  if (loading) {
+    return (
+      <div style={{
+        minHeight: '100vh',
+        background: '#ffffff',
+        display: 'flex', alignItems: 'center', justifyContent: 'center',
+        fontFamily: 'var(--jp)', fontSize: 14, color: 'rgba(10, 41, 96, 0.5)',
+      }}>読み込み中...</div>
+    );
+  }
+
+  if (!news) {
+    return (
+      <div style={{
+        minHeight: '100vh',
+        background: '#ffffff',
+        display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center',
+        gap: 24, padding: 24,
+      }}>
+        <h1 style={{
+          fontFamily: 'var(--serif, Fraunces, serif)',
+          fontStyle: 'italic',
+          fontSize: 'clamp(28px, 3vw, 40px)',
+          color: '#0a2960',
+          margin: 0,
+        }}>News not found.</h1>
+        <a href="#/news" style={{
+          display: 'inline-flex',
+          alignItems: 'center', gap: 12,
+          padding: '18px 32px',
+          color: '#0a2960',
+          fontFamily: 'var(--jp)',
+          fontSize: 15, fontWeight: 600,
+          textDecoration: 'none',
+          background: '#ffffff',
+          border: '2px solid #0a2960',
+          borderRadius: 999,
+          transition: 'all 0.3s ease',
+        }}>
+          <span>←</span>
+          <span>一覧に戻る</span>
+        </a>
+      </div>
+    );
+  }
+
+  // 関連記事 (現在以外の最大3件)
+  const related = items.filter(n => String(n.id) !== String(news.id)).slice(0, 3);
+
   return (
-    <button onClick={onClick} style={{
-      padding: '8px 16px',
-      borderRadius: 999,
-      border: `1px solid ${active ? 'var(--ink)' : 'var(--line)'}`,
-      background: active ? 'var(--ink)' : 'transparent',
-      color: active ? 'var(--paper)' : 'var(--ink)',
-      fontSize: 13, fontWeight: 500,
-      transition: 'all .15s',
-    }}>{label}</button>
+    <div style={{
+      minHeight: '100vh',
+      background: '#ffffff',
+      padding: 'clamp(140px, 18vh, 200px) clamp(24px, 6vw, 96px) clamp(80px, 12vh, 160px)',
+    }}>
+      {/* 戻るリンク */}
+      <div style={{ maxWidth: 1320, margin: '0 auto', marginBottom: 'clamp(24px, 4vh, 48px)' }}>
+        <Reveal y={0} blur={false}>
+          <a href="#/news" style={{
+            display: 'inline-flex',
+            alignItems: 'center', gap: 8,
+            fontFamily: 'var(--jp)',
+            fontSize: 13, fontWeight: 500,
+            color: 'rgba(10, 41, 96, 0.7)',
+            textDecoration: 'none',
+            letterSpacing: '0.04em',
+            transition: 'all 0.3s ease',
+          }}
+            onMouseEnter={e => { e.currentTarget.style.color = '#0a2960'; e.currentTarget.style.transform = 'translateX(-4px)'; }}
+            onMouseLeave={e => { e.currentTarget.style.color = 'rgba(10, 41, 96, 0.7)'; e.currentTarget.style.transform = 'translateX(0)'; }}
+          >
+            <span>←</span>
+            <span>ニュース一覧に戻る</span>
+          </a>
+        </Reveal>
+      </div>
+
+      {/* メイン: 左寄せ写真と内容のグリッド (Hero流) */}
+      <div style={{
+        maxWidth: 1320,
+        margin: '0 auto',
+        display: 'grid',
+        gridTemplateColumns: 'minmax(0, 0.9fr) minmax(0, 1.3fr)',
+        gap: 'clamp(40px, 6vw, 96px)',
+        alignItems: 'start',
+      }}>
+        {/* 左: 写真 */}
+        <Reveal y={30} blur={false}>
+          <div style={{
+            width: '100%',
+            aspectRatio: '4 / 3',
+            background: news.imageUrl
+              ? `url(${news.imageUrl}) center/cover no-repeat`
+              : 'linear-gradient(135deg, #f5f7fa 0%, #e5e7eb 100%)',
+            borderRadius: 4,
+            overflow: 'hidden',
+            boxShadow: '0 30px 80px -20px rgba(10, 41, 96, 0.25), 0 12px 32px -8px rgba(10, 41, 96, 0.12)',
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+          }}>
+            {!news.imageUrl && (
+              <span style={{
+                fontFamily: 'var(--mono, monospace)',
+                fontSize: 13,
+                letterSpacing: '0.3em',
+                color: 'rgba(10, 41, 96, 0.4)',
+              }}>NEWS IMAGE</span>
+            )}
+          </div>
+        </Reveal>
+
+        {/* 右: 内容 */}
+        <div style={{
+          display: 'flex',
+          flexDirection: 'column',
+          gap: 'clamp(20px, 3vh, 32px)',
+        }}>
+          {/* 装飾線 */}
+          <Reveal y={0} blur={false}>
+            <div style={{
+              width: 60, height: 1,
+              background: '#0a2960',
+              opacity: 0.35,
+            }}/>
+          </Reveal>
+
+          {/* 日付 + カテゴリ */}
+          <Reveal y={20} blur={false} delay={100}>
+            <div style={{
+              display: 'flex', alignItems: 'center', gap: 16,
+              fontSize: 11, fontWeight: 600,
+              letterSpacing: '0.18em',
+              color: 'rgba(10, 41, 96, 0.6)',
+            }}>
+              <span style={{
+                fontFamily: 'var(--mono, monospace)',
+              }}>{fmtDate(news.publishedAt || news.publishAt || news.date)}</span>
+              {news.category && (
+                <React.Fragment>
+                  <span style={{width: 1, height: 12, background: 'rgba(10,41,96,0.2)'}}/>
+                  <span style={{
+                    color: '#2c89e8',
+                    textTransform: 'uppercase',
+                  }}>{news.category}</span>
+                </React.Fragment>
+              )}
+            </div>
+          </Reveal>
+
+          {/* タイトル (英文体: Fraunces italic) */}
+          <Reveal y={30} blur={false} delay={200}>
+            <h1 style={{
+              margin: 0,
+              fontFamily: 'var(--serif, Fraunces, serif)',
+              fontStyle: 'italic',
+              fontWeight: 400,
+              fontSize: 'clamp(32px, 4.5vw, 64px)',
+              lineHeight: 1.2,
+              letterSpacing: '-0.02em',
+              color: '#0a2960',
+            }}>
+              {news.title}
+            </h1>
+          </Reveal>
+
+          {/* 本文 (Revealを使わずシンプル表示。直接URLアクセスでも確実に見える) */}
+          <div style={{
+            fontFamily: 'var(--jp)',
+            fontSize: 'clamp(15px, 1.3vw, 17px)',
+            lineHeight: 2,
+            color: '#1a3661',
+            fontWeight: 400,
+            whiteSpace: 'pre-wrap',
+            marginTop: 8,
+            animation: 'fadeInUp 0.6s ease-out 0.4s both',
+          }}>
+            {news.body || news.content || news.description || news.shortDescription || '(本文なし)'}
+          </div>
+        </div>
+      </div>
+
+      {/* 関連記事 */}
+      {related.length > 0 && (
+        <div style={{
+          maxWidth: 1320,
+          margin: '0 auto',
+          marginTop: 'clamp(80px, 12vh, 160px)',
+          paddingTop: 'clamp(40px, 6vh, 80px)',
+          borderTop: '1px solid rgba(10, 41, 96, 0.12)',
+        }}>
+          <Reveal y={20} blur={false}>
+            <div style={{display:'flex', alignItems:'center', gap:14, marginBottom: 32}}>
+              <span style={{
+                display:'inline-block', width:32, height:1,
+                background:'rgba(10, 41, 96, 0.4)',
+              }}/>
+              <span style={{
+                fontFamily:'var(--sans, system-ui)',
+                fontSize:11, fontWeight:600,
+                letterSpacing:'0.18em',
+                textTransform:'uppercase',
+                color:'#0a2960',
+              }}>Related</span>
+              <span style={{
+                fontFamily:'var(--jp)',
+                fontSize:11, fontWeight:500,
+                color:'rgba(10, 41, 96, 0.7)',
+                letterSpacing:'0.08em',
+              }}>関連記事</span>
+            </div>
+          </Reveal>
+          <div style={{
+            display: 'grid',
+            gridTemplateColumns: 'repeat(3, minmax(0, 1fr))',
+            gap: 'clamp(24px, 3vw, 40px)',
+          }}>
+            {related.map((rn, i) => (
+              <Reveal key={rn.id || i} y={20} blur={false} delay={i * 100}>
+                <a href={`#/news/${rn.id || i}`} style={{
+                  display: 'flex',
+                  flexDirection: 'column',
+                  gap: 12,
+                  textDecoration: 'none',
+                  color: 'inherit',
+                  transition: 'all 0.3s ease',
+                  maxWidth: 360,
+                }}
+                  onMouseEnter={e => { e.currentTarget.style.transform = 'translateY(-4px)'; }}
+                  onMouseLeave={e => { e.currentTarget.style.transform = 'translateY(0)'; }}
+                >
+                  <div style={{
+                    width: '100%',
+                    aspectRatio: '4 / 3',
+                    background: rn.imageUrl
+                      ? `url(${rn.imageUrl}) center/cover no-repeat`
+                      : 'linear-gradient(135deg, #f5f7fa 0%, #e5e7eb 100%)',
+                    borderRadius: 4,
+                    overflow: 'hidden',
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                  }}>
+                    {!rn.imageUrl && (
+                      <span style={{
+                        fontFamily: 'var(--mono, monospace)',
+                        fontSize: 10,
+                        letterSpacing: '0.2em',
+                        color: 'rgba(10, 41, 96, 0.4)',
+                      }}>NEWS</span>
+                    )}
+                  </div>
+                  <div style={{
+                    fontFamily: 'var(--mono, monospace)',
+                    fontSize: 10, fontWeight: 600,
+                    letterSpacing: '0.18em',
+                    color: 'rgba(10, 41, 96, 0.6)',
+                    marginTop: 4,
+                  }}>
+                    {fmtDate(rn.publishedAt || rn.publishAt || rn.date)}
+                  </div>
+                  <h3 style={{
+                    margin: 0,
+                    fontFamily: 'var(--jp)',
+                    fontSize: 15, fontWeight: 600,
+                    lineHeight: 1.5,
+                    color: '#0a2960',
+                  }}>
+                    {rn.title}
+                  </h3>
+                </a>
+              </Reveal>
+            ))}
+          </div>
+        </div>
+      )}
+    </div>
   );
 }
+
+// ============================================================================
+// EVENTS LIST PAGE
+// ============================================================================
+function PageEvents({ lang, t, events, loading, siteSettings }) {
+  const settings = siteSettings || {};
+  const bgImage = settings.events_section_bg_image || '';
+
+  const [sortOrder, setSortOrder] = useState('asc');  // 'asc' = 開催日が近い順
+  // エリアフィルタ: 関東/関西の複数選択 (Set)、空集合 = フィルタなし
+  const [selectedAreas, setSelectedAreas] = useState(() => new Set());
+  // 料金フィルタ: 有料/無料の複数選択 (Set)、空集合 = フィルタなし
+  const [selectedFees, setSelectedFees] = useState(() => new Set());
+  const [page, setPage] = useState(1);
+  const PAGE_SIZE = 3;
+
+  const visibleEvents = filterPublicEvents(events);
+
+  const filteredAndSorted = useMemo(() => {
+    let filtered = visibleEvents;
+
+    // エリアフィルタ (関東/関西選択時、Web開催は両方に表示)
+    if (selectedAreas.size > 0) {
+      filtered = filtered.filter(ev => {
+        const area = detectEventArea(ev);
+        if (area === 'web') return true;  // Web開催はエリア問わず表示
+        return selectedAreas.has(area);
+      });
+    }
+
+    // 料金フィルタ
+    if (selectedFees.size > 0) {
+      filtered = filtered.filter(ev => {
+        const ft = detectEventFeeType(ev);
+        if (!ft) return false;
+        return selectedFees.has(ft);
+      });
+    }
+
+    // ソート
+    const sorted = [...filtered].sort((a, b) => {
+      const da = new Date(a.date || a.startDate || 0).getTime();
+      const db = new Date(b.date || b.startDate || 0).getTime();
+      return sortOrder === 'asc' ? da - db : db - da;
+    });
+    return sorted;
+  }, [visibleEvents, selectedAreas, selectedFees, sortOrder]);
+
+  // ページネーション
+  const totalPages = Math.max(1, Math.ceil(filteredAndSorted.length / PAGE_SIZE));
+  const currentPage = Math.min(page, totalPages);
+  const items = filteredAndSorted.slice((currentPage - 1) * PAGE_SIZE, currentPage * PAGE_SIZE);
+
+  // フィルタ・ソート変更時はページ1へ
+  useEffect(() => { setPage(1); }, [sortOrder, selectedAreas, selectedFees]);
+
+  // フィルタ切替ヘルパー
+  function toggleArea(area) {
+    setSelectedAreas(prev => {
+      const next = new Set(prev);
+      if (next.has(area)) next.delete(area); else next.add(area);
+      return next;
+    });
+  }
+  function toggleFee(fee) {
+    setSelectedFees(prev => {
+      const next = new Set(prev);
+      if (next.has(fee)) next.delete(fee); else next.add(fee);
+      return next;
+    });
+  }
+
+  // ページ変更時に上にスクロール
+  useEffect(() => {
+    if (typeof window !== 'undefined') {
+      window.scrollTo({ top: 0, behavior: 'smooth' });
+    }
+  }, [page]);
+
+  function fmtDate(d) {
+    if (!d) return '';
+    const date = new Date(d);
+    if (isNaN(date.getTime())) return String(d);
+    const y = date.getFullYear();
+    const m = String(date.getMonth() + 1).padStart(2, '0');
+    const day = String(date.getDate()).padStart(2, '0');
+    return `${y}.${m}.${day}`;
+  }
+
+  return (
+    <div style={{
+      position: 'relative',
+      minHeight: '100vh',
+      background: 'linear-gradient(135deg, #1a3661 0%, #0a2960 50%, #1a3661 100%)',
+      backgroundSize: '200% 200%',
+      animation: bgImage ? 'none' : 'seibanGradShift 18s ease-in-out infinite',
+      padding: 'clamp(140px, 18vh, 200px) clamp(24px, 6vw, 96px) clamp(80px, 12vh, 160px)',
+      overflow: 'hidden',
+    }}>
+      <style>{SEIBAN_ANIM_STYLE}</style>
+
+      {/* 背景画像 */}
+      <SeibanBackgroundImage src={bgImage}/>
+
+      {/* オーバーレイ */}
+      <div aria-hidden style={{
+        position: 'absolute', inset: 0,
+        background: 'linear-gradient(135deg, rgba(10,41,96,0.55) 0%, rgba(10,41,96,0.35) 50%, rgba(28, 137, 232, 0.2) 100%)',
+        pointerEvents: 'none',
+      }}/>
+
+      {/* コーナーマーク */}
+      <div aria-hidden style={{
+        position: 'absolute', top: 'clamp(100px, 14vh, 160px)', left: 40,
+        width: 60, height: 60,
+        borderTop: '1px solid rgba(255,255,255,0.4)',
+        borderLeft: '1px solid rgba(255,255,255,0.4)',
+        animation: 'seibanCornerFade 4s ease-in-out infinite',
+        zIndex: 1,
+      }}/>
+      <div aria-hidden style={{
+        position: 'absolute', bottom: 40, right: 40,
+        width: 60, height: 60,
+        borderBottom: '1px solid rgba(255,255,255,0.4)',
+        borderRight: '1px solid rgba(255,255,255,0.4)',
+        animation: 'seibanCornerFade 4s ease-in-out 1s infinite',
+        zIndex: 1,
+      }}/>
+
+      {/* メインコンテンツ層 */}
+      <div style={{position: 'relative', zIndex: 2}}>
+        {/* ヘッダー */}
+        <div style={{
+          maxWidth: 1320,
+          margin: '0 auto',
+          marginBottom: 'clamp(40px, 6vh, 80px)',
+        }}>
+          <Reveal y={0} blur={false}>
+            <div style={{
+              width: 60, height: 1,
+              background: 'rgba(255, 255, 255, 0.5)',
+              marginBottom: 24,
+            }}/>
+          </Reveal>
+
+          <Reveal y={20} blur={false} delay={100}>
+            <div style={{display:'flex', alignItems:'center', gap:14, marginBottom: 24}}>
+              <span style={{
+                fontFamily:'var(--sans, system-ui)',
+                fontSize:11, fontWeight:600,
+                letterSpacing:'0.18em',
+                textTransform:'uppercase',
+                color:'rgba(255, 255, 255, 0.95)',
+              }}>Events</span>
+              <span style={{
+                fontFamily:'var(--jp)',
+                fontSize:11, fontWeight:500,
+                color:'rgba(255, 255, 255, 0.7)',
+                letterSpacing:'0.08em',
+              }}>イベント一覧</span>
+            </div>
+          </Reveal>
+
+          <Reveal y={30} blur={false} delay={200}>
+            <h1 style={{
+              margin: 0,
+              fontFamily: 'var(--serif, Fraunces, serif)',
+              fontStyle: 'italic',
+              fontWeight: 400,
+              fontSize: 'clamp(48px, 7vw, 96px)',
+              lineHeight: 1.1,
+              letterSpacing: '-0.025em',
+              color: '#ffffff',
+              textShadow: '0 4px 30px rgba(0,0,0,0.2)',
+            }}>
+              All Events.
+            </h1>
+          </Reveal>
+
+          <Reveal y={20} blur={false} delay={400}>
+            <div style={{
+              marginTop: 16,
+              fontFamily: 'var(--jp)',
+              fontSize: 'clamp(18px, 1.8vw, 22px)',
+              fontWeight: 500,
+              color: 'rgba(255, 255, 255, 0.92)',
+              letterSpacing: '0.04em',
+            }}>
+              すべてのイベント
+            </div>
+          </Reveal>
+        </div>
+
+        {/* 一覧 */}
+        <div style={{
+          maxWidth: 1320,
+          margin: '0 auto',
+        }}>
+          {/* 上部コントロール (件数 + カテゴリ + ソート) */}
+          {!loading && filteredAndSorted.length > 0 && (
+            <div style={{
+              display: 'flex',
+              justifyContent: 'space-between',
+              alignItems: 'center',
+              paddingBottom: 'clamp(16px, 2vh, 24px)',
+              marginBottom: 'clamp(8px, 1vh, 16px)',
+              borderBottom: '1px solid rgba(255, 255, 255, 0.18)',
+              flexWrap: 'wrap',
+              gap: 16,
+            }}>
+              <div style={{
+                fontFamily: 'var(--mono, monospace)',
+                fontSize: 11,
+                letterSpacing: '0.18em',
+                color: 'rgba(255, 255, 255, 0.7)',
+              }}>
+                {filteredAndSorted.length} EVENTS <span style={{ marginLeft: 12, opacity: 0.6 }}>/ Page {currentPage} of {totalPages}</span>
+              </div>
+              <div style={{
+                display: 'flex',
+                gap: 4,
+                padding: 4,
+                background: 'rgba(255, 255, 255, 0.08)',
+                border: '1px solid rgba(255, 255, 255, 0.15)',
+                borderRadius: 999,
+              }}>
+                <button
+                  onClick={() => setSortOrder('asc')}
+                  style={{
+                    padding: '8px 18px',
+                    fontFamily: 'var(--jp)',
+                    fontSize: 12, fontWeight: 600,
+                    letterSpacing: '0.04em',
+                    color: sortOrder === 'asc' ? '#0a2960' : 'rgba(255, 255, 255, 0.85)',
+                    background: sortOrder === 'asc' ? '#ffffff' : 'transparent',
+                    border: 'none',
+                    borderRadius: 999,
+                    cursor: 'pointer',
+                    transition: 'all 0.3s cubic-bezier(0.2, 0.8, 0.2, 1)',
+                  }}
+                >開催日が近い順</button>
+                <button
+                  onClick={() => setSortOrder('desc')}
+                  style={{
+                    padding: '8px 18px',
+                    fontFamily: 'var(--jp)',
+                    fontSize: 12, fontWeight: 600,
+                    letterSpacing: '0.04em',
+                    color: sortOrder === 'desc' ? '#0a2960' : 'rgba(255, 255, 255, 0.85)',
+                    background: sortOrder === 'desc' ? '#ffffff' : 'transparent',
+                    border: 'none',
+                    borderRadius: 999,
+                    cursor: 'pointer',
+                    transition: 'all 0.3s cubic-bezier(0.2, 0.8, 0.2, 1)',
+                  }}
+                >遠い順</button>
+              </div>
+            </div>
+          )}
+
+          {/* フィルタ (エリア + 料金) */}
+          {!loading && (
+            <div style={{
+              display: 'flex',
+              flexDirection: 'column',
+              gap: 'clamp(12px, 2vh, 20px)',
+              marginBottom: 'clamp(24px, 3vh, 32px)',
+              paddingTop: 'clamp(8px, 1vh, 16px)',
+            }}>
+              {/* エリアグループ */}
+              <div style={{
+                display: 'flex',
+                alignItems: 'center',
+                flexWrap: 'wrap',
+                gap: 12,
+              }}>
+                <span style={{
+                  fontFamily: 'var(--mono, monospace)',
+                  fontSize: 10, fontWeight: 600,
+                  letterSpacing: '0.2em',
+                  color: 'rgba(255, 255, 255, 0.55)',
+                  minWidth: 64,
+                  textTransform: 'uppercase',
+                }}>AREA</span>
+                {['関東', '関西'].map(area => {
+                  const active = selectedAreas.has(area);
+                  return (
+                    <button
+                      key={area}
+                      onClick={() => toggleArea(area)}
+                      style={{
+                        padding: '8px 18px',
+                        fontFamily: 'var(--jp)',
+                        fontSize: 12, fontWeight: 600,
+                        letterSpacing: '0.04em',
+                        color: active ? '#0a2960' : 'rgba(255, 255, 255, 0.85)',
+                        background: active ? '#ffffff' : 'rgba(255, 255, 255, 0.08)',
+                        border: '1px solid rgba(255, 255, 255, 0.25)',
+                        borderRadius: 999,
+                        cursor: 'pointer',
+                        transition: 'all 0.3s cubic-bezier(0.2, 0.8, 0.2, 1)',
+                      }}
+                    >{area}</button>
+                  );
+                })}
+              </div>
+
+              {/* 料金グループ */}
+              <div style={{
+                display: 'flex',
+                alignItems: 'center',
+                flexWrap: 'wrap',
+                gap: 12,
+              }}>
+                <span style={{
+                  fontFamily: 'var(--mono, monospace)',
+                  fontSize: 10, fontWeight: 600,
+                  letterSpacing: '0.2em',
+                  color: 'rgba(255, 255, 255, 0.55)',
+                  minWidth: 64,
+                  textTransform: 'uppercase',
+                }}>FEE</span>
+                {[{key:'paid', label:'有料'}, {key:'free', label:'無料'}].map(f => {
+                  const active = selectedFees.has(f.key);
+                  return (
+                    <button
+                      key={f.key}
+                      onClick={() => toggleFee(f.key)}
+                      style={{
+                        padding: '8px 18px',
+                        fontFamily: 'var(--jp)',
+                        fontSize: 12, fontWeight: 600,
+                        letterSpacing: '0.04em',
+                        color: active ? '#0a2960' : 'rgba(255, 255, 255, 0.85)',
+                        background: active ? '#ffffff' : 'rgba(255, 255, 255, 0.08)',
+                        border: '1px solid rgba(255, 255, 255, 0.25)',
+                        borderRadius: 999,
+                        cursor: 'pointer',
+                        transition: 'all 0.3s cubic-bezier(0.2, 0.8, 0.2, 1)',
+                      }}
+                    >{f.label}</button>
+                  );
+                })}
+                {/* リセット */}
+                {(selectedAreas.size > 0 || selectedFees.size > 0) && (
+                  <button
+                    onClick={() => { setSelectedAreas(new Set()); setSelectedFees(new Set()); }}
+                    style={{
+                      padding: '8px 14px',
+                      marginLeft: 'auto',
+                      fontFamily: 'var(--jp)',
+                      fontSize: 11, fontWeight: 500,
+                      letterSpacing: '0.04em',
+                      color: 'rgba(255, 255, 255, 0.7)',
+                      background: 'transparent',
+                      border: '1px solid rgba(255, 255, 255, 0.25)',
+                      borderRadius: 999,
+                      cursor: 'pointer',
+                      transition: 'all 0.3s ease',
+                    }}
+                    onMouseEnter={e => { e.currentTarget.style.color = '#fff'; e.currentTarget.style.borderColor = 'rgba(255, 255, 255, 0.6)'; }}
+                    onMouseLeave={e => { e.currentTarget.style.color = 'rgba(255, 255, 255, 0.7)'; e.currentTarget.style.borderColor = 'rgba(255, 255, 255, 0.25)'; }}
+                  >× クリア</button>
+                )}
+              </div>
+            </div>
+          )}
+
+          {loading ? (
+            <div style={{
+              textAlign: 'center', padding: 80,
+              fontFamily: 'var(--jp)', fontSize: 14,
+              color: 'rgba(255, 255, 255, 0.5)',
+            }}>読み込み中...</div>
+          ) : filteredAndSorted.length === 0 ? (
+            <div style={{
+              textAlign: 'center', padding: 80,
+              fontFamily: 'var(--jp)', fontSize: 14,
+              color: 'rgba(255, 255, 255, 0.5)',
+            }}>該当するイベントはありません。</div>
+          ) : (
+            <div style={{
+              display: 'flex',
+              flexDirection: 'column',
+            }}>
+              {items.map((ev, i) => (
+                <Reveal key={ev.id || i} y={20} blur={false} delay={i * 80}>
+                  <a href={`#/events/${ev.id}`} style={{
+                    display: 'grid',
+                    gridTemplateColumns: 'minmax(140px, 0.5fr) minmax(0, 3fr) auto',
+                    gap: 'clamp(20px, 3vw, 48px)',
+                    alignItems: 'center',
+                    padding: 'clamp(20px, 3vh, 28px) clamp(8px, 1vw, 16px)',
+                    borderTop: '1px solid rgba(255, 255, 255, 0.18)',
+                    textDecoration: 'none',
+                    color: 'inherit',
+                    transition: 'all 0.3s cubic-bezier(0.2, 0.8, 0.2, 1)',
+                  }}
+                    onMouseEnter={e => {
+                      e.currentTarget.style.background = 'rgba(255, 255, 255, 0.05)';
+                      e.currentTarget.style.paddingLeft = 'clamp(16px, 2vw, 24px)';
+                    }}
+                    onMouseLeave={e => {
+                      e.currentTarget.style.background = 'transparent';
+                      e.currentTarget.style.paddingLeft = 'clamp(8px, 1vw, 16px)';
+                    }}
+                  >
+                    {/* 開催日 + カテゴリ (常に縦並び) */}
+                    <div style={{
+                      display: 'flex',
+                      flexDirection: 'column',
+                      gap: 6,
+                      fontSize: 11, fontWeight: 600,
+                      letterSpacing: '0.18em',
+                      color: 'rgba(255, 255, 255, 0.7)',
+                    }}>
+                      <span style={{
+                        fontFamily: 'var(--mono, monospace)',
+                        whiteSpace: 'nowrap',
+                      }}>{fmtDate(ev.date || ev.startDate)}</span>
+                      {/* エリア + 料金タグ */}
+                      {(() => {
+                        const area = detectEventArea(ev);
+                        const ft = detectEventFeeType(ev);
+                        const tags = [];
+                        if (area === 'web') tags.push('オンライン');
+                        else if (area) tags.push(area);
+                        if (ft === 'paid') tags.push('有料');
+                        else if (ft === 'free') tags.push('無料');
+                        if (tags.length === 0) return null;
+                        return (
+                          <span style={{
+                            color: '#7cb9f0',
+                            textTransform: 'uppercase',
+                            whiteSpace: 'nowrap',
+                          }}>{tags.join(' · ')}</span>
+                        );
+                      })()}
+                    </div>
+
+                    {/* タイトル */}
+                    <h2 style={{
+                      margin: 0,
+                      fontFamily: 'var(--jp)',
+                      fontWeight: 600,
+                      fontSize: 'clamp(15px, 1.3vw, 18px)',
+                      lineHeight: 1.5,
+                      color: '#ffffff',
+                      letterSpacing: '0.01em',
+                    }}>
+                      {ev.title}
+                    </h2>
+
+                    {/* 矢印 */}
+                    <div style={{
+                      fontFamily: 'var(--jp)',
+                      fontSize: 16,
+                      color: 'rgba(255, 255, 255, 0.7)',
+                      flexShrink: 0,
+                    }}>→</div>
+                  </a>
+                </Reveal>
+              ))}
+              {/* 最後の区切り線 */}
+              <div style={{borderBottom: '1px solid rgba(255, 255, 255, 0.18)'}}/>
+            </div>
+          )}
+
+          {/* ページネーション */}
+          {!loading && totalPages > 1 && (
+            <div style={{
+              display: 'flex',
+              justifyContent: 'center',
+              alignItems: 'center',
+              gap: 'clamp(8px, 1.5vw, 16px)',
+              marginTop: 'clamp(40px, 6vh, 80px)',
+              flexWrap: 'wrap',
+            }}>
+              <button
+                onClick={() => setPage(p => Math.max(1, p - 1))}
+                disabled={currentPage === 1}
+                style={{
+                  display: 'inline-flex',
+                  alignItems: 'center', gap: 8,
+                  padding: '12px 20px',
+                  fontFamily: 'var(--jp)',
+                  fontSize: 13, fontWeight: 600,
+                  letterSpacing: '0.04em',
+                  color: currentPage === 1 ? 'rgba(255, 255, 255, 0.3)' : '#ffffff',
+                  background: 'rgba(255, 255, 255, 0.08)',
+                  backdropFilter: 'blur(10px)',
+                  WebkitBackdropFilter: 'blur(10px)',
+                  border: `1px solid ${currentPage === 1 ? 'rgba(255, 255, 255, 0.15)' : 'rgba(255, 255, 255, 0.4)'}`,
+                  borderRadius: 999,
+                  cursor: currentPage === 1 ? 'default' : 'pointer',
+                  transition: 'all 0.3s cubic-bezier(0.2, 0.8, 0.2, 1)',
+                }}
+                onMouseEnter={e => {
+                  if (currentPage !== 1) {
+                    e.currentTarget.style.background = '#ffffff';
+                    e.currentTarget.style.color = '#0a2960';
+                  }
+                }}
+                onMouseLeave={e => {
+                  if (currentPage !== 1) {
+                    e.currentTarget.style.background = 'rgba(255, 255, 255, 0.08)';
+                    e.currentTarget.style.color = '#ffffff';
+                  }
+                }}
+              >
+                <span>←</span>
+                <span>前へ</span>
+              </button>
+
+              <div style={{display: 'flex', gap: 4}}>
+                {Array.from({ length: totalPages }, (_, i) => {
+                  const pn = i + 1;
+                  const active = pn === currentPage;
+                  return (
+                    <button
+                      key={pn}
+                      onClick={() => setPage(pn)}
+                      aria-label={`ページ ${pn}`}
+                      style={{
+                        width: 36, height: 36,
+                        fontFamily: 'var(--mono, monospace)',
+                        fontSize: 12, fontWeight: 600,
+                        letterSpacing: '0.04em',
+                        color: active ? '#0a2960' : 'rgba(255, 255, 255, 0.85)',
+                        background: active ? '#ffffff' : 'transparent',
+                        border: active ? '1px solid #ffffff' : '1px solid transparent',
+                        borderRadius: '50%',
+                        cursor: 'pointer',
+                        transition: 'all 0.3s cubic-bezier(0.2, 0.8, 0.2, 1)',
+                        padding: 0,
+                      }}
+                      onMouseEnter={e => {
+                        if (!active) {
+                          e.currentTarget.style.background = 'rgba(255, 255, 255, 0.1)';
+                        }
+                      }}
+                      onMouseLeave={e => {
+                        if (!active) {
+                          e.currentTarget.style.background = 'transparent';
+                        }
+                      }}
+                    >{String(pn).padStart(2, '0')}</button>
+                  );
+                })}
+              </div>
+
+              <button
+                onClick={() => setPage(p => Math.min(totalPages, p + 1))}
+                disabled={currentPage === totalPages}
+                style={{
+                  display: 'inline-flex',
+                  alignItems: 'center', gap: 8,
+                  padding: '12px 20px',
+                  fontFamily: 'var(--jp)',
+                  fontSize: 13, fontWeight: 600,
+                  letterSpacing: '0.04em',
+                  color: currentPage === totalPages ? 'rgba(255, 255, 255, 0.3)' : '#0a2960',
+                  background: currentPage === totalPages ? 'rgba(255, 255, 255, 0.08)' : '#ffffff',
+                  backdropFilter: 'blur(10px)',
+                  WebkitBackdropFilter: 'blur(10px)',
+                  border: `1px solid ${currentPage === totalPages ? 'rgba(255, 255, 255, 0.15)' : '#ffffff'}`,
+                  borderRadius: 999,
+                  cursor: currentPage === totalPages ? 'default' : 'pointer',
+                  transition: 'all 0.3s cubic-bezier(0.2, 0.8, 0.2, 1)',
+                  boxShadow: currentPage === totalPages ? 'none' : '0 8px 24px -8px rgba(0, 0, 0, 0.35)',
+                }}
+                onMouseEnter={e => {
+                  if (currentPage !== totalPages) {
+                    e.currentTarget.style.background = '#e8f0fc';
+                    e.currentTarget.style.borderColor = '#e8f0fc';
+                  }
+                }}
+                onMouseLeave={e => {
+                  if (currentPage !== totalPages) {
+                    e.currentTarget.style.background = '#ffffff';
+                    e.currentTarget.style.borderColor = '#ffffff';
+                  }
+                }}
+              >
+                <span>次へ</span>
+                <span>→</span>
+              </button>
+            </div>
+          )}
+        </div>
+      </div>
+    </div>
+  );
+}
+
 
 // ============================================================================
 // SIMPLE STUB PAGE (about/news/contact/login/signup/event-detail)
@@ -5390,158 +7761,47 @@ function FooterCol({ title, items }) {
 // APP
 // ============================================================================
 // ============================================================================
-// (Phase 6.11) OpeningCurtain — オープニング画面 + 上下カーテン分割アニメーション
+// (Phase 7.0) OpeningCurtain — 建仁寺風シンプルオープニング
 // ============================================================================
-// シーケンス:
-//   showing (0-5s)  : 中央にロゴ + キャッチコピー、メニューバー無し
-//   splitting (5-6.2s) : 上下カーテンが上下に開く、ロゴ縮小+移動 (右上ロゴ位置へ)
-//   gone     : unmount、通常表示開始
-// 設計:
-//   ・全画面 fixed、zIndex 9000+
-//   ・上下のパネルが y方向に translateY (-100% / +100%) で退く
-//   ・中央コンテンツ (ロゴ+キャッチ) は別レイヤー、splitting で右上へmorph
+// シーケンス (3秒):
+//   0.0s : 背景白、ロゴが大きくぼけた状態 (blur 24px、opacity 0)
+//   0.3s : ロゴがフェードイン (opacity → 1)、ぼかしが徐々に減る (24px → 0)
+//   1.5s : ロゴがクリアに見える (blur 0)
+//   2.5s : フェードアウト開始 (opacity → 0)
+//   3.0s : 完全消失、unmount
+// 装飾:
+//   なし。ロゴ単体。シンプルに削ぎ落とした上品さ。
 function OpeningCurtain({ phase, settings }) {
   const isSplitting = phase === 'splitting';
-  // キャッチコピー (Adminで設定可、デフォルト「一緒に、東京を歩こう」)
-  const catchJa = (settings && settings.opening_catch_ja) || '一緒に、東京を歩こう';
-  const catchEn = (settings && settings.opening_catch_en) || 'Where strangers become friends.';
 
   return (
     <div aria-hidden style={{
       position:'fixed', inset:0,
       zIndex: 9000,
+      background: '#ffffff',
+      opacity: isSplitting ? 0 : 1,
+      transition: 'opacity 1.0s ease-out',
       pointerEvents: isSplitting ? 'none' : 'auto',
+      display: 'flex',
+      alignItems: 'center',
+      justifyContent: 'center',
     }}>
-      {/* 上半分カーテン */}
-      <div style={{
-        position:'absolute',
-        top: 0, left: 0, right: 0,
-        height: '50vh',
-        background: '#ffffff',
-        transform: isSplitting ? 'translateY(-100%)' : 'translateY(0)',
-        transition: 'transform 1.2s cubic-bezier(0.76, 0, 0.24, 1)',
-        boxShadow: isSplitting ? '0 12px 40px -8px rgba(28,86,176,0.12)' : 'none',
-        overflow:'hidden',
-      }}/>
-
-      {/* 下半分カーテン */}
-      <div style={{
-        position:'absolute',
-        bottom: 0, left: 0, right: 0,
-        height: '50vh',
-        background: '#ffffff',
-        transform: isSplitting ? 'translateY(100%)' : 'translateY(0)',
-        transition: 'transform 1.2s cubic-bezier(0.76, 0, 0.24, 1)',
-        boxShadow: isSplitting ? '0 -12px 40px -8px rgba(28,86,176,0.12)' : 'none',
-        overflow:'hidden',
-      }}/>
-
-      {/* 中央コンテンツ: ロゴ + キャッチコピー (splitting時はフェードアウト) */}
-      <div style={{
-        position:'absolute',
-        top: '50%', left: '50%',
-        transform: 'translate(-50%, -50%)',
-        zIndex: 2,
-        display: 'flex',
-        flexDirection: 'column',
-        alignItems: 'center',
-        gap: 'clamp(28px, 4vh, 56px)',
-        opacity: isSplitting ? 0 : 1,
-        transition: 'opacity 0.5s ease-out',
-        textAlign: 'center',
-      }}>
-        {/* ロゴ */}
-        <img
-          src={ASSET_LOGO}
-          alt="connec+a"
-          style={{
-            width: 'clamp(180px, 24vw, 320px)',
-            height: 'auto',
-            display: 'block',
-            animation: 'openingLogoFloat 3.5s ease-in-out infinite, openingLogoEnter 1.2s cubic-bezier(0.2,0.8,0.2,1) both',
-            filter: 'drop-shadow(0 12px 32px rgba(28, 109, 208, 0.25)) drop-shadow(0 4px 12px rgba(28, 109, 208, 0.15))',
-          }}
-        />
-
-        {/* メインキャッチ */}
-        <h1 style={{
-          margin: 0,
-          fontFamily: 'var(--jp)',
-          fontSize: 'clamp(28px, 4.5vw, 56px)',
-          fontWeight: 600,
-          color: '#0a2960',
-          letterSpacing: '0.06em',
-          lineHeight: 1.4,
-          animation: 'openingCatchEnter 1.2s cubic-bezier(0.2,0.8,0.2,1) 0.9s both',
-        }}>
-          {catchJa}
-        </h1>
-
-        {/* 英文サブ */}
-        <div style={{
-          fontFamily: 'var(--serif)',
-          fontStyle: 'italic',
-          fontSize: 'clamp(14px, 1.4vw, 18px)',
-          color: '#1a3661',
-          letterSpacing: '0.04em',
-          fontWeight: 500,
-          animation: 'openingCatchEnter 1.2s cubic-bezier(0.2,0.8,0.2,1) 1.4s both',
-        }}>
-          {catchEn}
-        </div>
-      </div>
-
-      {/* 下部にロード進捗バー (5秒で満タン) */}
-      <div style={{
-        position:'absolute',
-        bottom: 0, left:'50%',
-        transform:'translateX(-50%)',
-        width: 'clamp(180px, 30vw, 360px)',
-        height: 3,
-        background:'#eef2f7',
-        borderRadius: 2,
-        zIndex: 3,
-        marginBottom: 'clamp(40px, 8vh, 80px)',
-        overflow:'hidden',
-        opacity: isSplitting ? 0 : 1,
-        transition: 'opacity 0.4s ease-out',
-      }}>
-        <div style={{
-          position:'absolute', top:0, left:0, height:'100%',
-          background: 'linear-gradient(90deg, #5ba8f5, #2c89e8, #1c6dd0)',
-          animation: 'openingProgress 5s linear forwards',
-          width: 0,
-        }}/>
-      </div>
+      <img
+        src={ASSET_LOGO}
+        alt="connec+a"
+        style={{
+          width: 'clamp(180px, 22vw, 280px)',
+          height: 'auto',
+          display: 'block',
+          animation: 'openingLogoReveal 2.5s cubic-bezier(0.25, 0.1, 0.25, 1) forwards',
+        }}
+      />
 
       <style>{`
-        @keyframes openingLogoEnter {
-          from { opacity: 0; transform: scale(0.6); }
-          to   { opacity: 1; transform: scale(1); }
-        }
-        @keyframes openingLogoFloat {
-          0%, 100% { transform: translateY(0) rotate(-1deg); }
-          50%      { transform: translateY(-10px) rotate(1deg); }
-        }
-        @keyframes openingDotsEnter {
-          from { opacity: 0; transform: translateY(8px); }
-          to   { opacity: 1; transform: translateY(0); }
-        }
-        @keyframes openingDotPulse {
-          0%, 100% { transform: scale(1); opacity: 0.6; }
-          50%      { transform: scale(1.4); opacity: 1; }
-        }
-        @keyframes openingCatchEnter {
-          from { opacity: 0; transform: translateY(20px); filter: blur(8px); }
-          to   { opacity: 1; transform: translateY(0); filter: blur(0); }
-        }
-        @keyframes openingDotFloat {
-          0%, 100% { transform: translateY(0) scale(1); opacity: 0.7; }
-          50%      { transform: translateY(-12px) scale(1.3); opacity: 1; }
-        }
-        @keyframes openingProgress {
-          from { width: 0; }
-          to   { width: 100%; }
+        @keyframes openingLogoReveal {
+          0%   { opacity: 0; filter: blur(24px); transform: scale(1.02); }
+          40%  { opacity: 1; filter: blur(0); transform: scale(1); }
+          100% { opacity: 1; filter: blur(0); transform: scale(1); }
         }
       `}</style>
     </div>
@@ -5562,13 +7822,12 @@ function App() {
   const [openingPhase, setOpeningPhase] = useState(route === '/' ? 'showing' : 'gone');
   const t = I18N[lang] || I18N.ja;
 
-  // (Phase 6.11) オープニングタイマー: 5秒後にカーテン開始 → 1.2秒後に完全終了
-  // 初回マウント時に1度だけ schedule。openingPhase を依存に入れると、
-  // setOpeningPhase('splitting') 時に effect 再実行 → cleanup で t2 もクリア → gone にならないバグ。
+  // (Phase 7.0) オープニングタイマー: 2.5秒経過時にフェードアウト開始 → 1秒で完全終了 (合計3.5秒)
+  // showing → splitting (フェードアウト中) → gone (unmount)
   useEffect(() => {
-    if (route !== '/') return;   // ホーム以外は即終了 (showing状態にもならない)
-    const t1 = setTimeout(() => setOpeningPhase('splitting'), 5000);
-    const t2 = setTimeout(() => setOpeningPhase('gone'), 5000 + 1200);
+    if (route !== '/') return;   // ホーム以外は即終了
+    const t1 = setTimeout(() => setOpeningPhase('splitting'), 2500);
+    const t2 = setTimeout(() => setOpeningPhase('gone'), 3500);
     return () => { clearTimeout(t1); clearTimeout(t2); };
   }, []);
 
@@ -5624,19 +7883,21 @@ function App() {
   let pageTitle = '';
   const isHome = route === '/';
   const matchEvent = route.match(/^\/events\/(.+)/);
+  const matchNews = route.match(/^\/news\/(.+)/);
 
   if (isHome) {
     Page = <PageHome lang={lang} t={t} events={events} ads={ads} heroSlides={heroSlides} loading={loading} siteSettings={siteSettings} frontNews={frontNews} />;
   } else if (route === '/events') {
-    Page = <PageEvents lang={lang} t={t} events={events} loading={loading} />;
+    Page = <PageEvents lang={lang} t={t} events={events} loading={loading} siteSettings={siteSettings} />;
   } else if (matchEvent) {
     Page = <PageEventDetail lang={lang} t={t} eventId={matchEvent[1]} />;
   } else if (route === '/about') {
     pageTitle = t.nav.about;
     Page = <PageStub lang={lang} t={t} title={pageTitle} />;
   } else if (route === '/news') {
-    pageTitle = t.nav.news;
-    Page = <PageStub lang={lang} t={t} title={pageTitle} />;
+    Page = <PageNewsList lang={lang} t={t} frontNews={frontNews} loading={loading} siteSettings={siteSettings} />;
+  } else if (matchNews) {
+    Page = <PageNewsDetail lang={lang} t={t} newsId={matchNews[1]} frontNews={frontNews} loading={loading} />;
   } else if (route === '/contact') {
     pageTitle = t.nav.contact;
     Page = <PageStub lang={lang} t={t} title={pageTitle} />;
