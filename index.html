@@ -648,7 +648,7 @@ const I18N = {
  */
 async function postToGAS(action, payload) {
   const controller = new AbortController();
-  const timeoutId = setTimeout(() => controller.abort(), 30000); // 30秒
+  const timeoutId = setTimeout(() => controller.abort(), 60000); // 60秒
   try {
     const res = await fetch(CONFIG.GAS_URL, {
       method: 'POST',
