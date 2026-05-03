@@ -11399,7 +11399,7 @@ function PageContact({ lang, t }) {
   const [companyName, setCompanyName] = React.useState('');
   const [website, setWebsite] = React.useState('');
   const [message, setMessage] = React.useState('');
-  const [honeypot, setHoneypot] = React.useState(''); // bot対策
+  // honeypot は DOM uncontrolled で扱う (state でなく getElementById で取得)
 
   const [errors, setErrors] = React.useState({});
   const [submitting, setSubmitting] = React.useState(false);
@@ -11436,14 +11436,16 @@ function PageContact({ lang, t }) {
 
   const handleSubmit = async () => {
     console.log('[Contact] handleSubmit called', { inquiryType, email, userType, message: message.length, replyLang, submitting });
-    // Honeypot
-    if (honeypot) {
-      console.log('[Contact] honeypot triggered, abort');
+    // Honeypot (DOMから直接取得 — ブラウザのオートフィルでstate値が入るのを避ける)
+    const honeypotEl = document.getElementById('contact-honeypot');
+    const honeypotVal = honeypotEl ? honeypotEl.value : '';
+    if (honeypotVal && honeypotVal.trim() !== '') {
+      console.log('[Contact] honeypot triggered, abort. value:', honeypotVal);
       return;
     }
     // Validate
     if (!validate()) {
-      console.log('[Contact] validation failed:', errors);
+      console.log('[Contact] validation failed');
       return;
     }
     // ダブルクリック防止
@@ -11722,10 +11724,19 @@ function PageContact({ lang, t }) {
             }}>{progress}%</div>
           </div>
 
-          {/* Honeypot (Bot対策、 不可視) */}
-          <input type="text" value={honeypot} onChange={(e) => setHoneypot(e.target.value)}
-            tabIndex={-1} autoComplete="off"
-            style={{ position: 'absolute', left: -9999, opacity: 0, pointerEvents: 'none', height: 0 }} />
+          {/* Honeypot (Bot対策、 不可視)
+              注: value/onChange を使うとブラウザのオートフィルでstate値が入ってしまう。
+              uncontrolled input にして送信時のみ値を確認 */}
+          <div aria-hidden="true" style={{
+            position: 'absolute', left: -9999, top: -9999,
+            opacity: 0, pointerEvents: 'none',
+            height: 0, width: 0, overflow: 'hidden',
+          }}>
+            <label>Leave this empty:
+              <input type="text" name="_honey" id="contact-honeypot"
+                tabIndex={-1} autoComplete="off" defaultValue="" />
+            </label>
+          </div>
 
           {/* STEP 1: 種類 */}
           <div style={{ marginBottom: 32 }}>
