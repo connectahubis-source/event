@@ -11408,6 +11408,9 @@ function PageContact({ lang, t }) {
 
   const dialog = useDialog();
 
+  // (Phase 7.7) Bot対策: フォーム表示時刻を記録、 3秒未満の送信は bot 判定
+  const formMountTime = React.useRef(Date.now());
+
   // 進捗計算
   const progress = (() => {
     let done = 0;
@@ -11436,11 +11439,11 @@ function PageContact({ lang, t }) {
 
   const handleSubmit = async () => {
     console.log('[Contact] handleSubmit called', { inquiryType, email, userType, message: message.length, replyLang, submitting });
-    // Honeypot (DOMから直接取得 — ブラウザのオートフィルでstate値が入るのを避ける)
-    const honeypotEl = document.getElementById('contact-honeypot');
-    const honeypotVal = honeypotEl ? honeypotEl.value : '';
-    if (honeypotVal && honeypotVal.trim() !== '') {
-      console.log('[Contact] honeypot triggered, abort. value:', honeypotVal);
+    // (Phase 7.7) Bot対策: honeypot は削除し、 送信時刻チェックに切り替え
+    // フォーム表示後3秒未満の送信は bot とみなす
+    const elapsed = Date.now() - formMountTime.current;
+    if (elapsed < 3000) {
+      console.log('[Contact] too fast, abort. elapsed:', elapsed);
       return;
     }
     // Validate
@@ -11724,19 +11727,7 @@ function PageContact({ lang, t }) {
             }}>{progress}%</div>
           </div>
 
-          {/* Honeypot (Bot対策、 不可視)
-              注: value/onChange を使うとブラウザのオートフィルでstate値が入ってしまう。
-              uncontrolled input にして送信時のみ値を確認 */}
-          <div aria-hidden="true" style={{
-            position: 'absolute', left: -9999, top: -9999,
-            opacity: 0, pointerEvents: 'none',
-            height: 0, width: 0, overflow: 'hidden',
-          }}>
-            <label>Leave this empty:
-              <input type="text" name="_honey" id="contact-honeypot"
-                tabIndex={-1} autoComplete="off" defaultValue="" />
-            </label>
-          </div>
+          {/* Bot対策: 送信時刻チェックで対応 (honeypot はブラウザのオートフィルで誤発火するため不採用) */}
 
           {/* STEP 1: 種類 */}
           <div style={{ marginBottom: 32 }}>
