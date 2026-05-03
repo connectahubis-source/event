@@ -10597,6 +10597,923 @@ function ProfileEditModal({ user, onClose, onSaved }) {
 }
 
 
+
+// ============================================================================
+// (Phase 7.7) お問い合わせページ (15言語対応、 iframe POST 経由で別GASに送信)
+// ============================================================================
+
+// 別GASのURL (お問い合わせ専用、既存のフォームから流用)
+const CONTACT_GAS_URL = 'https://script.google.com/macros/s/AKfycbxApwccYEPblBPtVHA4B2kw6xPrlxA07R31uHAt2iEb8pda26G83wuIK7ByEhYBAidxqQ/exec';
+
+// 15言語の i18n 辞書 (既存のお問い合わせフォームから移植)
+const CONTACT_I18N = {
+  ja: {
+    tag:'お問い合わせ', title:'何でも', titleStrong:'お気軽に', titleSuffix:'ご連絡ください',
+    subtitle:'通常2営業日以内にご返信いたします。',
+    step1:'お問い合わせの種類', step2:'連絡先', step3:'メッセージ',
+    type_event:'イベント', type_community:'コミュニティ', type_shopcard:'ショップカード',
+    type_general:'一般', type_business:'企業コラボ', type_other:'その他',
+    label_email:'メールアドレス', label_name:'お名前 (任意)', label_type:'個人 / 企業',
+    label_company:'会社名', label_website:'ウェブサイト', label_message:'お問い合わせ内容',
+    individual:'個人', company:'企業',
+    btn_send:'送信する', sending:'送信中...',
+    err_type:'種類を選択してください',
+    err_email:'有効なメールアドレスを入力してください',
+    err_userType:'個人または企業を選択してください',
+    err_message:'メッセージを入力してください (10文字以上)',
+    err_generic:'送信中にエラーが発生しました。もう一度お試しください。',
+    success_title:'送信完了しました', success_msg:'お問い合わせありがとうございます。\n2営業日以内にご連絡いたします。',
+    btn_back:'別の問い合わせをする',
+    lang_hint:'返信メールの言語を選んでください',
+    select:'選択してください',
+  },
+  en: {
+    tag:'Get in Touch', title:"We'd love to", titleStrong:'hear from you', titleSuffix:'',
+    subtitle:"We'll get back to you within 2 business days.",
+    step1:'Inquiry Type', step2:'Contact Info', step3:'Message',
+    type_event:'Event', type_community:'Community', type_shopcard:'Shop Card',
+    type_general:'General', type_business:'Collab', type_other:'Other',
+    label_email:'Email Address', label_name:'Name (optional)', label_type:'Individual / Company',
+    label_company:'Company Name', label_website:'Website', label_message:'Your Message',
+    individual:'Individual', company:'Company',
+    btn_send:'Send Message', sending:'Sending...',
+    err_type:'Please select an inquiry type',
+    err_email:'Please enter a valid email',
+    err_userType:'Please select individual or company',
+    err_message:'Please enter a message (10+ characters)',
+    err_generic:'An error occurred. Please try again.',
+    success_title:'Message Sent!', success_msg:"Thank you for reaching out.\nWe'll reply within 2 business days.",
+    btn_back:'Send another message',
+    lang_hint:'Select the language for your reply email',
+    select:'Please select',
+  },
+  zh: {
+    tag:'联系我们', title:'随时', titleStrong:'联系我们', titleSuffix:'',
+    subtitle:'我们将在2个工作日内回复您。',
+    step1:'咨询类型', step2:'联系信息', step3:'留言',
+    type_event:'活动', type_community:'社区', type_shopcard:'购物卡',
+    type_general:'一般咨询', type_business:'商业合作', type_other:'其他',
+    label_email:'电子邮箱', label_name:'姓名 (选填)', label_type:'个人 / 企业',
+    label_company:'公司名称', label_website:'网站', label_message:'您的留言',
+    individual:'个人', company:'企业',
+    btn_send:'发送消息', sending:'发送中...',
+    err_type:'请选择咨询类型',
+    err_email:'请输入有效的电子邮件地址',
+    err_userType:'请选择个人或企业',
+    err_message:'请输入留言 (10个字符以上)',
+    err_generic:'发送时出错,请重试。',
+    success_title:'发送成功!', success_msg:'感谢您的留言。\n我们将在2个工作日内回复。',
+    btn_back:'再次发送',
+    lang_hint:'请选择回复邮件的语言',
+    select:'请选择',
+  },
+  ko: {
+    tag:'문의하기', title:'언제든지', titleStrong:'연락해 주세요', titleSuffix:'',
+    subtitle:'영업일 기준 2일 이내에 답변드리겠습니다.',
+    step1:'문의 유형', step2:'연락처', step3:'메시지',
+    type_event:'이벤트', type_community:'커뮤니티', type_shopcard:'쇼핑 카드',
+    type_general:'일반', type_business:'기업 협업', type_other:'기타',
+    label_email:'이메일 주소', label_name:'이름 (선택)', label_type:'개인 / 기업',
+    label_company:'회사명', label_website:'웹사이트', label_message:'문의 내용',
+    individual:'개인', company:'기업',
+    btn_send:'보내기', sending:'전송 중...',
+    err_type:'문의 유형을 선택해 주세요',
+    err_email:'유효한 이메일 주소를 입력해 주세요',
+    err_userType:'개인 또는 기업을 선택해 주세요',
+    err_message:'메시지를 입력해 주세요 (10자 이상)',
+    err_generic:'전송 중 오류가 발생했습니다. 다시 시도해 주세요.',
+    success_title:'전송 완료!', success_msg:'문의해 주셔서 감사합니다.\n영업일 기준 2일 이내에 답변드리겠습니다.',
+    btn_back:'다시 문의하기',
+    lang_hint:'답장 메일의 언어를 선택해 주세요',
+    select:'선택해 주세요',
+  },
+  es: {
+    tag:'Contáctanos', title:'Contáctanos', titleStrong:'cuando quieras', titleSuffix:'',
+    subtitle:'Te responderemos en 2 días hábiles.',
+    step1:'Tipo de consulta', step2:'Información de contacto', step3:'Mensaje',
+    type_event:'Evento', type_community:'Comunidad', type_shopcard:'Tarjeta',
+    type_general:'General', type_business:'Empresa', type_other:'Otro',
+    label_email:'Correo electrónico', label_name:'Nombre (opcional)', label_type:'Individual / Empresa',
+    label_company:'Nombre de empresa', label_website:'Sitio web', label_message:'Tu mensaje',
+    individual:'Individual', company:'Empresa',
+    btn_send:'Enviar mensaje', sending:'Enviando...',
+    err_type:'Selecciona un tipo',
+    err_email:'Ingresa un correo válido',
+    err_userType:'Selecciona individual o empresa',
+    err_message:'Escribe un mensaje (10+ caracteres)',
+    err_generic:'Ocurrió un error. Inténtalo de nuevo.',
+    success_title:'¡Mensaje enviado!', success_msg:'Gracias por contactarnos.\nTe responderemos en 2 días hábiles.',
+    btn_back:'Enviar otro mensaje',
+    lang_hint:'Selecciona el idioma para tu correo de respuesta',
+    select:'Selecciona',
+  },
+  fr: {
+    tag:'Contactez-nous', title:'Contactez-nous', titleStrong:'à tout moment', titleSuffix:'',
+    subtitle:'Nous vous répondrons sous 2 jours ouvrés.',
+    step1:'Type de demande', step2:'Coordonnées', step3:'Message',
+    type_event:'Événement', type_community:'Communauté', type_shopcard:'Carte',
+    type_general:'Général', type_business:'Entreprise', type_other:'Autre',
+    label_email:'Adresse e-mail', label_name:'Nom (facultatif)', label_type:'Particulier / Entreprise',
+    label_company:"Nom de l'entreprise", label_website:'Site web', label_message:'Votre message',
+    individual:'Particulier', company:'Entreprise',
+    btn_send:'Envoyer', sending:'Envoi...',
+    err_type:'Choisissez un type',
+    err_email:'Entrez un e-mail valide',
+    err_userType:'Choisissez particulier ou entreprise',
+    err_message:'Écrivez un message (10+ caractères)',
+    err_generic:"Une erreur s'est produite. Veuillez réessayer.",
+    success_title:'Message envoyé !', success_msg:"Merci de nous avoir contactés.\nNous vous répondrons sous 2 jours ouvrés.",
+    btn_back:'Envoyer un autre message',
+    lang_hint:'Choisissez la langue de votre e-mail de réponse',
+    select:'Choisissez',
+  },
+  pt: {
+    tag:'Fale conosco', title:'Fale conosco', titleStrong:'quando quiser', titleSuffix:'',
+    subtitle:'Responderemos em até 2 dias úteis.',
+    step1:'Tipo de consulta', step2:'Informações de contato', step3:'Mensagem',
+    type_event:'Evento', type_community:'Comunidade', type_shopcard:'Cartão',
+    type_general:'Geral', type_business:'Empresa', type_other:'Outro',
+    label_email:'E-mail', label_name:'Nome (opcional)', label_type:'Pessoa física / Empresa',
+    label_company:'Nome da empresa', label_website:'Site', label_message:'Sua mensagem',
+    individual:'Pessoa física', company:'Empresa',
+    btn_send:'Enviar mensagem', sending:'Enviando...',
+    err_type:'Selecione um tipo',
+    err_email:'Digite um e-mail válido',
+    err_userType:'Selecione pessoa física ou empresa',
+    err_message:'Escreva uma mensagem (10+ caracteres)',
+    err_generic:'Ocorreu um erro. Tente novamente.',
+    success_title:'Mensagem enviada!', success_msg:'Obrigado por entrar em contato.\nResponderemos em até 2 dias úteis.',
+    btn_back:'Enviar outra mensagem',
+    lang_hint:'Selecione o idioma do e-mail de resposta',
+    select:'Selecione',
+  },
+  id: {
+    tag:'Hubungi kami', title:'Hubungi kami', titleStrong:'kapan saja', titleSuffix:'',
+    subtitle:'Kami akan membalas dalam 2 hari kerja.',
+    step1:'Jenis pertanyaan', step2:'Informasi kontak', step3:'Pesan',
+    type_event:'Acara', type_community:'Komunitas', type_shopcard:'Kartu',
+    type_general:'Umum', type_business:'Bisnis', type_other:'Lainnya',
+    label_email:'Alamat email', label_name:'Nama (opsional)', label_type:'Individu / Perusahaan',
+    label_company:'Nama perusahaan', label_website:'Website', label_message:'Pesan Anda',
+    individual:'Individu', company:'Perusahaan',
+    btn_send:'Kirim pesan', sending:'Mengirim...',
+    err_type:'Pilih jenis pertanyaan',
+    err_email:'Masukkan email yang valid',
+    err_userType:'Pilih individu atau perusahaan',
+    err_message:'Tulis pesan (min 10 karakter)',
+    err_generic:'Terjadi kesalahan. Silakan coba lagi.',
+    success_title:'Pesan terkirim!', success_msg:'Terima kasih telah menghubungi kami.\nKami akan membalas dalam 2 hari kerja.',
+    btn_back:'Kirim pesan lain',
+    lang_hint:'Pilih bahasa untuk email balasan Anda',
+    select:'Pilih',
+  },
+  th: {
+    tag:'ติดต่อเรา', title:'ติดต่อเรา', titleStrong:'ได้ทุกเวลา', titleSuffix:'',
+    subtitle:'เราจะตอบกลับภายใน 2 วันทำการ',
+    step1:'ประเภทการสอบถาม', step2:'ข้อมูลติดต่อ', step3:'ข้อความ',
+    type_event:'กิจกรรม', type_community:'ชุมชน', type_shopcard:'บัตร',
+    type_general:'ทั่วไป', type_business:'ธุรกิจ', type_other:'อื่นๆ',
+    label_email:'อีเมล', label_name:'ชื่อ (ไม่บังคับ)', label_type:'บุคคล / บริษัท',
+    label_company:'ชื่อบริษัท', label_website:'เว็บไซต์', label_message:'ข้อความของคุณ',
+    individual:'บุคคล', company:'บริษัท',
+    btn_send:'ส่งข้อความ', sending:'กำลังส่ง...',
+    err_type:'กรุณาเลือกประเภท',
+    err_email:'กรุณากรอกอีเมลที่ถูกต้อง',
+    err_userType:'กรุณาเลือกบุคคลหรือบริษัท',
+    err_message:'กรุณากรอกข้อความ (10+ ตัวอักษร)',
+    err_generic:'เกิดข้อผิดพลาด กรุณาลองใหม่อีกครั้ง',
+    success_title:'ส่งข้อความสำเร็จ!', success_msg:'ขอบคุณที่ติดต่อเรา\nเราจะตอบกลับภายใน 2 วันทำการ',
+    btn_back:'ส่งข้อความอื่น',
+    lang_hint:'กรุณาเลือกภาษาสำหรับอีเมลตอบกลับ',
+    select:'กรุณาเลือก',
+  },
+  vi: {
+    tag:'Liên hệ', title:'Liên hệ với chúng tôi', titleStrong:'bất cứ lúc nào', titleSuffix:'',
+    subtitle:'Chúng tôi sẽ phản hồi trong 2 ngày làm việc.',
+    step1:'Loại yêu cầu', step2:'Thông tin liên hệ', step3:'Tin nhắn',
+    type_event:'Sự kiện', type_community:'Cộng đồng', type_shopcard:'Thẻ',
+    type_general:'Chung', type_business:'Doanh nghiệp', type_other:'Khác',
+    label_email:'Email', label_name:'Tên (tùy chọn)', label_type:'Cá nhân / Công ty',
+    label_company:'Tên công ty', label_website:'Website', label_message:'Tin nhắn của bạn',
+    individual:'Cá nhân', company:'Công ty',
+    btn_send:'Gửi tin nhắn', sending:'Đang gửi...',
+    err_type:'Vui lòng chọn loại',
+    err_email:'Vui lòng nhập email hợp lệ',
+    err_userType:'Vui lòng chọn cá nhân hoặc công ty',
+    err_message:'Vui lòng nhập tin nhắn (10+ ký tự)',
+    err_generic:'Đã xảy ra lỗi. Vui lòng thử lại.',
+    success_title:'Đã gửi tin nhắn!', success_msg:'Cảm ơn bạn đã liên hệ.\nChúng tôi sẽ phản hồi trong 2 ngày làm việc.',
+    btn_back:'Gửi tin nhắn khác',
+    lang_hint:'Vui lòng chọn ngôn ngữ cho email trả lời',
+    select:'Vui lòng chọn',
+  },
+  ar: {
+    tag:'اتصل بنا', title:'تواصل معنا', titleStrong:'في أي وقت', titleSuffix:'',
+    subtitle:'سنرد عليك خلال يومي عمل.',
+    step1:'نوع الاستفسار', step2:'معلومات الاتصال', step3:'الرسالة',
+    type_event:'حدث', type_community:'مجتمع', type_shopcard:'بطاقة',
+    type_general:'عام', type_business:'أعمال', type_other:'أخرى',
+    label_email:'البريد الإلكتروني', label_name:'الاسم (اختياري)', label_type:'فرد / شركة',
+    label_company:'اسم الشركة', label_website:'الموقع الإلكتروني', label_message:'رسالتك',
+    individual:'فرد', company:'شركة',
+    btn_send:'إرسال', sending:'جارٍ الإرسال...',
+    err_type:'يرجى اختيار النوع',
+    err_email:'يرجى إدخال بريد إلكتروني صحيح',
+    err_userType:'يرجى اختيار فرد أو شركة',
+    err_message:'يرجى كتابة رسالة (10+ أحرف)',
+    err_generic:'حدث خطأ. يرجى المحاولة مرة أخرى.',
+    success_title:'تم الإرسال!', success_msg:'شكراً لتواصلك معنا.\nسنرد عليك خلال يومي عمل.',
+    btn_back:'إرسال رسالة أخرى',
+    lang_hint:'يرجى اختيار لغة بريد الرد',
+    select:'يرجى الاختيار',
+  },
+  hi: {
+    tag:'संपर्क करें', title:'हमसे संपर्क करें', titleStrong:'कभी भी', titleSuffix:'',
+    subtitle:'हम 2 कार्य दिवसों में जवाब देंगे।',
+    step1:'पूछताछ का प्रकार', step2:'संपर्क जानकारी', step3:'संदेश',
+    type_event:'इवेंट', type_community:'समुदाय', type_shopcard:'कार्ड',
+    type_general:'सामान्य', type_business:'व्यवसाय', type_other:'अन्य',
+    label_email:'ईमेल पता', label_name:'नाम (वैकल्पिक)', label_type:'व्यक्तिगत / कंपनी',
+    label_company:'कंपनी का नाम', label_website:'वेबसाइट', label_message:'आपका संदेश',
+    individual:'व्यक्तिगत', company:'कंपनी',
+    btn_send:'संदेश भेजें', sending:'भेजा जा रहा है...',
+    err_type:'कृपया प्रकार चुनें',
+    err_email:'कृपया वैध ईमेल दर्ज करें',
+    err_userType:'कृपया व्यक्तिगत या कंपनी चुनें',
+    err_message:'कृपया संदेश लिखें (10+ अक्षर)',
+    err_generic:'एक त्रुटि हुई। कृपया पुनः प्रयास करें।',
+    success_title:'संदेश भेजा गया!', success_msg:'हमसे संपर्क करने के लिए धन्यवाद।\nहम 2 कार्य दिवसों में जवाब देंगे।',
+    btn_back:'दूसरा संदेश भेजें',
+    lang_hint:'कृपया उत्तर ईमेल की भाषा चुनें',
+    select:'कृपया चुनें',
+  },
+  de: {
+    tag:'Kontakt', title:'Kontaktieren Sie uns', titleStrong:'jederzeit', titleSuffix:'',
+    subtitle:'Wir antworten innerhalb von 2 Werktagen.',
+    step1:'Art der Anfrage', step2:'Kontaktinformationen', step3:'Nachricht',
+    type_event:'Veranstaltung', type_community:'Gemeinschaft', type_shopcard:'Karte',
+    type_general:'Allgemein', type_business:'Unternehmen', type_other:'Sonstiges',
+    label_email:'E-Mail-Adresse', label_name:'Name (optional)', label_type:'Privat / Unternehmen',
+    label_company:'Firmenname', label_website:'Website', label_message:'Ihre Nachricht',
+    individual:'Privat', company:'Unternehmen',
+    btn_send:'Nachricht senden', sending:'Wird gesendet...',
+    err_type:'Bitte wählen Sie einen Typ',
+    err_email:'Bitte geben Sie eine gültige E-Mail ein',
+    err_userType:'Bitte wählen Sie privat oder Unternehmen',
+    err_message:'Bitte schreiben Sie eine Nachricht (10+ Zeichen)',
+    err_generic:'Ein Fehler ist aufgetreten. Bitte versuchen Sie es erneut.',
+    success_title:'Nachricht gesendet!', success_msg:'Danke für Ihre Kontaktaufnahme.\nWir antworten innerhalb von 2 Werktagen.',
+    btn_back:'Weitere Nachricht senden',
+    lang_hint:'Bitte wählen Sie die Sprache für Ihre Antwort-E-Mail',
+    select:'Bitte wählen',
+  },
+  it: {
+    tag:'Contattaci', title:'Contattaci', titleStrong:'quando vuoi', titleSuffix:'',
+    subtitle:'Ti risponderemo entro 2 giorni lavorativi.',
+    step1:'Tipo di richiesta', step2:'Informazioni di contatto', step3:'Messaggio',
+    type_event:'Evento', type_community:'Comunità', type_shopcard:'Carta',
+    type_general:'Generale', type_business:'Azienda', type_other:'Altro',
+    label_email:'Indirizzo email', label_name:'Nome (facoltativo)', label_type:'Privato / Azienda',
+    label_company:'Nome azienda', label_website:'Sito web', label_message:'Il tuo messaggio',
+    individual:'Privato', company:'Azienda',
+    btn_send:'Invia messaggio', sending:'Invio in corso...',
+    err_type:'Seleziona un tipo',
+    err_email:"Inserisci un'email valida",
+    err_userType:'Seleziona privato o azienda',
+    err_message:'Scrivi un messaggio (10+ caratteri)',
+    err_generic:'Si è verificato un errore. Riprova.',
+    success_title:'Messaggio inviato!', success_msg:'Grazie per averci contattato.\nTi risponderemo entro 2 giorni lavorativi.',
+    btn_back:'Invia un altro messaggio',
+    lang_hint:"Seleziona la lingua per la tua email di risposta",
+    select:'Seleziona',
+  },
+  ru: {
+    tag:'Связаться', title:'Свяжитесь с нами', titleStrong:'в любое время', titleSuffix:'',
+    subtitle:'Мы ответим в течение 2 рабочих дней.',
+    step1:'Тип запроса', step2:'Контактная информация', step3:'Сообщение',
+    type_event:'Мероприятие', type_community:'Сообщество', type_shopcard:'Карта',
+    type_general:'Общий', type_business:'Бизнес', type_other:'Другое',
+    label_email:'Электронная почта', label_name:'Имя (необязательно)', label_type:'Физическое лицо / Компания',
+    label_company:'Название компании', label_website:'Веб-сайт', label_message:'Ваше сообщение',
+    individual:'Физическое лицо', company:'Компания',
+    btn_send:'Отправить', sending:'Отправка...',
+    err_type:'Выберите тип',
+    err_email:'Введите корректный email',
+    err_userType:'Выберите физическое лицо или компанию',
+    err_message:'Напишите сообщение (10+ символов)',
+    err_generic:'Произошла ошибка. Пожалуйста, попробуйте снова.',
+    success_title:'Сообщение отправлено!', success_msg:'Спасибо за обращение.\nМы ответим в течение 2 рабочих дней.',
+    btn_back:'Отправить другое сообщение',
+    lang_hint:'Выберите язык для ответного письма',
+    select:'Выберите',
+  },
+};
+
+const CONTACT_LANG_OPTIONS = [
+  { code:'ja', flag:'🇯🇵', label:'日本語' },
+  { code:'en', flag:'🇺🇸', label:'English' },
+  { code:'zh', flag:'🇨🇳', label:'中文' },
+  { code:'ko', flag:'🇰🇷', label:'한국어' },
+  { code:'es', flag:'🇪🇸', label:'Español' },
+  { code:'fr', flag:'🇫🇷', label:'Français' },
+  { code:'pt', flag:'🇧🇷', label:'Português' },
+  { code:'id', flag:'🇮🇩', label:'Indonesia' },
+  { code:'th', flag:'🇹🇭', label:'ภาษาไทย' },
+  { code:'vi', flag:'🇻🇳', label:'Tiếng Việt' },
+  { code:'ar', flag:'🇸🇦', label:'العربية' },
+  { code:'hi', flag:'🇮🇳', label:'हिन्दी' },
+  { code:'de', flag:'🇩🇪', label:'Deutsch' },
+  { code:'it', flag:'🇮🇹', label:'Italiano' },
+  { code:'ru', flag:'🇷🇺', label:'Русский' },
+];
+
+const CONTACT_TYPES = ['event','community','shopcard','general','business','other'];
+
+function PageContact({ lang, t }) {
+  // 返信メールの言語 (15言語、デフォルトはサイト言語)
+  // サイト言語が ja/easy/en の場合は、 ja/ja/en にマッピング (easyは日本語ベース)
+  const initialReplyLang = lang === 'easy' ? 'ja' : (CONTACT_I18N[lang] ? lang : 'ja');
+  const [replyLang, setReplyLang] = React.useState(initialReplyLang);
+  const tc = CONTACT_I18N[replyLang] || CONTACT_I18N.ja;
+
+  // フォーム状態
+  const [inquiryType, setInquiryType] = React.useState(null);
+  const [email, setEmail] = React.useState('');
+  const [name, setName] = React.useState('');
+  const [userType, setUserType] = React.useState(null);
+  const [companyName, setCompanyName] = React.useState('');
+  const [website, setWebsite] = React.useState('');
+  const [message, setMessage] = React.useState('');
+  const [honeypot, setHoneypot] = React.useState(''); // bot対策
+
+  const [errors, setErrors] = React.useState({});
+  const [submitting, setSubmitting] = React.useState(false);
+  const [submitted, setSubmitted] = React.useState(false);
+  const [inquiryId, setInquiryId] = React.useState('');
+
+  const dialog = useDialog();
+
+  // 進捗計算
+  const progress = (() => {
+    let done = 0;
+    if (inquiryType) done++;
+    if (email && /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) done++;
+    if (userType) done++;
+    if (message && message.trim().length >= 10) done++;
+    return Math.round((done / 4) * 100);
+  })();
+
+  const validate = () => {
+    const e = {};
+    if (!inquiryType) e.inquiryType = tc.err_type;
+    if (!email || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) e.email = tc.err_email;
+    if (!userType) e.userType = tc.err_userType;
+    if (!message || message.trim().length < 10) e.message = tc.err_message;
+    setErrors(e);
+    return Object.keys(e).length === 0;
+  };
+
+  const generateId = () => {
+    const ts = Date.now().toString(36).toUpperCase();
+    const rand = Math.random().toString(36).slice(2, 6).toUpperCase();
+    return 'INQ-' + ts + '-' + rand;
+  };
+
+  const handleSubmit = async () => {
+    // Honeypot
+    if (honeypot) return;
+    // Validate
+    if (!validate()) return;
+    // ダブルクリック防止
+    if (submitting) return;
+
+    setSubmitting(true);
+
+    const newId = generateId();
+    const payload = {
+      inquiryType, email: email.trim(), name: name.trim(),
+      userType, companyName: companyName.trim(), website: website.trim(),
+      message: message.trim(),
+      lang: replyLang,
+      inquiryId: newId,
+      timestamp: new Date().toISOString(),
+    };
+
+    try {
+      // iframe POST 送信 (CORS回避、 既存お問い合わせフォームと同じ方式)
+      const iframeName = 'contact_iframe_' + Date.now();
+      const iframe = document.createElement('iframe');
+      iframe.name = iframeName;
+      iframe.style.display = 'none';
+      document.body.appendChild(iframe);
+
+      const form = document.createElement('form');
+      form.method = 'POST';
+      form.action = CONTACT_GAS_URL;
+      form.target = iframeName;
+      form.style.display = 'none';
+
+      Object.keys(payload).forEach(k => {
+        const input = document.createElement('input');
+        input.type = 'hidden';
+        input.name = k;
+        input.value = payload[k];
+        form.appendChild(input);
+      });
+
+      document.body.appendChild(form);
+
+      // 送信完了を待つ (3秒タイムアウト)
+      await new Promise((resolve) => {
+        iframe.onload = resolve;
+        setTimeout(resolve, 3000);
+        form.submit();
+      });
+
+      document.body.removeChild(form);
+      document.body.removeChild(iframe);
+
+      // 成功画面に遷移
+      setInquiryId(newId);
+      setSubmitted(true);
+    } catch (err) {
+      await dialog.error({ title:'Error', message: tc.err_generic });
+      setSubmitting(false);
+    }
+  };
+
+  const handleReset = () => {
+    setInquiryType(null);
+    setEmail('');
+    setName('');
+    setUserType(null);
+    setCompanyName('');
+    setWebsite('');
+    setMessage('');
+    setErrors({});
+    setSubmitted(false);
+    setInquiryId('');
+    setSubmitting(false);
+  };
+
+  // 完了画面
+  if (submitted) {
+    return (
+      <section style={{
+        minHeight: 'calc(100vh - 130px)',
+        marginTop: 130,
+        background: '#fafbfc',
+        padding: 'clamp(40px, 6vh, 80px) clamp(20px, 4vw, 64px)',
+        display: 'flex', alignItems: 'center', justifyContent: 'center',
+        direction: replyLang === 'ar' ? 'rtl' : 'ltr',
+      }}>
+        <div style={{
+          maxWidth: 520, width: '100%',
+          background: '#fff',
+          padding: 'clamp(40px, 6vh, 64px) clamp(28px, 5vw, 56px)',
+          textAlign: 'center',
+          border: '1px solid #e5e7eb',
+        }}>
+          {/* 成功アイコン */}
+          <div style={{
+            width: 64, height: 64,
+            margin: '0 auto 24px',
+            border: '2px solid #0a2960',
+            display: 'flex', alignItems: 'center', justifyContent: 'center',
+            color: '#0a2960',
+          }}>
+            <svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+              <polyline points="20 6 9 17 4 12"/>
+            </svg>
+          </div>
+
+          <h2 style={{
+            margin: '0 0 12px',
+            fontFamily: 'var(--jp)',
+            fontSize: 'clamp(22px, 3vw, 28px)',
+            fontWeight: 600,
+            color: '#0a2960',
+            letterSpacing: '0.04em',
+          }}>{tc.success_title}</h2>
+
+          <p style={{
+            margin: '0 0 24px',
+            fontFamily: 'var(--jp)',
+            fontSize: 14,
+            color: '#374151',
+            lineHeight: 1.8,
+            whiteSpace: 'pre-line',
+          }}>{tc.success_msg}</p>
+
+          {/* 受付番号 */}
+          <div style={{
+            display: 'inline-block',
+            padding: '8px 18px',
+            background: '#f5f7fa',
+            border: '1px solid #e5e7eb',
+            fontFamily: 'var(--mono)',
+            fontSize: 12,
+            color: '#0a2960',
+            letterSpacing: '0.06em',
+            marginBottom: 24,
+          }}>{inquiryId}</div>
+
+          <div>
+            <button onClick={handleReset} style={{
+              padding: '12px 24px',
+              fontFamily: 'var(--jp)',
+              fontSize: 13,
+              fontWeight: 600,
+              color: '#0a2960',
+              background: '#fff',
+              border: '1.5px solid #0a2960',
+              borderRadius: 0,
+              cursor: 'pointer',
+              letterSpacing: '0.04em',
+            }}>{tc.btn_back}</button>
+          </div>
+        </div>
+      </section>
+    );
+  }
+
+  // 入力フォーム
+  return (
+    <section style={{
+      minHeight: 'calc(100vh - 130px)',
+      marginTop: 130,
+      background: '#fafbfc',
+      padding: 'clamp(40px, 6vh, 80px) clamp(20px, 4vw, 64px)',
+      direction: replyLang === 'ar' ? 'rtl' : 'ltr',
+    }}>
+      <div style={{ maxWidth: 720, margin: '0 auto' }}>
+        {/* ヘッダー */}
+        <header style={{ textAlign: 'center', marginBottom: 48 }}>
+          <div style={{
+            display: 'inline-flex',
+            alignItems: 'center',
+            gap: 12,
+            fontFamily: 'var(--mono)',
+            fontSize: 11,
+            fontWeight: 500,
+            letterSpacing: '0.18em',
+            textTransform: 'uppercase',
+            color: '#2c89e8',
+            marginBottom: 18,
+          }}>
+            <span style={{ width: 24, height: 1, background: '#2c89e8', opacity: 0.5 }}/>
+            {tc.tag}
+            <span style={{ width: 24, height: 1, background: '#2c89e8', opacity: 0.5 }}/>
+          </div>
+          <h1 style={{
+            margin: '0 0 16px',
+            fontFamily: 'var(--jp)',
+            fontSize: 'clamp(28px, 4.5vw, 44px)',
+            fontWeight: 500,
+            color: '#0a2960',
+            letterSpacing: '-0.01em',
+            lineHeight: 1.25,
+          }}>
+            {tc.title}{tc.titleStrong && <span style={{ fontWeight: 700, color: '#2c89e8' }}> {tc.titleStrong}</span>}
+            {tc.titleSuffix && <><br/>{tc.titleSuffix}</>}
+          </h1>
+          <p style={{
+            margin: 0,
+            fontFamily: 'var(--jp)',
+            fontSize: 14,
+            color: '#6b7280',
+            lineHeight: 1.7,
+          }}>{tc.subtitle}</p>
+        </header>
+
+        {/* メインカード */}
+        <div style={{
+          background: '#fff',
+          border: '1px solid #e5e7eb',
+          padding: 'clamp(28px, 4vw, 48px)',
+        }}>
+          {/* 言語切り替え */}
+          <div style={{
+            display: 'flex',
+            justifyContent: 'space-between',
+            alignItems: 'center',
+            gap: 16,
+            paddingBottom: 20,
+            marginBottom: 24,
+            borderBottom: '1px solid #e5e7eb',
+            flexWrap: 'wrap',
+          }}>
+            <div style={{
+              fontFamily: 'var(--jp)',
+              fontSize: 11,
+              color: '#6b7280',
+              letterSpacing: '0.04em',
+              flex: 1,
+              minWidth: 200,
+            }}>{tc.lang_hint}</div>
+            <select value={replyLang} onChange={(e) => setReplyLang(e.target.value)} style={{
+              padding: '8px 12px',
+              fontFamily: 'var(--jp)',
+              fontSize: 13,
+              color: '#0a2960',
+              background: '#fff',
+              border: '1px solid #e5e7eb',
+              borderRadius: 0,
+              cursor: 'pointer',
+              outline: 'none',
+            }}>
+              {CONTACT_LANG_OPTIONS.map(opt => (
+                <option key={opt.code} value={opt.code}>{opt.flag} {opt.label}</option>
+              ))}
+            </select>
+          </div>
+
+          {/* 進捗バー */}
+          <div style={{
+            display: 'flex',
+            alignItems: 'center',
+            gap: 12,
+            marginBottom: 32,
+          }}>
+            <div style={{
+              flex: 1, height: 3,
+              background: '#e5e7eb',
+              overflow: 'hidden',
+            }}>
+              <div style={{
+                height: '100%',
+                width: progress + '%',
+                background: 'linear-gradient(90deg, #2c89e8, #0a2960)',
+                transition: 'width 0.4s cubic-bezier(0.16, 1, 0.3, 1)',
+              }}/>
+            </div>
+            <div style={{
+              fontFamily: 'var(--mono)',
+              fontSize: 11,
+              color: '#0a2960',
+              minWidth: 36,
+              textAlign: 'right',
+            }}>{progress}%</div>
+          </div>
+
+          {/* Honeypot (Bot対策、 不可視) */}
+          <input type="text" value={honeypot} onChange={(e) => setHoneypot(e.target.value)}
+            tabIndex={-1} autoComplete="off"
+            style={{ position: 'absolute', left: -9999, opacity: 0, pointerEvents: 'none', height: 0 }} />
+
+          {/* STEP 1: 種類 */}
+          <div style={{ marginBottom: 32 }}>
+            <div style={{
+              fontFamily: 'var(--mono)',
+              fontSize: 10,
+              fontWeight: 500,
+              letterSpacing: '0.14em',
+              textTransform: 'uppercase',
+              color: '#6b7280',
+              marginBottom: 14,
+            }}>{tc.step1}</div>
+            <div style={{ display: 'flex', flexWrap: 'wrap', gap: 8 }}>
+              {CONTACT_TYPES.map(type => {
+                const selected = inquiryType === type;
+                return (
+                  <button key={type} type="button" onClick={() => {
+                    setInquiryType(type);
+                    setErrors(e => ({ ...e, inquiryType: '' }));
+                  }} style={{
+                    padding: '10px 20px',
+                    fontFamily: 'var(--jp)',
+                    fontSize: 13,
+                    fontWeight: 500,
+                    color: selected ? '#fff' : '#0a2960',
+                    background: selected ? '#0a2960' : '#fff',
+                    border: '1.5px solid ' + (selected ? '#0a2960' : '#e5e7eb'),
+                    borderRadius: 0,
+                    cursor: 'pointer',
+                    transition: 'all 0.15s',
+                    letterSpacing: '0.04em',
+                  }}>{tc['type_' + type]}</button>
+                );
+              })}
+            </div>
+            {errors.inquiryType && (
+              <div style={{ fontSize: 11, color: '#dc2626', marginTop: 6, fontFamily: 'var(--jp)' }}>{errors.inquiryType}</div>
+            )}
+          </div>
+
+          {/* 区切り線 */}
+          <div style={{
+            height: 1,
+            background: 'linear-gradient(90deg, transparent, #e5e7eb, transparent)',
+            marginBottom: 24,
+          }}/>
+
+          {/* STEP 2: 連絡先 */}
+          <div style={{
+            fontFamily: 'var(--mono)',
+            fontSize: 10,
+            fontWeight: 500,
+            letterSpacing: '0.14em',
+            textTransform: 'uppercase',
+            color: '#6b7280',
+            marginBottom: 14,
+          }}>{tc.step2}</div>
+
+          <div style={{ display: 'flex', flexDirection: 'column', gap: 16, marginBottom: 24 }}>
+            <ContactInput
+              label={tc.label_email} required type="email"
+              value={email} onChange={(v) => { setEmail(v); setErrors(e => ({ ...e, email: '' })); }}
+              error={errors.email}
+              placeholder="you@example.com"
+            />
+            <ContactInput
+              label={tc.label_name}
+              value={name} onChange={setName}
+            />
+            <div>
+              <div style={{
+                fontFamily: 'var(--jp)',
+                fontSize: 12,
+                fontWeight: 500,
+                color: '#0a2960',
+                letterSpacing: '0.04em',
+                marginBottom: 6,
+              }}>{tc.label_type}<span style={{ color: '#dc2626', marginLeft: 4 }}>*</span></div>
+              <div style={{ display: 'flex', gap: 8 }}>
+                {[['individual', tc.individual], ['company', tc.company]].map(([val, label]) => {
+                  const selected = userType === val;
+                  return (
+                    <button key={val} type="button" onClick={() => {
+                      setUserType(val);
+                      setErrors(e => ({ ...e, userType: '' }));
+                    }} style={{
+                      flex: 1,
+                      padding: '12px 20px',
+                      fontFamily: 'var(--jp)',
+                      fontSize: 13,
+                      fontWeight: 500,
+                      color: selected ? '#fff' : '#0a2960',
+                      background: selected ? '#0a2960' : '#fff',
+                      border: '1.5px solid ' + (selected ? '#0a2960' : '#e5e7eb'),
+                      borderRadius: 0,
+                      cursor: 'pointer',
+                      transition: 'all 0.15s',
+                      letterSpacing: '0.04em',
+                    }}>{label}</button>
+                  );
+                })}
+              </div>
+              {errors.userType && (
+                <div style={{ fontSize: 11, color: '#dc2626', marginTop: 6, fontFamily: 'var(--jp)' }}>{errors.userType}</div>
+              )}
+            </div>
+
+            {/* 企業フィールド (company選択時のみ) */}
+            {userType === 'company' && (
+              <>
+                <ContactInput
+                  label={tc.label_company}
+                  value={companyName} onChange={setCompanyName}
+                />
+                <ContactInput
+                  label={tc.label_website} type="url"
+                  value={website} onChange={setWebsite}
+                  placeholder="https://"
+                />
+              </>
+            )}
+          </div>
+
+          <div style={{
+            height: 1,
+            background: 'linear-gradient(90deg, transparent, #e5e7eb, transparent)',
+            marginBottom: 24,
+          }}/>
+
+          {/* STEP 3: メッセージ */}
+          <div style={{
+            fontFamily: 'var(--mono)',
+            fontSize: 10,
+            fontWeight: 500,
+            letterSpacing: '0.14em',
+            textTransform: 'uppercase',
+            color: '#6b7280',
+            marginBottom: 14,
+          }}>{tc.step3}</div>
+
+          <div>
+            <div style={{
+              fontFamily: 'var(--jp)',
+              fontSize: 12,
+              fontWeight: 500,
+              color: '#0a2960',
+              letterSpacing: '0.04em',
+              marginBottom: 6,
+            }}>{tc.label_message}<span style={{ color: '#dc2626', marginLeft: 4 }}>*</span></div>
+            <textarea
+              value={message}
+              onChange={(e) => { setMessage(e.target.value); setErrors(er => ({ ...er, message: '' })); }}
+              maxLength={2000}
+              rows={6}
+              style={{
+                width: '100%',
+                padding: '12px 14px',
+                fontFamily: 'var(--jp)',
+                fontSize: 14,
+                color: '#1f2937',
+                background: '#fff',
+                border: '1px solid ' + (errors.message ? '#dc2626' : '#e5e7eb'),
+                borderRadius: 0,
+                outline: 'none',
+                resize: 'vertical',
+                lineHeight: 1.7,
+                transition: 'border-color 0.15s',
+              }}
+              onFocus={(e) => { if (!errors.message) e.target.style.borderColor = '#2c89e8'; }}
+              onBlur={(e) => { e.target.style.borderColor = errors.message ? '#dc2626' : '#e5e7eb'; }}
+            />
+            <div style={{
+              display: 'flex',
+              justifyContent: 'space-between',
+              fontSize: 11,
+              fontFamily: 'var(--mono)',
+              color: '#9ca3af',
+              marginTop: 4,
+            }}>
+              <span style={{ color: errors.message ? '#dc2626' : '#9ca3af', fontFamily: 'var(--jp)' }}>{errors.message || ''}</span>
+              <span>{message.length} / 2000</span>
+            </div>
+          </div>
+
+          {/* 送信ボタン */}
+          <div style={{ marginTop: 32 }}>
+            <button onClick={handleSubmit} disabled={submitting} style={{
+              width: '100%',
+              padding: '16px 24px',
+              fontFamily: 'var(--jp)',
+              fontSize: 14,
+              fontWeight: 600,
+              color: '#fff',
+              background: submitting ? '#94a3b8' : '#0a2960',
+              border: 'none',
+              borderRadius: 0,
+              cursor: submitting ? 'not-allowed' : 'pointer',
+              letterSpacing: '0.06em',
+              transition: 'background 0.15s',
+              display: 'inline-flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+              gap: 12,
+            }}
+            onMouseEnter={(e) => { if (!submitting) e.currentTarget.style.background = '#1c56b0'; }}
+            onMouseLeave={(e) => { if (!submitting) e.currentTarget.style.background = '#0a2960'; }}>
+              {submitting ? tc.sending : tc.btn_send}
+              {!submitting && <span style={{ fontSize: 16 }}>→</span>}
+            </button>
+          </div>
+        </div>
+      </div>
+    </section>
+  );
+}
+
+// ContactInput: PageContact用の入力フィールド (AuthInputと別、placeholderの色など微調整)
+function ContactInput({ label, type, value, onChange, placeholder, required, error }) {
+  return (
+    <label style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
+      <span style={{
+        fontFamily: 'var(--jp)',
+        fontSize: 12,
+        fontWeight: 500,
+        color: '#0a2960',
+        letterSpacing: '0.04em',
+      }}>
+        {label}{required && <span style={{ color: '#dc2626', marginLeft: 4 }}>*</span>}
+      </span>
+      <input
+        type={type || 'text'}
+        value={value || ''}
+        onChange={(e) => onChange(e.target.value)}
+        placeholder={placeholder}
+        style={{
+          padding: '12px 14px',
+          fontSize: 14,
+          fontFamily: 'var(--jp)',
+          color: '#1f2937',
+          background: '#fff',
+          border: '1px solid ' + (error ? '#dc2626' : '#e5e7eb'),
+          borderRadius: 0,
+          outline: 'none',
+          transition: 'border-color 0.15s',
+        }}
+        onFocus={(e) => { if (!error) e.target.style.borderColor = '#2c89e8'; }}
+        onBlur={(e) => { e.target.style.borderColor = error ? '#dc2626' : '#e5e7eb'; }}
+      />
+      {error && <span style={{ fontSize: 11, color: '#dc2626', fontFamily: 'var(--jp)' }}>{error}</span>}
+    </label>
+  );
+}
+
+
 // ============================================================================
 // FOOTER
 // ============================================================================
@@ -10817,8 +11734,7 @@ function App() {
   } else if (matchNews) {
     Page = <PageNewsDetail lang={lang} t={t} newsId={matchNews[1]} frontNews={frontNews} loading={loading} />;
   } else if (route === '/contact') {
-    pageTitle = t.nav.contact;
-    Page = <PageStub lang={lang} t={t} title={pageTitle} />;
+    Page = <PageContact lang={lang} t={t} />;
   } else if (route === '/login') {
     Page = <PageLogin lang={lang} t={t} />;
   } else if (route === '/signup') {
