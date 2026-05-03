@@ -8581,6 +8581,473 @@ function PageStub({ lang, t, title }) {
 // (Phase 7.7) 認証ページ — ログイン / 会員登録 / マイページ
 // ============================================================================
 
+// (Phase 7.7) 認証関連 i18n 辞書 (ja/easy/en)
+// 各ページから AUTH_T[lang] で参照する
+const AUTH_T = {
+  ja: {
+    // 共通
+    required: '必須項目をすべて入力してください',
+    loading: '読み込み中...',
+    saving: '保存中...',
+    sending: '送信中...',
+    submitting: '登録中...',
+    cancel: 'キャンセル',
+    back: '戻る',
+    next: '次へ',
+    save: '保存する',
+    confirm: '確認',
+    error: 'エラー',
+    homeBack: '← ホームに戻る',
+    // ログイン
+    loginTitle: 'ログイン',
+    loginSubtitle: 'おかえりなさい。メールアドレスとパスワードでログインしてください。',
+    loginBtn: 'ログイン',
+    loginIn: 'ログイン中...',
+    loginErr: 'メールアドレスとパスワードを入力してください',
+    loginFailed: 'ログインに失敗しました',
+    forgotPassword: 'パスワードを忘れた方',
+    newToService: '初めての方へ',
+    signupHere: '会員登録はこちら →',
+    // 会員登録
+    signupTitle: '会員登録',
+    signupSubtitle: 'メールアドレスとパスワードを入力してください。認証メールをお送りします。',
+    signupBtn: '認証メールを送信',
+    signupSent: 'メールを送信しました',
+    signupSentSubtitle: '%email% にメールを送信しました。リンクをクリックしてアカウントを認証してください。',
+    nextSteps: '次のステップ',
+    step1Inbox: '1. 受信ボックスを確認 (迷惑メールフォルダもご確認ください)',
+    step2Click: '2. メール内のボタンをクリック',
+    step3Profile: '3. プロフィール詳細を入力して登録完了',
+    haveAccount: 'すでにアカウントをお持ちの方',
+    loginLink: 'ログイン →',
+    invalidEmail: '有効なメールアドレスを入力してください',
+    pwTooShort: 'パスワードは8文字以上にしてください',
+    pwMismatch: 'パスワードが一致しません',
+    signupFailed: '登録に失敗しました',
+    pwLabel: 'パスワード',
+    pwConfirmLabel: 'パスワード (確認)',
+    pwPlaceholder: '8文字以上',
+    pwAgain: 'もう一度入力',
+    emailLabel: 'メールアドレス',
+    // 認証
+    verifying: '認証中...',
+    verifyingSubtitle: 'メールアドレスを確認しています',
+    verifyWait: '少々お待ちください...',
+    verifyDone: '認証完了',
+    verifyDoneSubtitle: 'メールアドレスの確認が完了しました。続いてプロフィールを登録します。',
+    verifyDoneInline: '%email% の認証が完了しました。次のページへ移動します...',
+    verifyTokenMissing: '認証トークンが見つかりません',
+    verifyFailed: '認証に失敗しました',
+    verifyExpired: '認証リンクが無効または期限切れです。再度会員登録をお試しください。',
+    backToSignup: '← 会員登録に戻る',
+    // プロフィール登録
+    profileTitle: 'プロフィール登録',
+    profileSubtitle: 'あなたのことを教えてください。マッチングや表示の最適化に使います。',
+    sectionStep: 'ステップ %n% / 3',
+    sectionBasic: '基本情報',
+    sectionResidency: '在留情報',
+    sectionOptional: '任意項目',
+    nameLabel: '名前 (漢字またはローマ字)',
+    namePh: '例: 田中太郎 / Tanaka Taro',
+    kanaLabel: 'フリガナ',
+    kanaPh: '例: タナカタロウ',
+    nicknameLabel: 'ニックネーム',
+    nicknamePh: 'サイト内表示名',
+    birthdateLabel: '生年月日',
+    prefectureLabel: '都道府県',
+    displayLangLabel: '表示言語',
+    residencyLabel: '在留ステータス',
+    nationalityLabel: '国籍',
+    jpSchoolLabel: '日本語学校に通っている',
+    jpSchoolYes: 'はい',
+    jpSchoolNo: 'いいえ',
+    jlptLabel: '日本語検定 (JLPT)',
+    jlptNone: '取得していない',
+    deptLabel: '所属大学/職業 (任意)',
+    deptPh: '例: 早稲田大学 / 株式会社XX / フリーランス',
+    interestsLabel: '興味ジャンル (任意、複数選択可)',
+    languagesLabel: '話せる言語 (任意、複数選択可)',
+    selectPlaceholder: '選択してください',
+    completeBtn: '登録を完了する',
+    foreigner: '在留外国人',
+    japanese: '日本人',
+    other: 'その他',
+    langJa: '日本語',
+    langEasy: 'やさしいにほんご',
+    langEn: 'English',
+    // マイページ
+    welcomeUser: 'こんにちは、%nickname%さん',
+    yourActivity: 'あなたのイベントとアクティビティ',
+    upcomingEvents: '参加予定のイベント',
+    pastEvents: '参加履歴',
+    noUpcoming: '参加予定のイベントはありません',
+    noPast: '参加履歴はまだありません',
+    findEvents: 'イベントを探す →',
+    profileEdit: 'プロフィールを編集',
+    profileEditTitle: 'プロフィール編集',
+    fieldEmail: 'メール',
+    fieldBirthdate: '生年月日',
+    fieldDept: '所属',
+    fieldJpSchool: '日本語学校',
+    fieldJpSchoolYes: '通っている',
+    fieldJpSchoolNo: '通っていない',
+    fieldJlpt: 'JLPT',
+    fieldDisplayLang: '表示言語',
+    sectionInterests: '興味ジャンル',
+    sectionLanguages: '話せる言語',
+    badgeConfirmed: '確定',
+    badgeUnpaid: '未決済',
+    badgeDayPay: '当日払い',
+    badgeAttended: '参加済み',
+    badgeCancelled: 'キャンセル済み',
+    cancelBtn: 'キャンセル',
+    rebookBtn: '再申込',
+    cancelConfirmTitle: '参加キャンセルの確認',
+    cancelConfirmMsg: '%title%\nへの参加申込をキャンセルします。\nよろしいですか？',
+    cancelConfirmBtn: 'キャンセルする',
+    cancelDone: 'キャンセル完了',
+    cancelDoneMsg: '参加申込をキャンセルしました',
+    cancelFailed: 'キャンセル失敗',
+    saveFailed: '保存に失敗しました',
+    age: '%n%歳',
+    yearsOld: '歳',
+    logoutTitle: 'ログアウト',
+    logoutMsg: 'ログアウトしますか？',
+    logoutConfirm: 'ログアウト',
+    // パスワードリセット
+    forgotTitle: 'パスワードを忘れた方',
+    forgotSubtitle: 'ご登録のメールアドレスを入力してください。 リセット用のリンクをお送りします。',
+    forgotBtn: 'リセットメールを送信',
+    forgotSent: 'メールを確認してください',
+    forgotSentSub: '%email% 宛にパスワードリセットの案内を送信しました。 メール内のリンクをクリックして、新しいパスワードを設定してください。',
+    forgotNote: '注意',
+    forgotNote1: 'リンクの有効期限は <strong>1時間</strong> です。',
+    forgotNote2: 'メールが届かない場合は、迷惑メールフォルダもご確認ください。',
+    forgotNote3: 'メールアドレスが登録されていない場合、 メールは送信されません。',
+    backToLogin: '← ログインに戻る',
+    forgotFailed: 'リクエストに失敗しました',
+    resetTitle: '新しいパスワードを設定',
+    resetSubtitle: '新しいパスワードを入力してください (8文字以上)。',
+    resetBtn: 'パスワードを変更',
+    resetIn: '変更中...',
+    resetDoneTitle: 'パスワードを変更しました',
+    resetDoneSub: '新しいパスワードでログインできます。 ログインページに移動します...',
+    resetDoneInline: 'パスワードの変更が完了しました。\nセキュリティのため、 他のデバイスからは自動的にログアウトされました。',
+    resetToLogin: 'ログインページへ →',
+    invalidLink: '無効なリンク',
+    invalidLinkSub: 'リセットトークンが見つかりません。 メール内のリンクをクリックしてアクセスしてください。',
+    backToForgot: '← パスワードリセットをやり直す',
+    resetTokenMissing: 'リセットトークンが見つかりません',
+    resetFailed: 'パスワードの変更に失敗しました',
+    pwNewLabel: '新しいパスワード',
+  },
+  easy: {
+    required: 'ぜんぶ いれて ください',
+    loading: 'よみこみちゅう...',
+    saving: 'ほぞんちゅう...',
+    sending: 'おくっています...',
+    submitting: 'とうろくちゅう...',
+    cancel: 'やめる',
+    back: 'もどる',
+    next: 'つぎへ',
+    save: 'ほぞんする',
+    confirm: 'かくにん',
+    error: 'エラー',
+    homeBack: '← ホームに もどる',
+    loginTitle: 'ログイン',
+    loginSubtitle: 'おかえりなさい。メールアドレスと パスワードを いれて ください。',
+    loginBtn: 'ログイン',
+    loginIn: 'ログインちゅう...',
+    loginErr: 'メールアドレスと パスワードを いれて ください',
+    loginFailed: 'ログイン できません でした',
+    forgotPassword: 'パスワードを わすれた かた',
+    newToService: 'はじめての かたへ',
+    signupHere: 'かいいんとうろくは こちら →',
+    signupTitle: 'かいいんとうろく',
+    signupSubtitle: 'メールアドレスと パスワードを いれて ください。にんしょうメールを おくります。',
+    signupBtn: 'にんしょうメールを おくる',
+    signupSent: 'メールを おくりました',
+    signupSentSubtitle: '%email% に メールを おくりました。リンクを クリックして アカウントを にんしょうして ください。',
+    nextSteps: 'つぎの ステップ',
+    step1Inbox: '1. メールを かくにん (めいわくメールも みて ください)',
+    step2Click: '2. メールの ボタンを クリック',
+    step3Profile: '3. プロフィールを いれて とうろく かんりょう',
+    haveAccount: 'もう アカウントが ある かた',
+    loginLink: 'ログイン →',
+    invalidEmail: 'ただしい メールアドレスを いれて ください',
+    pwTooShort: 'パスワードは 8もじ いじょうに して ください',
+    pwMismatch: 'パスワードが ちがいます',
+    signupFailed: 'とうろく できません でした',
+    pwLabel: 'パスワード',
+    pwConfirmLabel: 'パスワード (かくにん)',
+    pwPlaceholder: '8もじ いじょう',
+    pwAgain: 'もういちど いれて ください',
+    emailLabel: 'メールアドレス',
+    verifying: 'にんしょうちゅう...',
+    verifyingSubtitle: 'メールアドレスを かくにんして います',
+    verifyWait: 'すこし まって ください...',
+    verifyDone: 'にんしょう かんりょう',
+    verifyDoneSubtitle: 'メールアドレスの かくにんが かんりょうしました。つぎに プロフィールを とうろく します。',
+    verifyDoneInline: '%email% の にんしょうが かんりょうしました。つぎの ページへ いきます...',
+    verifyTokenMissing: 'にんしょうトークンが ありません',
+    verifyFailed: 'にんしょう できません でした',
+    verifyExpired: 'にんしょうリンクが ただしくない か きげんが きれて います。もういちど かいいんとうろくを おねがいします。',
+    backToSignup: '← かいいんとうろくに もどる',
+    profileTitle: 'プロフィールとうろく',
+    profileSubtitle: 'あなたの ことを おしえて ください。',
+    sectionStep: 'ステップ %n% / 3',
+    sectionBasic: 'きほんじょうほう',
+    sectionResidency: 'ざいりゅう じょうほう',
+    sectionOptional: 'にんいの こうもく',
+    nameLabel: 'なまえ (かんじか ローマじ)',
+    namePh: 'れい: たなかたろう / Tanaka Taro',
+    kanaLabel: 'フリガナ',
+    kanaPh: 'れい: タナカタロウ',
+    nicknameLabel: 'ニックネーム',
+    nicknamePh: 'サイトでの なまえ',
+    birthdateLabel: 'たんじょうび',
+    prefectureLabel: 'とどうふけん',
+    displayLangLabel: 'ひょうじする ことば',
+    residencyLabel: 'ざいりゅう ステータス',
+    nationalityLabel: 'こくせき',
+    jpSchoolLabel: 'にほんごがっこうに かよって いる',
+    jpSchoolYes: 'はい',
+    jpSchoolNo: 'いいえ',
+    jlptLabel: 'にほんごけんてい (JLPT)',
+    jlptNone: 'もって いない',
+    deptLabel: 'がっこう/しごと (にんい)',
+    deptPh: 'れい: わせだだいがく',
+    interestsLabel: 'きょうみが ある こと (にんい、ふくすう えらべる)',
+    languagesLabel: 'はなせる ことば (にんい、ふくすう えらべる)',
+    selectPlaceholder: 'えらんで ください',
+    completeBtn: 'とうろくを かんりょうする',
+    foreigner: 'ざいりゅう がいこくじん',
+    japanese: 'にほんじん',
+    other: 'そのほか',
+    langJa: 'にほんご',
+    langEasy: 'やさしい にほんご',
+    langEn: 'English',
+    welcomeUser: 'こんにちは、%nickname%さん',
+    yourActivity: 'あなたの イベントと かつどう',
+    upcomingEvents: 'さんかよてい の イベント',
+    pastEvents: 'さんかりれき',
+    noUpcoming: 'さんかよてい の イベントは ありません',
+    noPast: 'さんかりれきは まだ ありません',
+    findEvents: 'イベントを さがす →',
+    profileEdit: 'プロフィールを へんしゅう',
+    profileEditTitle: 'プロフィール へんしゅう',
+    fieldEmail: 'メール',
+    fieldBirthdate: 'たんじょうび',
+    fieldDept: 'しょぞく',
+    fieldJpSchool: 'にほんごがっこう',
+    fieldJpSchoolYes: 'かよって いる',
+    fieldJpSchoolNo: 'かよって いない',
+    fieldJlpt: 'JLPT',
+    fieldDisplayLang: 'ひょうじする ことば',
+    sectionInterests: 'きょうみ',
+    sectionLanguages: 'はなせる ことば',
+    badgeConfirmed: 'かくてい',
+    badgeUnpaid: 'みけっさい',
+    badgeDayPay: 'とうじつばらい',
+    badgeAttended: 'さんかずみ',
+    badgeCancelled: 'キャンセルずみ',
+    cancelBtn: 'キャンセル',
+    rebookBtn: 'もう いちど もうしこむ',
+    cancelConfirmTitle: 'キャンセルの かくにん',
+    cancelConfirmMsg: '%title%\nの さんかを キャンセル します。\nよろしいですか？',
+    cancelConfirmBtn: 'キャンセル する',
+    cancelDone: 'キャンセル かんりょう',
+    cancelDoneMsg: 'さんかを キャンセル しました',
+    cancelFailed: 'キャンセル できません でした',
+    saveFailed: 'ほぞん できません でした',
+    age: '%n%さい',
+    yearsOld: 'さい',
+    logoutTitle: 'ログアウト',
+    logoutMsg: 'ログアウト しますか？',
+    logoutConfirm: 'ログアウト',
+    forgotTitle: 'パスワードを わすれた かた',
+    forgotSubtitle: 'メールアドレスを いれて ください。リセットの リンクを おくります。',
+    forgotBtn: 'リセットメールを おくる',
+    forgotSent: 'メールを かくにん して ください',
+    forgotSentSub: '%email% に パスワードリセットの あんないを おくりました。',
+    forgotNote: 'ちゅうい',
+    forgotNote1: 'リンクの きげんは <strong>1じかん</strong> です。',
+    forgotNote2: 'メールが とどかない ときは、めいわくメールも かくにん して ください。',
+    forgotNote3: 'メールアドレスが とうろく されて いない ときは、メールは おくられません。',
+    backToLogin: '← ログインに もどる',
+    forgotFailed: 'リクエスト できません でした',
+    resetTitle: 'あたらしい パスワードを せってい',
+    resetSubtitle: 'あたらしい パスワードを いれて ください (8もじ いじょう)。',
+    resetBtn: 'パスワードを へんこう',
+    resetIn: 'へんこうちゅう...',
+    resetDoneTitle: 'パスワードを へんこう しました',
+    resetDoneSub: 'あたらしい パスワードで ログイン できます。',
+    resetDoneInline: 'パスワードの へんこうが かんりょう しました。',
+    resetToLogin: 'ログインページへ →',
+    invalidLink: 'むこうな リンク',
+    invalidLinkSub: 'リセットトークンが ありません。',
+    backToForgot: '← パスワードリセットを やりなおす',
+    resetTokenMissing: 'リセットトークンが ありません',
+    resetFailed: 'パスワードの へんこうが できません でした',
+    pwNewLabel: 'あたらしい パスワード',
+  },
+  en: {
+    required: 'Please fill in all required fields',
+    loading: 'Loading...',
+    saving: 'Saving...',
+    sending: 'Sending...',
+    submitting: 'Submitting...',
+    cancel: 'Cancel',
+    back: 'Back',
+    next: 'Next',
+    save: 'Save',
+    confirm: 'Confirm',
+    error: 'Error',
+    homeBack: '← Back to Home',
+    loginTitle: 'Log In',
+    loginSubtitle: 'Welcome back. Please enter your email and password.',
+    loginBtn: 'Log In',
+    loginIn: 'Logging in...',
+    loginErr: 'Please enter email and password',
+    loginFailed: 'Login failed',
+    forgotPassword: 'Forgot password?',
+    newToService: 'New to connec+a?',
+    signupHere: 'Sign up here →',
+    signupTitle: 'Sign Up',
+    signupSubtitle: 'Enter your email and password. We\'ll send you a verification email.',
+    signupBtn: 'Send verification email',
+    signupSent: 'Email sent',
+    signupSentSubtitle: 'A verification email has been sent to %email%. Click the link to verify your account.',
+    nextSteps: 'Next steps',
+    step1Inbox: '1. Check your inbox (also check spam folder)',
+    step2Click: '2. Click the button in the email',
+    step3Profile: '3. Complete your profile to finish',
+    haveAccount: 'Already have an account?',
+    loginLink: 'Log in →',
+    invalidEmail: 'Please enter a valid email address',
+    pwTooShort: 'Password must be at least 8 characters',
+    pwMismatch: 'Passwords do not match',
+    signupFailed: 'Signup failed',
+    pwLabel: 'Password',
+    pwConfirmLabel: 'Password (confirm)',
+    pwPlaceholder: '8 characters or more',
+    pwAgain: 'Re-enter password',
+    emailLabel: 'Email Address',
+    verifying: 'Verifying...',
+    verifyingSubtitle: 'Confirming your email address',
+    verifyWait: 'Please wait...',
+    verifyDone: 'Verification complete',
+    verifyDoneSubtitle: 'Your email has been verified. Now please complete your profile.',
+    verifyDoneInline: 'Verified %email%. Redirecting to next page...',
+    verifyTokenMissing: 'Verification token not found',
+    verifyFailed: 'Verification failed',
+    verifyExpired: 'The verification link is invalid or expired. Please sign up again.',
+    backToSignup: '← Back to signup',
+    profileTitle: 'Complete Your Profile',
+    profileSubtitle: 'Tell us about yourself. We use this for matching and personalization.',
+    sectionStep: 'Step %n% / 3',
+    sectionBasic: 'Basic Info',
+    sectionResidency: 'Residency Info',
+    sectionOptional: 'Optional',
+    nameLabel: 'Name (Kanji or Romaji)',
+    namePh: 'e.g. Tanaka Taro',
+    kanaLabel: 'Furigana',
+    kanaPh: 'e.g. タナカタロウ',
+    nicknameLabel: 'Nickname',
+    nicknamePh: 'Display name on the site',
+    birthdateLabel: 'Date of Birth',
+    prefectureLabel: 'Prefecture',
+    displayLangLabel: 'Display Language',
+    residencyLabel: 'Residency Status',
+    nationalityLabel: 'Nationality',
+    jpSchoolLabel: 'Attending Japanese language school',
+    jpSchoolYes: 'Yes',
+    jpSchoolNo: 'No',
+    jlptLabel: 'JLPT Level',
+    jlptNone: 'Not obtained',
+    deptLabel: 'University/Occupation (optional)',
+    deptPh: 'e.g. Waseda University / Freelancer',
+    interestsLabel: 'Interests (optional, multiple allowed)',
+    languagesLabel: 'Languages spoken (optional, multiple allowed)',
+    selectPlaceholder: 'Please select',
+    completeBtn: 'Complete signup',
+    foreigner: 'Foreign resident',
+    japanese: 'Japanese',
+    other: 'Other',
+    langJa: '日本語',
+    langEasy: 'Easy Japanese',
+    langEn: 'English',
+    welcomeUser: 'Welcome, %nickname%',
+    yourActivity: 'Your events and activity',
+    upcomingEvents: 'Upcoming Events',
+    pastEvents: 'Past Events',
+    noUpcoming: 'No upcoming events',
+    noPast: 'No past events yet',
+    findEvents: 'Find events →',
+    profileEdit: 'Edit Profile',
+    profileEditTitle: 'Edit Profile',
+    fieldEmail: 'Email',
+    fieldBirthdate: 'Birthdate',
+    fieldDept: 'Affiliation',
+    fieldJpSchool: 'JP School',
+    fieldJpSchoolYes: 'Attending',
+    fieldJpSchoolNo: 'Not attending',
+    fieldJlpt: 'JLPT',
+    fieldDisplayLang: 'Display Language',
+    sectionInterests: 'Interests',
+    sectionLanguages: 'Languages',
+    badgeConfirmed: 'Confirmed',
+    badgeUnpaid: 'Unpaid',
+    badgeDayPay: 'Pay on day',
+    badgeAttended: 'Attended',
+    badgeCancelled: 'Cancelled',
+    cancelBtn: 'Cancel',
+    rebookBtn: 'Re-register',
+    cancelConfirmTitle: 'Cancel Registration',
+    cancelConfirmMsg: 'Cancel registration for:\n%title%\n\nAre you sure?',
+    cancelConfirmBtn: 'Cancel registration',
+    cancelDone: 'Cancellation complete',
+    cancelDoneMsg: 'Your registration has been cancelled',
+    cancelFailed: 'Cancellation failed',
+    saveFailed: 'Save failed',
+    age: 'Age %n%',
+    yearsOld: '',
+    logoutTitle: 'Log Out',
+    logoutMsg: 'Are you sure you want to log out?',
+    logoutConfirm: 'Log Out',
+    forgotTitle: 'Forgot Password',
+    forgotSubtitle: 'Enter your registered email address. We\'ll send a reset link.',
+    forgotBtn: 'Send Reset Email',
+    forgotSent: 'Check your email',
+    forgotSentSub: 'A password reset email has been sent to %email%. Click the link in the email to set a new password.',
+    forgotNote: 'Note',
+    forgotNote1: 'The link is valid for <strong>1 hour</strong>.',
+    forgotNote2: 'If you don\'t see the email, please check your spam folder.',
+    forgotNote3: 'If your email isn\'t registered, no email will be sent.',
+    backToLogin: '← Back to login',
+    forgotFailed: 'Request failed',
+    resetTitle: 'Set New Password',
+    resetSubtitle: 'Enter a new password (8 characters or more).',
+    resetBtn: 'Change Password',
+    resetIn: 'Changing...',
+    resetDoneTitle: 'Password changed',
+    resetDoneSub: 'You can now log in with your new password.',
+    resetDoneInline: 'Password successfully changed.\nFor security, all other devices have been logged out.',
+    resetToLogin: 'Go to Login →',
+    invalidLink: 'Invalid Link',
+    invalidLinkSub: 'Reset token not found. Please click the link from your email.',
+    backToForgot: '← Restart password reset',
+    resetTokenMissing: 'Reset token not found',
+    resetFailed: 'Password change failed',
+    pwNewLabel: 'New Password',
+  },
+};
+
+// (Phase 7.7) lang から AUTH_T を取得 (フォールバック付き)
+function authT(lang) {
+  return AUTH_T[lang] || AUTH_T.ja;
+}
+
 // 共通レイアウト: 左ベージュ / 中フォーム / 右ステップ表
 function AuthPageLayout({ children, title, subtitle, lang }) {
   const stepLabels = {
@@ -8872,7 +9339,7 @@ function AuthInput({ label, type, value, onChange, placeholder, required, autoCo
   );
 }
 
-function AuthSelect({ label, value, onChange, options, required, error }) {
+function AuthSelect({ label, value, onChange, options, required, error, selectPlaceholder }) {
   return (
     <label style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
       <span style={{
@@ -8899,7 +9366,7 @@ function AuthSelect({ label, value, onChange, options, required, error }) {
           cursor: 'pointer',
         }}
       >
-        <option value="" disabled>選択してください</option>
+        <option value="" disabled>{selectPlaceholder || '選択してください'}</option>
         {options.map(opt => (
           <option key={opt.value} value={opt.value}>{opt.label}</option>
         ))}
@@ -8956,19 +9423,17 @@ function AuthButton({ children, onClick, type, disabled, variant }) {
 // ============================================================================
 function PageLogin({ lang, t }) {
   const auth = useAuth();
+  const at = authT(lang);
   const [email, setEmail] = React.useState('');
   const [password, setPassword] = React.useState('');
   const [submitting, setSubmitting] = React.useState(false);
   const [error, setError] = React.useState('');
 
-  // (既にログイン中の場合の自動リダイレクトは削除した。
-  //  ログイン中でも /login にアクセスできる方が、ログアウト → 別アカウント等の操作で便利)
-
   const handleSubmit = async (e) => {
     if (e) e.preventDefault();
     setError('');
     if (!email || !password) {
-      setError('メールアドレスとパスワードを入力してください');
+      setError(at.loginErr);
       return;
     }
     setSubmitting(true);
@@ -8976,21 +9441,16 @@ function PageLogin({ lang, t }) {
       await auth.login(email, password);
       window.location.hash = '/mypage';
     } catch (err) {
-      setError(err.message || 'ログインに失敗しました');
+      setError(err.message || at.loginFailed);
       setSubmitting(false);
     }
   };
 
-  const title = lang === 'en' ? 'Log In' : lang === 'easy' ? 'ログイン' : 'ログイン';
-  const subtitle = lang === 'en' ? 'Welcome back to connec+a'
-    : lang === 'easy' ? 'おかえりなさい'
-    : 'おかえりなさい。メールアドレスとパスワードでログインしてください。';
-
   return (
-    <AuthPageLayout title={title} subtitle={subtitle} lang={lang}>
+    <AuthPageLayout title={at.loginTitle} subtitle={at.loginSubtitle} lang={lang}>
       <div style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
         <AuthInput
-          label="メールアドレス"
+          label={at.emailLabel}
           type="email"
           value={email}
           onChange={setEmail}
@@ -8999,11 +9459,11 @@ function PageLogin({ lang, t }) {
           required
         />
         <AuthInput
-          label="パスワード"
+          label={at.pwLabel}
           type="password"
           value={password}
           onChange={setPassword}
-          placeholder="8文字以上"
+          placeholder={at.pwPlaceholder}
           autoComplete="current-password"
           required
         />
@@ -9021,7 +9481,7 @@ function PageLogin({ lang, t }) {
 
         <div style={{ marginTop: 8 }}>
           <AuthButton onClick={handleSubmit} disabled={submitting}>
-            {submitting ? 'ログイン中...' : 'ログイン'}
+            {submitting ? at.loginIn : at.loginBtn}
             <span style={{ marginLeft: 'auto' }}>→</span>
           </AuthButton>
         </div>
@@ -9036,7 +9496,7 @@ function PageLogin({ lang, t }) {
             color: '#6b7280',
             textDecoration: 'none',
             borderBottom: '1px solid #d1d5db',
-          }}>パスワードを忘れた方</a>
+          }}>{at.forgotPassword}</a>
         </div>
 
         <div style={{
@@ -9048,12 +9508,12 @@ function PageLogin({ lang, t }) {
           fontSize: 13,
           fontFamily: 'var(--jp)',
         }}>
-          <div style={{ color: '#6b7280' }}>初めての方へ</div>
+          <div style={{ color: '#6b7280' }}>{at.newToService}</div>
           <a href="#/signup" style={{
             color: '#2c89e8',
             textDecoration: 'none',
             fontWeight: 500,
-          }}>会員登録はこちら →</a>
+          }}>{at.signupHere}</a>
         </div>
       </div>
     </AuthPageLayout>
@@ -9065,6 +9525,7 @@ function PageLogin({ lang, t }) {
 // (Phase 7.7) 会員登録ステップ1 (メール+パスワード)
 // ============================================================================
 function PageSignup({ lang, t }) {
+  const at = authT(lang);
   const [email, setEmail] = React.useState('');
   const [password, setPassword] = React.useState('');
   const [passwordConfirm, setPasswordConfirm] = React.useState('');
@@ -9076,15 +9537,15 @@ function PageSignup({ lang, t }) {
     if (e) e.preventDefault();
     setError('');
     if (!email || !email.match(/^[^\s@]+@[^\s@]+\.[^\s@]+$/)) {
-      setError('有効なメールアドレスを入力してください');
+      setError(at.invalidEmail);
       return;
     }
     if (password.length < 8) {
-      setError('パスワードは8文字以上にしてください');
+      setError(at.pwTooShort);
       return;
     }
     if (password !== passwordConfirm) {
-      setError('パスワードが一致しません');
+      setError(at.pwMismatch);
       return;
     }
     setSubmitting(true);
@@ -9092,7 +9553,7 @@ function PageSignup({ lang, t }) {
       await authApi.signupStart(email, password, lang);
       setSent(true);
     } catch (err) {
-      setError(err.message || '登録に失敗しました');
+      setError(err.message || at.signupFailed);
     } finally {
       setSubmitting(false);
     }
@@ -9101,8 +9562,8 @@ function PageSignup({ lang, t }) {
   if (sent) {
     return (
       <AuthPageLayout
-        title="メールを送信しました"
-        subtitle={`${email} にメールを送信しました。リンクをクリックしてアカウントを認証してください。`}
+        title={at.signupSent}
+        subtitle={at.signupSentSubtitle.replace('%email%', email)}
         lang={lang}
       >
         <div style={{
@@ -9114,10 +9575,10 @@ function PageSignup({ lang, t }) {
           color: '#075985',
           lineHeight: 1.7,
         }}>
-          <strong style={{ display: 'block', marginBottom: 8 }}>次のステップ</strong>
-          1. 受信ボックスを確認 (迷惑メールフォルダもご確認ください)<br/>
-          2. メール内のボタンをクリック<br/>
-          3. プロフィール詳細を入力して登録完了
+          <strong style={{ display: 'block', marginBottom: 8 }}>{at.nextSteps}</strong>
+          {at.step1Inbox}<br/>
+          {at.step2Click}<br/>
+          {at.step3Profile}
         </div>
         <div style={{ marginTop: 16 }}>
           <a href="#/" style={{
@@ -9125,7 +9586,7 @@ function PageSignup({ lang, t }) {
             fontFamily: 'var(--jp)',
             fontSize: 13,
             textDecoration: 'none',
-          }}>← ホームに戻る</a>
+          }}>{at.homeBack}</a>
         </div>
       </AuthPageLayout>
     );
@@ -9133,13 +9594,13 @@ function PageSignup({ lang, t }) {
 
   return (
     <AuthPageLayout
-      title="会員登録"
-      subtitle="メールアドレスとパスワードを入力してください。認証メールをお送りします。"
+      title={at.signupTitle}
+      subtitle={at.signupSubtitle}
       lang={lang}
     >
       <div style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
         <AuthInput
-          label="メールアドレス"
+          label={at.emailLabel}
           type="email"
           value={email}
           onChange={setEmail}
@@ -9148,20 +9609,20 @@ function PageSignup({ lang, t }) {
           required
         />
         <AuthInput
-          label="パスワード"
+          label={at.pwLabel}
           type="password"
           value={password}
           onChange={setPassword}
-          placeholder="8文字以上"
+          placeholder={at.pwPlaceholder}
           autoComplete="new-password"
           required
         />
         <AuthInput
-          label="パスワード (確認)"
+          label={at.pwConfirmLabel}
           type="password"
           value={passwordConfirm}
           onChange={setPasswordConfirm}
-          placeholder="もう一度入力"
+          placeholder={at.pwAgain}
           autoComplete="new-password"
           required
         />
@@ -9179,7 +9640,7 @@ function PageSignup({ lang, t }) {
 
         <div style={{ marginTop: 8 }}>
           <AuthButton onClick={handleSubmit} disabled={submitting}>
-            {submitting ? '送信中...' : '認証メールを送信'}
+            {submitting ? at.sending : at.signupBtn}
             <span style={{ marginLeft: 'auto' }}>→</span>
           </AuthButton>
         </div>
@@ -9190,12 +9651,12 @@ function PageSignup({ lang, t }) {
           fontSize: 13,
           fontFamily: 'var(--jp)',
         }}>
-          <div style={{ color: '#6b7280', marginBottom: 8 }}>すでにアカウントをお持ちの方</div>
+          <div style={{ color: '#6b7280', marginBottom: 8 }}>{at.haveAccount}</div>
           <a href="#/login" style={{
             color: '#2c89e8',
             textDecoration: 'none',
             fontWeight: 500,
-          }}>ログイン →</a>
+          }}>{at.loginLink}</a>
         </div>
       </div>
     </AuthPageLayout>
@@ -9207,24 +9668,24 @@ function PageSignup({ lang, t }) {
 // (Phase 7.7) メール認証ハンドラ (token をURLから取得して検証)
 // ============================================================================
 function PageSignupVerify({ lang, t }) {
-  const [status, setStatus] = React.useState('verifying'); // verifying / success / error
+  const at = authT(lang);
+  const [status, setStatus] = React.useState('verifying');
   const [message, setMessage] = React.useState('');
   const [email, setEmail] = React.useState('');
 
   React.useEffect(() => {
-    // URL hash から token を取得 ( /#/signup-verify?token=XXX )
     const hash = window.location.hash;
     const queryStart = hash.indexOf('?');
     if (queryStart < 0) {
       setStatus('error');
-      setMessage('認証トークンが見つかりません');
+      setMessage(at.verifyTokenMissing);
       return;
     }
     const params = new URLSearchParams(hash.substring(queryStart + 1));
     const token = params.get('token');
     if (!token) {
       setStatus('error');
-      setMessage('認証トークンが見つかりません');
+      setMessage(at.verifyTokenMissing);
       return;
     }
 
@@ -9235,7 +9696,6 @@ function PageSignupVerify({ lang, t }) {
         if (!cancelled) {
           setEmail(result.email || '');
           setStatus('success');
-          // 1.5秒後にステップ2へ
           setTimeout(() => {
             window.location.hash = '/signup-profile?email=' + encodeURIComponent(result.email);
           }, 1500);
@@ -9243,7 +9703,7 @@ function PageSignupVerify({ lang, t }) {
       } catch (err) {
         if (!cancelled) {
           setStatus('error');
-          setMessage(err.message || '認証に失敗しました');
+          setMessage(err.message || at.verifyFailed);
         }
       }
     })();
@@ -9252,7 +9712,7 @@ function PageSignupVerify({ lang, t }) {
 
   if (status === 'verifying') {
     return (
-      <AuthPageLayout title="認証中..." subtitle="メールアドレスを確認しています" lang={lang}>
+      <AuthPageLayout title={at.verifying} subtitle={at.verifyingSubtitle} lang={lang}>
         <div style={{
           padding: 40,
           textAlign: 'center',
@@ -9260,7 +9720,7 @@ function PageSignupVerify({ lang, t }) {
           color: '#6b7280',
         }}>
           <div className="spinner" style={{ marginBottom: 16 }}/>
-          <div>少々お待ちください...</div>
+          <div>{at.verifyWait}</div>
         </div>
       </AuthPageLayout>
     );
@@ -9269,8 +9729,8 @@ function PageSignupVerify({ lang, t }) {
   if (status === 'success') {
     return (
       <AuthPageLayout
-        title="認証完了"
-        subtitle="メールアドレスの確認が完了しました。続いてプロフィールを登録します。"
+        title={at.verifyDone}
+        subtitle={at.verifyDoneSubtitle}
         lang={lang}
       >
         <div style={{
@@ -9281,7 +9741,7 @@ function PageSignupVerify({ lang, t }) {
           fontSize: 13,
           fontFamily: 'var(--jp)',
         }}>
-          ✓ {email} の認証が完了しました。次のページへ移動します...
+          ✓ {at.verifyDoneInline.replace('%email%', email)}
         </div>
       </AuthPageLayout>
     );
@@ -9289,7 +9749,7 @@ function PageSignupVerify({ lang, t }) {
 
   return (
     <AuthPageLayout
-      title="認証に失敗しました"
+      title={at.verifyFailed}
       subtitle={message}
       lang={lang}
     >
@@ -9301,7 +9761,7 @@ function PageSignupVerify({ lang, t }) {
         fontSize: 13,
         fontFamily: 'var(--jp)',
       }}>
-        認証リンクが無効または期限切れです。再度会員登録をお試しください。
+        {at.verifyExpired}
       </div>
       <div style={{ marginTop: 16 }}>
         <a href="#/signup" style={{
@@ -9310,7 +9770,7 @@ function PageSignupVerify({ lang, t }) {
           fontSize: 13,
           textDecoration: 'none',
           fontWeight: 500,
-        }}>← 会員登録に戻る</a>
+        }}>{at.backToSignup}</a>
       </div>
     </AuthPageLayout>
   );
@@ -9321,6 +9781,7 @@ function PageSignupVerify({ lang, t }) {
 // (Phase 7.7 - Phase B) パスワードリセット ステップ1 (メール送信)
 // ============================================================================
 function PageForgotPassword({ lang, t }) {
+  const at = authT(lang);
   const [email, setEmail] = React.useState('');
   const [submitting, setSubmitting] = React.useState(false);
   const [error, setError] = React.useState('');
@@ -9330,7 +9791,7 @@ function PageForgotPassword({ lang, t }) {
     if (e) e.preventDefault();
     setError('');
     if (!email || !email.match(/^[^\s@]+@[^\s@]+\.[^\s@]+$/)) {
-      setError('有効なメールアドレスを入力してください');
+      setError(at.invalidEmail);
       return;
     }
     setSubmitting(true);
@@ -9338,7 +9799,7 @@ function PageForgotPassword({ lang, t }) {
       await authApi.requestPasswordReset(email, lang);
       setSent(true);
     } catch (err) {
-      setError(err.message || 'リクエストに失敗しました');
+      setError(err.message || at.forgotFailed);
     } finally {
       setSubmitting(false);
     }
@@ -9347,8 +9808,8 @@ function PageForgotPassword({ lang, t }) {
   if (sent) {
     return (
       <AuthPageLayout
-        title="メールを確認してください"
-        subtitle={`${email} 宛にパスワードリセットの案内を送信しました。 メール内のリンクをクリックして、新しいパスワードを設定してください。`}
+        title={at.forgotSent}
+        subtitle={at.forgotSentSub.replace('%email%', email)}
         lang={lang}
       >
         <div style={{
@@ -9360,10 +9821,10 @@ function PageForgotPassword({ lang, t }) {
           color: '#075985',
           lineHeight: 1.7,
         }}>
-          <strong style={{ display: 'block', marginBottom: 8 }}>注意</strong>
-          リンクの有効期限は <strong>1時間</strong> です。<br/>
-          メールが届かない場合は、迷惑メールフォルダもご確認ください。<br/>
-          メールアドレスが登録されていない場合、 メールは送信されません。
+          <strong style={{ display: 'block', marginBottom: 8 }}>{at.forgotNote}</strong>
+          <span dangerouslySetInnerHTML={{__html: at.forgotNote1}}/><br/>
+          {at.forgotNote2}<br/>
+          {at.forgotNote3}
         </div>
         <div style={{ marginTop: 16 }}>
           <a href="#/login" style={{
@@ -9371,7 +9832,7 @@ function PageForgotPassword({ lang, t }) {
             fontFamily: 'var(--jp)',
             fontSize: 13,
             textDecoration: 'none',
-          }}>← ログインに戻る</a>
+          }}>{at.backToLogin}</a>
         </div>
       </AuthPageLayout>
     );
@@ -9379,13 +9840,13 @@ function PageForgotPassword({ lang, t }) {
 
   return (
     <AuthPageLayout
-      title="パスワードを忘れた方"
-      subtitle="ご登録のメールアドレスを入力してください。 リセット用のリンクをお送りします。"
+      title={at.forgotTitle}
+      subtitle={at.forgotSubtitle}
       lang={lang}
     >
       <div style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
         <AuthInput
-          label="メールアドレス"
+          label={at.emailLabel}
           type="email"
           value={email}
           onChange={setEmail}
@@ -9407,7 +9868,7 @@ function PageForgotPassword({ lang, t }) {
 
         <div style={{ marginTop: 8 }}>
           <AuthButton onClick={handleSubmit} disabled={submitting}>
-            {submitting ? '送信中...' : 'リセットメールを送信'}
+            {submitting ? at.sending : at.forgotBtn}
             <span style={{ marginLeft: 'auto' }}>→</span>
           </AuthButton>
         </div>
@@ -9422,7 +9883,7 @@ function PageForgotPassword({ lang, t }) {
             color: '#2c89e8',
             textDecoration: 'none',
             fontWeight: 500,
-          }}>← ログインに戻る</a>
+          }}>{at.backToLogin}</a>
         </div>
       </div>
     </AuthPageLayout>
@@ -9434,6 +9895,7 @@ function PageForgotPassword({ lang, t }) {
 // (Phase 7.7 - Phase B) パスワードリセット ステップ2 (新パスワード設定)
 // ============================================================================
 function PageResetPassword({ lang, t }) {
+  const at = authT(lang);
   const [token, setToken] = React.useState('');
   const [password, setPassword] = React.useState('');
   const [passwordConfirm, setPasswordConfirm] = React.useState('');
@@ -9454,27 +9916,26 @@ function PageResetPassword({ lang, t }) {
     if (e) e.preventDefault();
     setError('');
     if (!token) {
-      setError('リセットトークンが見つかりません');
+      setError(at.resetTokenMissing);
       return;
     }
     if (password.length < 8) {
-      setError('パスワードは8文字以上にしてください');
+      setError(at.pwTooShort);
       return;
     }
     if (password !== passwordConfirm) {
-      setError('パスワードが一致しません');
+      setError(at.pwMismatch);
       return;
     }
     setSubmitting(true);
     try {
       await authApi.resetPassword(token, password);
       setDone(true);
-      // 3秒後にログインページに遷移
       setTimeout(() => {
         window.location.hash = '/login';
       }, 3000);
     } catch (err) {
-      setError(err.message || 'パスワードの変更に失敗しました');
+      setError(err.message || at.resetFailed);
       setSubmitting(false);
     }
   };
@@ -9482,8 +9943,8 @@ function PageResetPassword({ lang, t }) {
   if (done) {
     return (
       <AuthPageLayout
-        title="パスワードを変更しました"
-        subtitle="新しいパスワードでログインできます。 ログインページに移動します..."
+        title={at.resetDoneTitle}
+        subtitle={at.resetDoneSub}
         lang={lang}
       >
         <div style={{
@@ -9494,9 +9955,9 @@ function PageResetPassword({ lang, t }) {
           fontSize: 13,
           fontFamily: 'var(--jp)',
           lineHeight: 1.7,
+          whiteSpace: 'pre-line',
         }}>
-          ✓ パスワードの変更が完了しました。<br/>
-          セキュリティのため、 他のデバイスからは自動的にログアウトされました。
+          ✓ {at.resetDoneInline}
         </div>
         <div style={{ marginTop: 16 }}>
           <a href="#/login" style={{
@@ -9505,7 +9966,7 @@ function PageResetPassword({ lang, t }) {
             fontSize: 13,
             textDecoration: 'none',
             fontWeight: 500,
-          }}>ログインページへ →</a>
+          }}>{at.resetToLogin}</a>
         </div>
       </AuthPageLayout>
     );
@@ -9514,8 +9975,8 @@ function PageResetPassword({ lang, t }) {
   if (!token) {
     return (
       <AuthPageLayout
-        title="無効なリンク"
-        subtitle="リセットトークンが見つかりません。 メール内のリンクをクリックしてアクセスしてください。"
+        title={at.invalidLink}
+        subtitle={at.invalidLinkSub}
         lang={lang}
       >
         <div style={{ marginTop: 16 }}>
@@ -9525,7 +9986,7 @@ function PageResetPassword({ lang, t }) {
             fontSize: 13,
             textDecoration: 'none',
             fontWeight: 500,
-          }}>← パスワードリセットをやり直す</a>
+          }}>{at.backToForgot}</a>
         </div>
       </AuthPageLayout>
     );
@@ -9533,26 +9994,26 @@ function PageResetPassword({ lang, t }) {
 
   return (
     <AuthPageLayout
-      title="新しいパスワードを設定"
-      subtitle="新しいパスワードを入力してください (8文字以上)。"
+      title={at.resetTitle}
+      subtitle={at.resetSubtitle}
       lang={lang}
     >
       <div style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
         <AuthInput
-          label="新しいパスワード"
+          label={at.pwNewLabel}
           type="password"
           value={password}
           onChange={setPassword}
-          placeholder="8文字以上"
+          placeholder={at.pwPlaceholder}
           autoComplete="new-password"
           required
         />
         <AuthInput
-          label="パスワード (確認)"
+          label={at.pwConfirmLabel}
           type="password"
           value={passwordConfirm}
           onChange={setPasswordConfirm}
-          placeholder="もう一度入力"
+          placeholder={at.pwAgain}
           autoComplete="new-password"
           required
         />
@@ -9570,7 +10031,7 @@ function PageResetPassword({ lang, t }) {
 
         <div style={{ marginTop: 8 }}>
           <AuthButton onClick={handleSubmit} disabled={submitting}>
-            {submitting ? '変更中...' : 'パスワードを変更'}
+            {submitting ? at.resetIn : at.resetBtn}
             <span style={{ marginLeft: 'auto' }}>→</span>
           </AuthButton>
         </div>
@@ -9613,6 +10074,7 @@ const LANGUAGE_SKILLS = [
 ];
 
 function PageSignupProfile({ lang, t }) {
+  const at = authT(lang);
   // URL hash から email を取得
   const [email, setEmail] = React.useState('');
 
@@ -9633,7 +10095,7 @@ function PageSignupProfile({ lang, t }) {
   const [nationality, setNationality] = React.useState('');
   const [birthdate, setBirthdate] = React.useState('');
   const [prefecture, setPrefecture] = React.useState('');
-  const [displayLang, setDisplayLang] = React.useState('ja');
+  const [displayLang, setDisplayLang] = React.useState(lang === 'easy' || lang === 'en' ? lang : 'ja');
   const [jpSchool, setJpSchool] = React.useState('');
   const [jlpt, setJlpt] = React.useState('');
   const [dept, setDept] = React.useState('');
@@ -9660,7 +10122,7 @@ function PageSignupProfile({ lang, t }) {
   const handleSubmit = async () => {
     setError('');
     if (!section1Ready || !section2Ready || !kanaOk) {
-      setError('必須項目をすべて入力してください');
+      setError(at.required);
       return;
     }
     setSubmitting(true);
@@ -9686,15 +10148,17 @@ function PageSignupProfile({ lang, t }) {
       await auth.refresh();
       window.location.hash = '/mypage';
     } catch (err) {
-      setError(err.message || '登録に失敗しました');
+      setError(err.message || at.signupFailed);
       setSubmitting(false);
     }
   };
 
+  const sectionLabel = section === 1 ? at.sectionBasic : section === 2 ? at.sectionResidency : at.sectionOptional;
+
   return (
     <AuthPageLayout
-      title="プロフィール登録"
-      subtitle="あなたのことを教えてください。マッチングや表示の最適化に使います。"
+      title={at.profileTitle}
+      subtitle={at.profileSubtitle}
       lang={lang}
     >
       {/* 進捗表示 */}
@@ -9715,25 +10179,25 @@ function PageSignupProfile({ lang, t }) {
         letterSpacing: '0.06em',
         marginTop: -8,
       }}>
-        ステップ {section} / 3 : {section === 1 ? '基本情報' : section === 2 ? '在留情報' : '任意項目'}
+        {at.sectionStep.replace('%n%', section)} : {sectionLabel}
       </div>
 
       {/* セクション1: 基本情報 */}
       {section === 1 && (
         <div style={{ display: 'flex', flexDirection: 'column', gap: 14 }}>
-          <AuthInput label="名前 (漢字またはローマ字)" value={name} onChange={setName} placeholder="例: 田中太郎 / Tanaka Taro" required />
+          <AuthInput label={at.nameLabel} value={name} onChange={setName} placeholder={at.namePh} required />
           {kanaRequired && (
-            <AuthInput label="フリガナ" value={kana} onChange={setKana} placeholder="例: タナカタロウ" required />
+            <AuthInput label={at.kanaLabel} value={kana} onChange={setKana} placeholder={at.kanaPh} required />
           )}
-          <AuthInput label="ニックネーム" value={nickname} onChange={setNickname} placeholder="サイト内表示名" required />
-          <AuthInput label="生年月日" type="date" value={birthdate} onChange={setBirthdate} required />
-          <AuthSelect label="都道府県" value={prefecture} onChange={setPrefecture} required
+          <AuthInput label={at.nicknameLabel} value={nickname} onChange={setNickname} placeholder={at.nicknamePh} required />
+          <AuthInput label={at.birthdateLabel} type="date" value={birthdate} onChange={setBirthdate} required />
+          <AuthSelect label={at.prefectureLabel} value={prefecture} onChange={setPrefecture} required selectPlaceholder={at.selectPlaceholder}
             options={PREFECTURES.map(p => ({ value: p, label: p }))} />
-          <AuthSelect label="表示言語" value={displayLang} onChange={setDisplayLang} required
+          <AuthSelect label={at.displayLangLabel} value={displayLang} onChange={setDisplayLang} required selectPlaceholder={at.selectPlaceholder}
             options={[
-              { value: 'ja', label: '日本語' },
-              { value: 'easy', label: 'やさしいにほんご' },
-              { value: 'en', label: 'English' },
+              { value: 'ja', label: at.langJa },
+              { value: 'easy', label: at.langEasy },
+              { value: 'en', label: at.langEn },
             ]} />
 
           {error && (
@@ -9743,12 +10207,12 @@ function PageSignupProfile({ lang, t }) {
           <div style={{ marginTop: 8 }}>
             <AuthButton onClick={() => {
               if (!section1Ready || !kanaOk) {
-                setError('必須項目をすべて入力してください');
+                setError(at.required);
                 return;
               }
               setError('');
               setSection(2);
-            }}>次へ <span style={{ marginLeft: 'auto' }}>→</span></AuthButton>
+            }}>{at.next} <span style={{ marginLeft: 'auto' }}>→</span></AuthButton>
           </div>
         </div>
       )}
@@ -9756,26 +10220,25 @@ function PageSignupProfile({ lang, t }) {
       {/* セクション2: 在留情報 */}
       {section === 2 && (
         <div style={{ display: 'flex', flexDirection: 'column', gap: 14 }}>
-          <AuthSelect label="在留ステータス" value={residencyStatus} onChange={setResidencyStatus} required
+          <AuthSelect label={at.residencyLabel} value={residencyStatus} onChange={setResidencyStatus} required selectPlaceholder={at.selectPlaceholder}
             options={[
-              { value: '在留外国人', label: '在留外国人' },
-              { value: '日本人', label: '日本人' },
-              { value: 'その他', label: 'その他' },
+              { value: '在留外国人', label: at.foreigner },
+              { value: '日本人', label: at.japanese },
+              { value: 'その他', label: at.other },
             ]} />
-          <AuthSelect label="国籍" value={nationality} onChange={setNationality} required
+          <AuthSelect label={at.nationalityLabel} value={nationality} onChange={setNationality} required selectPlaceholder={at.selectPlaceholder}
             options={COUNTRIES.map(c => ({ value: c, label: c }))} />
 
-          {/* 在留外国人のみ: 日本語学校 + JLPT */}
           {isForeign && (
             <>
-              <AuthSelect label="日本語学校に通っている" value={jpSchool} onChange={setJpSchool} required
+              <AuthSelect label={at.jpSchoolLabel} value={jpSchool} onChange={setJpSchool} required selectPlaceholder={at.selectPlaceholder}
                 options={[
-                  { value: 'yes', label: 'はい' },
-                  { value: 'no', label: 'いいえ' },
+                  { value: 'yes', label: at.jpSchoolYes },
+                  { value: 'no', label: at.jpSchoolNo },
                 ]} />
-              <AuthSelect label="日本語検定 (JLPT)" value={jlpt} onChange={setJlpt} required
+              <AuthSelect label={at.jlptLabel} value={jlpt} onChange={setJlpt} required selectPlaceholder={at.selectPlaceholder}
                 options={[
-                  { value: 'none', label: '取得していない' },
+                  { value: 'none', label: at.jlptNone },
                   { value: 'N1', label: 'N1' },
                   { value: 'N2', label: 'N2' },
                   { value: 'N3', label: 'N3' },
@@ -9790,15 +10253,15 @@ function PageSignupProfile({ lang, t }) {
           )}
 
           <div style={{ marginTop: 8, display: 'flex', gap: 12 }}>
-            <AuthButton variant="outline" onClick={() => { setError(''); setSection(1); }}>← 戻る</AuthButton>
+            <AuthButton variant="outline" onClick={() => { setError(''); setSection(1); }}>← {at.back}</AuthButton>
             <AuthButton onClick={() => {
               if (!section2Ready) {
-                setError('必須項目をすべて入力してください');
+                setError(at.required);
                 return;
               }
               setError('');
               setSection(3);
-            }}>次へ <span style={{ marginLeft: 'auto' }}>→</span></AuthButton>
+            }}>{at.next} <span style={{ marginLeft: 'auto' }}>→</span></AuthButton>
           </div>
         </div>
       )}
@@ -9806,14 +10269,13 @@ function PageSignupProfile({ lang, t }) {
       {/* セクション3: 任意項目 */}
       {section === 3 && (
         <div style={{ display: 'flex', flexDirection: 'column', gap: 14 }}>
-          <AuthInput label="所属大学/職業 (任意)" value={dept} onChange={setDept} placeholder="例: 早稲田大学 / 株式会社XX / フリーランス" />
+          <AuthInput label={at.deptLabel} value={dept} onChange={setDept} placeholder={at.deptPh} />
 
-          {/* 興味ジャンル — チェックボックス */}
           <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
             <span style={{
               fontFamily: 'var(--jp)', fontSize: 12, fontWeight: 500,
               color: '#0a2960', letterSpacing: '0.04em',
-            }}>興味ジャンル (任意、複数選択可)</span>
+            }}>{at.interestsLabel}</span>
             <div style={{ display: 'flex', flexWrap: 'wrap', gap: 6 }}>
               {INTEREST_CATEGORIES.map(cat => {
                 const selected = interests.includes(cat);
@@ -9824,27 +10286,22 @@ function PageSignupProfile({ lang, t }) {
                       else setInterests([...interests, cat]);
                     }}
                     style={{
-                      padding: '6px 12px',
-                      fontSize: 12,
-                      fontFamily: 'var(--jp)',
+                      padding: '6px 12px', fontSize: 12, fontFamily: 'var(--jp)',
                       color: selected ? '#fff' : '#0a2960',
                       background: selected ? '#0a2960' : '#fff',
-                      border: '1px solid #0a2960',
-                      borderRadius: 0,
-                      cursor: 'pointer',
-                      transition: 'all .15s',
+                      border: '1px solid #0a2960', borderRadius: 0,
+                      cursor: 'pointer', transition: 'all .15s',
                     }}>{cat}</button>
                 );
               })}
             </div>
           </div>
 
-          {/* 言語スキル — チェックボックス */}
           <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
             <span style={{
               fontFamily: 'var(--jp)', fontSize: 12, fontWeight: 500,
               color: '#0a2960', letterSpacing: '0.04em',
-            }}>話せる言語 (任意、複数選択可)</span>
+            }}>{at.languagesLabel}</span>
             <div style={{ display: 'flex', flexWrap: 'wrap', gap: 6 }}>
               {LANGUAGE_SKILLS.map(lang2 => {
                 const selected = languageSkills.includes(lang2);
@@ -9855,15 +10312,11 @@ function PageSignupProfile({ lang, t }) {
                       else setLanguageSkills([...languageSkills, lang2]);
                     }}
                     style={{
-                      padding: '6px 12px',
-                      fontSize: 12,
-                      fontFamily: 'var(--jp)',
+                      padding: '6px 12px', fontSize: 12, fontFamily: 'var(--jp)',
                       color: selected ? '#fff' : '#2c89e8',
                       background: selected ? '#2c89e8' : '#fff',
-                      border: '1px solid #2c89e8',
-                      borderRadius: 0,
-                      cursor: 'pointer',
-                      transition: 'all .15s',
+                      border: '1px solid #2c89e8', borderRadius: 0,
+                      cursor: 'pointer', transition: 'all .15s',
                     }}>{lang2}</button>
                 );
               })}
@@ -9875,9 +10328,9 @@ function PageSignupProfile({ lang, t }) {
           )}
 
           <div style={{ marginTop: 8, display: 'flex', gap: 12 }}>
-            <AuthButton variant="outline" onClick={() => { setError(''); setSection(2); }}>← 戻る</AuthButton>
+            <AuthButton variant="outline" onClick={() => { setError(''); setSection(2); }}>← {at.back}</AuthButton>
             <AuthButton onClick={handleSubmit} disabled={submitting}>
-              {submitting ? '登録中...' : '登録を完了する'}
+              {submitting ? at.submitting : at.completeBtn}
               <span style={{ marginLeft: 'auto' }}>→</span>
             </AuthButton>
           </div>
@@ -9894,6 +10347,7 @@ function PageSignupProfile({ lang, t }) {
 function PageMyPage({ lang, t, events }) {
   const auth = useAuth();
   const dialog = useDialog();
+  const at = authT(lang);
   const [editing, setEditing] = React.useState(false);
 
   // (Phase A) 自分の参加申込一覧
@@ -9935,10 +10389,10 @@ function PageMyPage({ lang, t, events }) {
   // キャンセル処理 (マイページから)
   const handleCancel = async (reg) => {
     const ok = await dialog.confirm({
-      title: '参加キャンセルの確認',
-      message: `${reg.event ? reg.event.title : 'このイベント'}\nへの参加申込をキャンセルします。\nよろしいですか？`,
-      confirmLabel: 'キャンセルする',
-      cancelLabel: '戻る',
+      title: at.cancelConfirmTitle,
+      message: at.cancelConfirmMsg.replace('%title%', reg.event ? reg.event.title : ''),
+      confirmLabel: at.cancelConfirmBtn,
+      cancelLabel: at.back,
     });
     if (!ok) return;
     try {
@@ -9947,13 +10401,13 @@ function PageMyPage({ lang, t, events }) {
       const refreshed = await authApi.getMyRegistrations(token);
       setMyRegistrations(refreshed.registrations || []);
       await dialog.success({
-        title: 'キャンセル完了',
-        message: '参加申込をキャンセルしました',
+        title: at.cancelDone,
+        message: at.cancelDoneMsg,
       });
     } catch (err) {
       await dialog.error({
-        title: 'キャンセル失敗',
-        message: err.message || 'もう一度お試しください',
+        title: at.cancelFailed,
+        message: err.message || at.required,
       });
     }
   };
@@ -9968,7 +10422,7 @@ function PageMyPage({ lang, t, events }) {
         color: '#6b7280',
       }}>
         <div className="spinner" style={{ marginBottom: 16 }}/>
-        <div>読み込み中...</div>
+        <div>{at.loading}</div>
       </div>
     );
   }
@@ -10178,11 +10632,11 @@ function PageMyPage({ lang, t, events }) {
               fontWeight: 600,
               color: '#0a2960',
               letterSpacing: '0.04em',
-            }}>{lang === 'en' ? `Welcome, ${user.nickname}` : `こんにちは、${user.nickname}さん`}</h1>
+            }}>{at.welcomeUser.replace('%nickname%', user.nickname || user.name || '')}</h1>
             <p style={{
               margin: '8px 0 0',
               fontSize: 13, color: '#6b7280', fontFamily: 'var(--jp)',
-            }}>{lang === 'en' ? 'Your events and activity' : 'あなたのイベントとアクティビティ'}</p>
+            }}>{at.yourActivity}</p>
           </header>
 
           {/* 参加予定 */}
@@ -10196,7 +10650,7 @@ function PageMyPage({ lang, t, events }) {
               display: 'flex', alignItems: 'center', gap: 8,
             }}>
               <span style={{ display: 'inline-block', width: 4, height: 16, background: '#2c89e8' }}/>
-              {lang === 'en' ? 'Upcoming Events' : '参加予定のイベント'}
+              {at.upcomingEvents}
               {upcomingEvents.length > 0 && (
                 <span style={{
                   fontSize: 11, color: '#6b7280', fontWeight: 400, marginLeft: 6,
@@ -10209,12 +10663,12 @@ function PageMyPage({ lang, t, events }) {
                 fontSize: 13, color: '#6b7280', fontFamily: 'var(--jp)',
               }}>
                 <div className="spinner" style={{ marginBottom: 8 }}/>
-                読み込み中...
+                {at.loading}
               </div>
             ) : upcomingEvents.length > 0 ? (
               <div style={{ display: 'grid', gap: 12 }}>
                 {upcomingEvents.map(reg => (
-                  <MyEventCard key={reg.regId} registration={reg} onCancel={handleCancel} />
+                  <MyEventCard key={reg.regId} registration={reg} onCancel={handleCancel} lang={lang} />
                 ))}
               </div>
             ) : (
@@ -10223,11 +10677,11 @@ function PageMyPage({ lang, t, events }) {
                 fontSize: 13, color: '#6b7280', fontFamily: 'var(--jp)',
                 textAlign: 'center',
               }}>
-                参加予定のイベントはありません<br/>
+                {at.noUpcoming}<br/>
                 <a href="#/events" style={{
                   color: '#2c89e8', textDecoration: 'none', fontWeight: 500,
                   marginTop: 8, display: 'inline-block',
-                }}>イベントを探す →</a>
+                }}>{at.findEvents}</a>
               </div>
             )}
           </section>
@@ -10243,7 +10697,7 @@ function PageMyPage({ lang, t, events }) {
               display: 'flex', alignItems: 'center', gap: 8,
             }}>
               <span style={{ display: 'inline-block', width: 4, height: 16, background: '#0a2960' }}/>
-              {lang === 'en' ? 'Past Events' : '参加履歴'}
+              {at.pastEvents}
               {pastEvents.length > 0 && (
                 <span style={{
                   fontSize: 11, color: '#6b7280', fontWeight: 400, marginLeft: 6,
@@ -10253,7 +10707,7 @@ function PageMyPage({ lang, t, events }) {
             {regsLoading ? null : pastEvents.length > 0 ? (
               <div style={{ display: 'grid', gap: 12 }}>
                 {pastEvents.map(reg => (
-                  <MyEventCard key={reg.regId} registration={reg} past />
+                  <MyEventCard key={reg.regId} registration={reg} past lang={lang} />
                 ))}
               </div>
             ) : (
@@ -10262,7 +10716,7 @@ function PageMyPage({ lang, t, events }) {
                 fontSize: 13, color: '#6b7280', fontFamily: 'var(--jp)',
                 textAlign: 'center',
               }}>
-                参加履歴はまだありません
+                {at.noPast}
               </div>
             )}
           </section>
@@ -10285,7 +10739,8 @@ function PageMyPage({ lang, t, events }) {
 }
 
 // 参加イベントカード
-function MyEventCard({ registration, past, onCancel }) {
+function MyEventCard({ registration, past, onCancel, lang }) {
+  const at = authT(lang);
   const event = registration.event;
   if (!event) return null;
 
@@ -10294,10 +10749,10 @@ function MyEventCard({ registration, past, onCancel }) {
   // ステータスバッジの色
   const statusColor = (() => {
     switch (registration.status) {
-      case '確定':       return { bg: '#ecfdf5', fg: '#065f46', label: '確定' };
-      case '未決済':     return { bg: '#fef3c7', fg: '#92400e', label: registration.memo && registration.memo.indexOf('当日払い') >= 0 ? '当日払い' : '未決済' };
-      case 'チェックイン済': return { bg: '#f0f9ff', fg: '#1e40af', label: '参加済み' };
-      case 'キャンセル':  return { bg: '#f3f4f6', fg: '#6b7280', label: 'キャンセル済み' };
+      case '確定':       return { bg: '#ecfdf5', fg: '#065f46', label: at.badgeConfirmed };
+      case '未決済':     return { bg: '#fef3c7', fg: '#92400e', label: registration.memo && registration.memo.indexOf('当日払い') >= 0 ? at.badgeDayPay : at.badgeUnpaid };
+      case 'チェックイン済': return { bg: '#f0f9ff', fg: '#1e40af', label: at.badgeAttended };
+      case 'キャンセル':  return { bg: '#f3f4f6', fg: '#6b7280', label: at.badgeCancelled };
       default:          return { bg: '#f3f4f6', fg: '#374151', label: registration.status || '' };
     }
   })();
@@ -10371,7 +10826,7 @@ function MyEventCard({ registration, past, onCancel }) {
         }}
         onMouseEnter={(e) => { e.currentTarget.style.background = '#fef2f2'; }}
         onMouseLeave={(e) => { e.currentTarget.style.background = 'transparent'; }}>
-          キャンセル
+          {at.cancelBtn}
         </button>
       )}
 
@@ -10389,7 +10844,7 @@ function MyEventCard({ registration, past, onCancel }) {
           alignSelf: 'center',
           letterSpacing: '0.04em',
           textDecoration: 'none',
-        }}>再申込</a>
+        }}>{at.rebookBtn}</a>
       )}
     </div>
   );
@@ -10980,14 +11435,25 @@ function PageContact({ lang, t }) {
   };
 
   const handleSubmit = async () => {
+    console.log('[Contact] handleSubmit called', { inquiryType, email, userType, message: message.length, replyLang, submitting });
     // Honeypot
-    if (honeypot) return;
+    if (honeypot) {
+      console.log('[Contact] honeypot triggered, abort');
+      return;
+    }
     // Validate
-    if (!validate()) return;
+    if (!validate()) {
+      console.log('[Contact] validation failed:', errors);
+      return;
+    }
     // ダブルクリック防止
-    if (submitting) return;
+    if (submitting) {
+      console.log('[Contact] already submitting, abort');
+      return;
+    }
 
     setSubmitting(true);
+    console.log('[Contact] submitting...');
 
     const newId = generateId();
     const payload = {
