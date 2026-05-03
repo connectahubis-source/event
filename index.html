@@ -7965,6 +7965,1045 @@ function PageStub({ lang, t, title }) {
 }
 
 // ============================================================================
+// (Phase 7.7) 認証ページ — ログイン / 会員登録 / マイページ
+// ============================================================================
+
+// 共通レイアウト: 左ベージュ / 中フォーム / 右ステップ表
+function AuthPageLayout({ children, title, subtitle, lang }) {
+  const stepLabels = {
+    ja: { s1: '会員登録', s2: 'イベントに参加', s3: '次のイベントへ' },
+    easy: { s1: 'とうろく', s2: 'イベントに さんか', s3: 'つぎの イベントへ' },
+    en: { s1: 'Sign Up', s2: 'Join Event', s3: 'Next Event' },
+  };
+  const labels = stepLabels[lang] || stepLabels.ja;
+
+  return (
+    <section style={{
+      position: 'relative',
+      width: '100%',
+      minHeight: 'calc(100vh - 130px)',
+      marginTop: 130,
+      background: '#ffffff',
+      display: 'grid',
+      gridTemplateColumns: 'clamp(48px, 8%, 110px) 1fr clamp(280px, 32%, 420px)',
+    }}>
+      {/* 左ベージュ縦帯 */}
+      <div style={{
+        background: '#f5f0e8',
+        position: 'relative',
+      }}>
+        {/* 縦線 装飾 */}
+        <div style={{
+          position: 'absolute',
+          top: 80, left: '50%',
+          width: 1, height: 80,
+          background: '#0a2960', opacity: 0.25,
+        }}/>
+        {/* SCROLL ラベル風 (装飾) */}
+        <div style={{
+          position: 'absolute',
+          top: 200, left: '50%',
+          transform: 'translateX(-50%)',
+          fontFamily: 'var(--sans)',
+          fontSize: 10,
+          fontWeight: 600,
+          letterSpacing: '0.3em',
+          color: '#0a2960',
+          opacity: 0.5,
+          writingMode: 'vertical-rl',
+        }}>FOR YOU</div>
+      </div>
+
+      {/* 中央: フォーム + +a ロゴ */}
+      <div style={{
+        display: 'flex',
+        flexDirection: 'column',
+        alignItems: 'center',
+        padding: 'clamp(40px, 6vh, 80px) clamp(24px, 4vw, 64px)',
+        position: 'relative',
+      }}>
+        <div style={{
+          width: '100%',
+          maxWidth: 480,
+          display: 'flex',
+          flexDirection: 'column',
+          gap: 32,
+        }}>
+          {/* タイトル + 装飾線 */}
+          <div>
+            <div style={{
+              width: 60, height: 1,
+              background: '#0a2960',
+              opacity: 0.35,
+              marginBottom: 18,
+            }}/>
+            <h1 style={{
+              margin: 0,
+              fontFamily: 'var(--jp)',
+              fontSize: 'clamp(24px, 2.6vw, 32px)',
+              fontWeight: 600,
+              color: '#0a2960',
+              letterSpacing: '0.04em',
+              lineHeight: 1.3,
+            }}>{title}</h1>
+            {subtitle && (
+              <p style={{
+                margin: '8px 0 0',
+                fontFamily: 'var(--jp)',
+                fontSize: 13,
+                color: '#6b7280',
+                lineHeight: 1.6,
+              }}>{subtitle}</p>
+            )}
+          </div>
+
+          {/* フォーム本体 */}
+          {children}
+
+          {/* +a 装飾ロゴ */}
+          <div style={{
+            display: 'flex',
+            justifyContent: 'center',
+            paddingTop: 16,
+            opacity: 0.4,
+          }}>
+            <PlusALogo size={56} />
+          </div>
+        </div>
+      </div>
+
+      {/* 右: 紺グラデ + ステップ表 */}
+      <div className="desktop-only" style={{
+        background: 'linear-gradient(180deg, #1a3661 0%, #0a2960 100%)',
+        color: '#fff',
+        padding: 'clamp(40px, 6vh, 80px) 32px',
+        display: 'flex',
+        flexDirection: 'column',
+        gap: 24,
+      }}>
+        <div style={{
+          fontFamily: 'var(--sans)',
+          fontSize: 10,
+          letterSpacing: '0.3em',
+          color: 'rgba(255,255,255,0.7)',
+          marginBottom: 8,
+        }}>HOW IT WORKS</div>
+
+        <h3 style={{
+          margin: '0 0 16px',
+          fontFamily: 'var(--jp)',
+          fontSize: 18,
+          fontWeight: 500,
+          letterSpacing: '0.06em',
+        }}>{lang === 'en' ? 'Three steps to connect' : lang === 'easy' ? 'みっつの ステップ' : '3つのステップでつながる'}</h3>
+
+        <AuthStep num={1} label={labels.s1} icon="signup" active />
+        <AuthStepConnector />
+        <AuthStep num={2} label={labels.s2} icon="event" />
+        <AuthStepConnector />
+        <AuthStep num={3} label={labels.s3} icon="next" />
+      </div>
+    </section>
+  );
+}
+
+// ステップアイテム: 番号 + アイコン + ラベル
+function AuthStep({ num, label, icon, active }) {
+  const iconSvg = {
+    signup: (
+      <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
+        <path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2" />
+        <circle cx="9" cy="7" r="4" />
+        <line x1="19" y1="8" x2="19" y2="14" />
+        <line x1="22" y1="11" x2="16" y2="11" />
+      </svg>
+    ),
+    event: (
+      <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
+        <rect x="3" y="4" width="18" height="18" rx="2" />
+        <line x1="16" y1="2" x2="16" y2="6" />
+        <line x1="8" y1="2" x2="8" y2="6" />
+        <line x1="3" y1="10" x2="21" y2="10" />
+        <path d="M9 16l2 2 4-4" />
+      </svg>
+    ),
+    next: (
+      <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
+        <circle cx="12" cy="12" r="10" />
+        <polyline points="10 8 14 12 10 16" />
+      </svg>
+    ),
+  };
+
+  return (
+    <div style={{
+      display: 'flex',
+      alignItems: 'center',
+      gap: 16,
+      opacity: active ? 1 : 0.55,
+    }}>
+      <div style={{
+        width: 44, height: 44,
+        flexShrink: 0,
+        display: 'flex',
+        alignItems: 'center',
+        justifyContent: 'center',
+        border: active ? '1.5px solid #fff' : '1px solid rgba(255,255,255,0.3)',
+        background: active ? 'rgba(255,255,255,0.08)' : 'transparent',
+        color: '#fff',
+      }}>
+        {iconSvg[icon]}
+      </div>
+      <div>
+        <div style={{
+          fontSize: 10,
+          letterSpacing: '0.2em',
+          color: 'rgba(255,255,255,0.6)',
+          marginBottom: 2,
+        }}>STEP {num}</div>
+        <div style={{
+          fontFamily: 'var(--jp)',
+          fontSize: 14,
+          fontWeight: 500,
+          letterSpacing: '0.04em',
+        }}>{label}</div>
+      </div>
+    </div>
+  );
+}
+
+function AuthStepConnector() {
+  return (
+    <div style={{
+      width: 1, height: 24,
+      marginLeft: 22,
+      background: 'rgba(255,255,255,0.3)',
+    }}/>
+  );
+}
+
+// +a ロゴ (簡易版 — Hero画面のロゴと同じ)
+function PlusALogo({ size }) {
+  const sz = size || 56;
+  return (
+    <div style={{
+      position: 'relative',
+      width: sz,
+      height: sz,
+    }}>
+      {/* "connec" 文字 弧状 */}
+      <div style={{
+        position: 'absolute',
+        top: -4,
+        left: '50%',
+        transform: 'translateX(-50%)',
+        fontFamily: 'var(--sans)',
+        fontSize: sz * 0.18,
+        fontWeight: 600,
+        color: '#0a2960',
+        letterSpacing: '0.12em',
+      }}>connec</div>
+      {/* +a 大きく */}
+      <div style={{
+        position: 'absolute',
+        top: '50%',
+        left: '50%',
+        transform: 'translate(-50%, -45%)',
+        fontFamily: 'var(--sans)',
+        fontSize: sz * 0.85,
+        fontWeight: 800,
+        color: '#0a2960',
+        lineHeight: 1,
+      }}>+a</div>
+    </div>
+  );
+}
+
+// 共通フォーム部品
+function AuthInput({ label, type, value, onChange, placeholder, required, autoComplete, error }) {
+  return (
+    <label style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
+      <span style={{
+        fontFamily: 'var(--jp)',
+        fontSize: 12,
+        fontWeight: 500,
+        color: '#0a2960',
+        letterSpacing: '0.04em',
+      }}>
+        {label}{required && <span style={{ color: '#dc2626', marginLeft: 4 }}>*</span>}
+      </span>
+      <input
+        type={type || 'text'}
+        value={value || ''}
+        onChange={(e) => onChange(e.target.value)}
+        placeholder={placeholder}
+        autoComplete={autoComplete}
+        style={{
+          padding: '12px 14px',
+          fontSize: 14,
+          fontFamily: 'var(--jp)',
+          color: '#1f2937',
+          background: '#ffffff',
+          border: error ? '1px solid #dc2626' : '1px solid #e5e7eb',
+          borderRadius: 0,
+          outline: 'none',
+          transition: 'border-color .15s',
+        }}
+        onFocus={(e) => e.target.style.borderColor = '#2c89e8'}
+        onBlur={(e) => e.target.style.borderColor = error ? '#dc2626' : '#e5e7eb'}
+      />
+      {error && (
+        <span style={{ fontSize: 11, color: '#dc2626' }}>{error}</span>
+      )}
+    </label>
+  );
+}
+
+function AuthSelect({ label, value, onChange, options, required, error }) {
+  return (
+    <label style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
+      <span style={{
+        fontFamily: 'var(--jp)',
+        fontSize: 12,
+        fontWeight: 500,
+        color: '#0a2960',
+        letterSpacing: '0.04em',
+      }}>
+        {label}{required && <span style={{ color: '#dc2626', marginLeft: 4 }}>*</span>}
+      </span>
+      <select
+        value={value || ''}
+        onChange={(e) => onChange(e.target.value)}
+        style={{
+          padding: '12px 14px',
+          fontSize: 14,
+          fontFamily: 'var(--jp)',
+          color: value ? '#1f2937' : '#9ca3af',
+          background: '#ffffff',
+          border: error ? '1px solid #dc2626' : '1px solid #e5e7eb',
+          borderRadius: 0,
+          outline: 'none',
+          cursor: 'pointer',
+        }}
+      >
+        <option value="" disabled>選択してください</option>
+        {options.map(opt => (
+          <option key={opt.value} value={opt.value}>{opt.label}</option>
+        ))}
+      </select>
+      {error && (
+        <span style={{ fontSize: 11, color: '#dc2626' }}>{error}</span>
+      )}
+    </label>
+  );
+}
+
+function AuthButton({ children, onClick, type, disabled, variant }) {
+  const isPrimary = variant !== 'outline';
+  return (
+    <button
+      type={type || 'button'}
+      onClick={onClick}
+      disabled={disabled}
+      style={{
+        width: '100%',
+        maxWidth: 320,
+        padding: '14px 20px',
+        fontFamily: 'var(--jp)',
+        fontSize: 14,
+        fontWeight: 600,
+        letterSpacing: '0.06em',
+        color: isPrimary ? '#fff' : '#0a2960',
+        background: isPrimary ? (disabled ? '#94a3b8' : '#0a2960') : '#fff',
+        border: isPrimary ? 'none' : '2px solid #0a2960',
+        borderRadius: 0,
+        cursor: disabled ? 'not-allowed' : 'pointer',
+        transition: 'all .15s',
+        display: 'inline-flex',
+        alignItems: 'center',
+        justifyContent: 'center',
+        gap: 8,
+        alignSelf: 'flex-start',
+      }}
+      onMouseOver={(e) => {
+        if (!disabled && isPrimary) e.currentTarget.style.background = '#1c56b0';
+      }}
+      onMouseOut={(e) => {
+        if (!disabled && isPrimary) e.currentTarget.style.background = '#0a2960';
+      }}
+    >
+      {children}
+    </button>
+  );
+}
+
+
+// ============================================================================
+// (Phase 7.7) ログインページ
+// ============================================================================
+function PageLogin({ lang, t }) {
+  const auth = useAuth();
+  const [email, setEmail] = React.useState('');
+  const [password, setPassword] = React.useState('');
+  const [submitting, setSubmitting] = React.useState(false);
+  const [error, setError] = React.useState('');
+
+  // ログイン中なら / にリダイレクト
+  React.useEffect(() => {
+    if (auth.user) {
+      window.location.hash = '/mypage';
+    }
+  }, [auth.user]);
+
+  const handleSubmit = async (e) => {
+    if (e) e.preventDefault();
+    setError('');
+    if (!email || !password) {
+      setError('メールアドレスとパスワードを入力してください');
+      return;
+    }
+    setSubmitting(true);
+    try {
+      await auth.login(email, password);
+      window.location.hash = '/mypage';
+    } catch (err) {
+      setError(err.message || 'ログインに失敗しました');
+      setSubmitting(false);
+    }
+  };
+
+  const title = lang === 'en' ? 'Log In' : lang === 'easy' ? 'ログイン' : 'ログイン';
+  const subtitle = lang === 'en' ? 'Welcome back to connec+a'
+    : lang === 'easy' ? 'おかえりなさい'
+    : 'おかえりなさい。メールアドレスとパスワードでログインしてください。';
+
+  return (
+    <AuthPageLayout title={title} subtitle={subtitle} lang={lang}>
+      <div style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
+        <AuthInput
+          label="メールアドレス"
+          type="email"
+          value={email}
+          onChange={setEmail}
+          placeholder="you@example.com"
+          autoComplete="email"
+          required
+        />
+        <AuthInput
+          label="パスワード"
+          type="password"
+          value={password}
+          onChange={setPassword}
+          placeholder="8文字以上"
+          autoComplete="current-password"
+          required
+        />
+
+        {error && (
+          <div style={{
+            padding: 12,
+            background: '#fef2f2',
+            border: '1px solid #fecaca',
+            color: '#991b1b',
+            fontSize: 13,
+            fontFamily: 'var(--jp)',
+          }}>{error}</div>
+        )}
+
+        <div style={{ marginTop: 8 }}>
+          <AuthButton onClick={handleSubmit} disabled={submitting}>
+            {submitting ? 'ログイン中...' : 'ログイン'}
+            <span style={{ marginLeft: 'auto' }}>→</span>
+          </AuthButton>
+        </div>
+
+        <div style={{
+          paddingTop: 16,
+          borderTop: '1px solid #e5e7eb',
+          display: 'flex',
+          flexDirection: 'column',
+          gap: 8,
+          fontSize: 13,
+          fontFamily: 'var(--jp)',
+        }}>
+          <div style={{ color: '#6b7280' }}>初めての方へ</div>
+          <a href="#/signup" style={{
+            color: '#2c89e8',
+            textDecoration: 'none',
+            fontWeight: 500,
+          }}>会員登録はこちら →</a>
+        </div>
+      </div>
+    </AuthPageLayout>
+  );
+}
+
+
+// ============================================================================
+// (Phase 7.7) 会員登録ステップ1 (メール+パスワード)
+// ============================================================================
+function PageSignup({ lang, t }) {
+  const [email, setEmail] = React.useState('');
+  const [password, setPassword] = React.useState('');
+  const [passwordConfirm, setPasswordConfirm] = React.useState('');
+  const [submitting, setSubmitting] = React.useState(false);
+  const [error, setError] = React.useState('');
+  const [sent, setSent] = React.useState(false);
+
+  const handleSubmit = async (e) => {
+    if (e) e.preventDefault();
+    setError('');
+    if (!email || !email.match(/^[^\s@]+@[^\s@]+\.[^\s@]+$/)) {
+      setError('有効なメールアドレスを入力してください');
+      return;
+    }
+    if (password.length < 8) {
+      setError('パスワードは8文字以上にしてください');
+      return;
+    }
+    if (password !== passwordConfirm) {
+      setError('パスワードが一致しません');
+      return;
+    }
+    setSubmitting(true);
+    try {
+      await authApi.signupStart(email, password, lang);
+      setSent(true);
+    } catch (err) {
+      setError(err.message || '登録に失敗しました');
+    } finally {
+      setSubmitting(false);
+    }
+  };
+
+  if (sent) {
+    return (
+      <AuthPageLayout
+        title="メールを送信しました"
+        subtitle={`${email} にメールを送信しました。リンクをクリックしてアカウントを認証してください。`}
+        lang={lang}
+      >
+        <div style={{
+          padding: 20,
+          background: '#f0f9ff',
+          border: '1px solid #bae6fd',
+          fontSize: 13,
+          fontFamily: 'var(--jp)',
+          color: '#075985',
+          lineHeight: 1.7,
+        }}>
+          <strong style={{ display: 'block', marginBottom: 8 }}>次のステップ</strong>
+          1. 受信ボックスを確認 (迷惑メールフォルダもご確認ください)<br/>
+          2. メール内のボタンをクリック<br/>
+          3. プロフィール詳細を入力して登録完了
+        </div>
+        <div style={{ marginTop: 16 }}>
+          <a href="#/" style={{
+            color: '#2c89e8',
+            fontFamily: 'var(--jp)',
+            fontSize: 13,
+            textDecoration: 'none',
+          }}>← ホームに戻る</a>
+        </div>
+      </AuthPageLayout>
+    );
+  }
+
+  return (
+    <AuthPageLayout
+      title="会員登録"
+      subtitle="メールアドレスとパスワードを入力してください。認証メールをお送りします。"
+      lang={lang}
+    >
+      <div style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
+        <AuthInput
+          label="メールアドレス"
+          type="email"
+          value={email}
+          onChange={setEmail}
+          placeholder="you@example.com"
+          autoComplete="email"
+          required
+        />
+        <AuthInput
+          label="パスワード"
+          type="password"
+          value={password}
+          onChange={setPassword}
+          placeholder="8文字以上"
+          autoComplete="new-password"
+          required
+        />
+        <AuthInput
+          label="パスワード (確認)"
+          type="password"
+          value={passwordConfirm}
+          onChange={setPasswordConfirm}
+          placeholder="もう一度入力"
+          autoComplete="new-password"
+          required
+        />
+
+        {error && (
+          <div style={{
+            padding: 12,
+            background: '#fef2f2',
+            border: '1px solid #fecaca',
+            color: '#991b1b',
+            fontSize: 13,
+            fontFamily: 'var(--jp)',
+          }}>{error}</div>
+        )}
+
+        <div style={{ marginTop: 8 }}>
+          <AuthButton onClick={handleSubmit} disabled={submitting}>
+            {submitting ? '送信中...' : '認証メールを送信'}
+            <span style={{ marginLeft: 'auto' }}>→</span>
+          </AuthButton>
+        </div>
+
+        <div style={{
+          paddingTop: 16,
+          borderTop: '1px solid #e5e7eb',
+          fontSize: 13,
+          fontFamily: 'var(--jp)',
+        }}>
+          <div style={{ color: '#6b7280', marginBottom: 8 }}>すでにアカウントをお持ちの方</div>
+          <a href="#/login" style={{
+            color: '#2c89e8',
+            textDecoration: 'none',
+            fontWeight: 500,
+          }}>ログイン →</a>
+        </div>
+      </div>
+    </AuthPageLayout>
+  );
+}
+
+
+// ============================================================================
+// (Phase 7.7) メール認証ハンドラ (token をURLから取得して検証)
+// ============================================================================
+function PageSignupVerify({ lang, t }) {
+  const [status, setStatus] = React.useState('verifying'); // verifying / success / error
+  const [message, setMessage] = React.useState('');
+  const [email, setEmail] = React.useState('');
+
+  React.useEffect(() => {
+    // URL hash から token を取得 ( /#/signup-verify?token=XXX )
+    const hash = window.location.hash;
+    const queryStart = hash.indexOf('?');
+    if (queryStart < 0) {
+      setStatus('error');
+      setMessage('認証トークンが見つかりません');
+      return;
+    }
+    const params = new URLSearchParams(hash.substring(queryStart + 1));
+    const token = params.get('token');
+    if (!token) {
+      setStatus('error');
+      setMessage('認証トークンが見つかりません');
+      return;
+    }
+
+    let cancelled = false;
+    (async () => {
+      try {
+        const result = await authApi.verifyEmail(token);
+        if (!cancelled) {
+          setEmail(result.email || '');
+          setStatus('success');
+          // 1.5秒後にステップ2へ
+          setTimeout(() => {
+            window.location.hash = '/signup-profile?email=' + encodeURIComponent(result.email);
+          }, 1500);
+        }
+      } catch (err) {
+        if (!cancelled) {
+          setStatus('error');
+          setMessage(err.message || '認証に失敗しました');
+        }
+      }
+    })();
+    return () => { cancelled = true; };
+  }, []);
+
+  if (status === 'verifying') {
+    return (
+      <AuthPageLayout title="認証中..." subtitle="メールアドレスを確認しています" lang={lang}>
+        <div style={{
+          padding: 40,
+          textAlign: 'center',
+          fontFamily: 'var(--jp)',
+          color: '#6b7280',
+        }}>
+          <div className="spinner" style={{ marginBottom: 16 }}/>
+          <div>少々お待ちください...</div>
+        </div>
+      </AuthPageLayout>
+    );
+  }
+
+  if (status === 'success') {
+    return (
+      <AuthPageLayout
+        title="認証完了"
+        subtitle="メールアドレスの確認が完了しました。続いてプロフィールを登録します。"
+        lang={lang}
+      >
+        <div style={{
+          padding: 20,
+          background: '#f0fdf4',
+          border: '1px solid #bbf7d0',
+          color: '#166534',
+          fontSize: 13,
+          fontFamily: 'var(--jp)',
+        }}>
+          ✓ {email} の認証が完了しました。次のページへ移動します...
+        </div>
+      </AuthPageLayout>
+    );
+  }
+
+  return (
+    <AuthPageLayout
+      title="認証に失敗しました"
+      subtitle={message}
+      lang={lang}
+    >
+      <div style={{
+        padding: 20,
+        background: '#fef2f2',
+        border: '1px solid #fecaca',
+        color: '#991b1b',
+        fontSize: 13,
+        fontFamily: 'var(--jp)',
+      }}>
+        認証リンクが無効または期限切れです。再度会員登録をお試しください。
+      </div>
+      <div style={{ marginTop: 16 }}>
+        <a href="#/signup" style={{
+          color: '#2c89e8',
+          fontFamily: 'var(--jp)',
+          fontSize: 13,
+          textDecoration: 'none',
+          fontWeight: 500,
+        }}>← 会員登録に戻る</a>
+      </div>
+    </AuthPageLayout>
+  );
+}
+
+
+// ============================================================================
+// (Phase 7.7) 会員登録ステップ2 (プロフィール詳細) — セクション分割 + 進捗表示
+// ============================================================================
+const PREFECTURES = [
+  '北海道','青森県','岩手県','宮城県','秋田県','山形県','福島県','茨城県','栃木県','群馬県',
+  '埼玉県','千葉県','東京都','神奈川県','新潟県','富山県','石川県','福井県','山梨県','長野県',
+  '岐阜県','静岡県','愛知県','三重県','滋賀県','京都府','大阪府','兵庫県','奈良県','和歌山県',
+  '鳥取県','島根県','岡山県','広島県','山口県','徳島県','香川県','愛媛県','高知県','福岡県',
+  '佐賀県','長崎県','熊本県','大分県','宮崎県','鹿児島県','沖縄県','海外',
+];
+
+const COUNTRIES = [
+  '日本','中国','韓国','台湾','ベトナム','タイ','インドネシア','フィリピン','マレーシア','シンガポール',
+  'インド','ネパール','スリランカ','バングラデシュ','モンゴル','ミャンマー','カンボジア','ラオス',
+  'アメリカ','カナダ','メキシコ','ブラジル','アルゼンチン',
+  'イギリス','フランス','ドイツ','イタリア','スペイン','オランダ','スウェーデン','デンマーク','ノルウェー','フィンランド',
+  'ポーランド','ロシア','ウクライナ','ルーマニア','ハンガリー','チェコ','スイス','オーストリア','ベルギー','アイルランド',
+  'オーストラリア','ニュージーランド','エジプト','南アフリカ','ナイジェリア','ケニア','モロッコ',
+  'トルコ','イラン','イスラエル','サウジアラビア','UAE','その他',
+];
+
+const INTEREST_CATEGORIES = [
+  'スポーツ','文化交流','言語学習','アート','音楽','映画','食べ歩き','料理','旅行','読書',
+  'カフェ巡り','写真','ファッション','テクノロジー','ビジネス','ボランティア','アウトドア','ゲーム',
+  'アニメ・マンガ','歴史','建築','ダンス','茶道','華道','書道','着物','祭り',
+];
+
+const LANGUAGE_SKILLS = [
+  '日本語','英語','中国語','韓国語','スペイン語','フランス語','ドイツ語','ベトナム語','タイ語',
+  'インドネシア語','フィリピン語','イタリア語','ポルトガル語','ロシア語','アラビア語',
+];
+
+function PageSignupProfile({ lang, t }) {
+  // URL hash から email を取得
+  const [email, setEmail] = React.useState('');
+
+  React.useEffect(() => {
+    const hash = window.location.hash;
+    const queryStart = hash.indexOf('?');
+    if (queryStart >= 0) {
+      const params = new URLSearchParams(hash.substring(queryStart + 1));
+      setEmail(params.get('email') || '');
+    }
+  }, []);
+
+  // フォーム状態 (各フィールド)
+  const [name, setName] = React.useState('');
+  const [kana, setKana] = React.useState('');
+  const [nickname, setNickname] = React.useState('');
+  const [residencyStatus, setResidencyStatus] = React.useState('');
+  const [nationality, setNationality] = React.useState('');
+  const [birthdate, setBirthdate] = React.useState('');
+  const [prefecture, setPrefecture] = React.useState('');
+  const [displayLang, setDisplayLang] = React.useState('ja');
+  const [jpSchool, setJpSchool] = React.useState('');
+  const [jlpt, setJlpt] = React.useState('');
+  const [dept, setDept] = React.useState('');
+  const [interests, setInterests] = React.useState([]);
+  const [languageSkills, setLanguageSkills] = React.useState([]);
+
+  const [section, setSection] = React.useState(1);
+  const [submitting, setSubmitting] = React.useState(false);
+  const [error, setError] = React.useState('');
+
+  const auth = useAuth();
+
+  // セクション1: 基本情報の必須項目チェック
+  const section1Ready = name && nickname && birthdate && prefecture && displayLang;
+  // セクション2: 在留情報の必須項目チェック
+  const isForeign = residencyStatus === '在留外国人';
+  const section2Ready = residencyStatus && nationality
+    && (!isForeign || (jpSchool !== '' && jlpt));
+  // フリガナ: 名前が日本語 (漢字含む) なら必須
+  const nameIsRoman = /^[A-Za-z\s\-\.]+$/.test(name);
+  const kanaRequired = !nameIsRoman;
+  const kanaOk = !kanaRequired || (kana && kana.trim());
+
+  const handleSubmit = async () => {
+    setError('');
+    if (!section1Ready || !section2Ready || !kanaOk) {
+      setError('必須項目をすべて入力してください');
+      return;
+    }
+    setSubmitting(true);
+    try {
+      const result = await authApi.signupComplete({
+        email,
+        name: name.trim(),
+        kana: kana.trim(),
+        nickname: nickname.trim(),
+        residencyStatus,
+        nationality,
+        birthdate,
+        prefecture,
+        displayLang,
+        jpSchool: isForeign ? (jpSchool === 'yes') : false,
+        jlpt: isForeign ? jlpt : 'none',
+        dept: dept.trim(),
+        interests,
+        languageSkills,
+      });
+      // セッショントークン保存
+      authStore.setToken(result.sessionToken, result.sessionExpires);
+      await auth.refresh();
+      window.location.hash = '/mypage';
+    } catch (err) {
+      setError(err.message || '登録に失敗しました');
+      setSubmitting(false);
+    }
+  };
+
+  return (
+    <AuthPageLayout
+      title="プロフィール登録"
+      subtitle="あなたのことを教えてください。マッチングや表示の最適化に使います。"
+      lang={lang}
+    >
+      {/* 進捗表示 */}
+      <div style={{ display: 'flex', gap: 4, marginBottom: 4 }}>
+        {[1, 2, 3].map(n => (
+          <div key={n} style={{
+            flex: 1,
+            height: 4,
+            background: section >= n ? '#0a2960' : '#e5e7eb',
+            transition: 'background .3s',
+          }}/>
+        ))}
+      </div>
+      <div style={{
+        fontFamily: 'var(--jp)',
+        fontSize: 11,
+        color: '#6b7280',
+        letterSpacing: '0.06em',
+        marginTop: -8,
+      }}>
+        ステップ {section} / 3 : {section === 1 ? '基本情報' : section === 2 ? '在留情報' : '任意項目'}
+      </div>
+
+      {/* セクション1: 基本情報 */}
+      {section === 1 && (
+        <div style={{ display: 'flex', flexDirection: 'column', gap: 14 }}>
+          <AuthInput label="名前 (漢字またはローマ字)" value={name} onChange={setName} placeholder="例: 田中太郎 / Tanaka Taro" required />
+          {kanaRequired && (
+            <AuthInput label="フリガナ" value={kana} onChange={setKana} placeholder="例: タナカタロウ" required />
+          )}
+          <AuthInput label="ニックネーム" value={nickname} onChange={setNickname} placeholder="サイト内表示名" required />
+          <AuthInput label="生年月日" type="date" value={birthdate} onChange={setBirthdate} required />
+          <AuthSelect label="都道府県" value={prefecture} onChange={setPrefecture} required
+            options={PREFECTURES.map(p => ({ value: p, label: p }))} />
+          <AuthSelect label="表示言語" value={displayLang} onChange={setDisplayLang} required
+            options={[
+              { value: 'ja', label: '日本語' },
+              { value: 'easy', label: 'やさしいにほんご' },
+              { value: 'en', label: 'English' },
+            ]} />
+
+          {error && (
+            <div style={{ padding: 12, background: '#fef2f2', border: '1px solid #fecaca', color: '#991b1b', fontSize: 13, fontFamily: 'var(--jp)' }}>{error}</div>
+          )}
+
+          <div style={{ marginTop: 8 }}>
+            <AuthButton onClick={() => {
+              if (!section1Ready || !kanaOk) {
+                setError('必須項目をすべて入力してください');
+                return;
+              }
+              setError('');
+              setSection(2);
+            }}>次へ <span style={{ marginLeft: 'auto' }}>→</span></AuthButton>
+          </div>
+        </div>
+      )}
+
+      {/* セクション2: 在留情報 */}
+      {section === 2 && (
+        <div style={{ display: 'flex', flexDirection: 'column', gap: 14 }}>
+          <AuthSelect label="在留ステータス" value={residencyStatus} onChange={setResidencyStatus} required
+            options={[
+              { value: '在留外国人', label: '在留外国人' },
+              { value: '日本人', label: '日本人' },
+              { value: 'その他', label: 'その他' },
+            ]} />
+          <AuthSelect label="国籍" value={nationality} onChange={setNationality} required
+            options={COUNTRIES.map(c => ({ value: c, label: c }))} />
+
+          {/* 在留外国人のみ: 日本語学校 + JLPT */}
+          {isForeign && (
+            <>
+              <AuthSelect label="日本語学校に通っている" value={jpSchool} onChange={setJpSchool} required
+                options={[
+                  { value: 'yes', label: 'はい' },
+                  { value: 'no', label: 'いいえ' },
+                ]} />
+              <AuthSelect label="日本語検定 (JLPT)" value={jlpt} onChange={setJlpt} required
+                options={[
+                  { value: 'none', label: '取得していない' },
+                  { value: 'N1', label: 'N1' },
+                  { value: 'N2', label: 'N2' },
+                  { value: 'N3', label: 'N3' },
+                  { value: 'N4', label: 'N4' },
+                  { value: 'N5', label: 'N5' },
+                ]} />
+            </>
+          )}
+
+          {error && (
+            <div style={{ padding: 12, background: '#fef2f2', border: '1px solid #fecaca', color: '#991b1b', fontSize: 13, fontFamily: 'var(--jp)' }}>{error}</div>
+          )}
+
+          <div style={{ marginTop: 8, display: 'flex', gap: 12 }}>
+            <AuthButton variant="outline" onClick={() => { setError(''); setSection(1); }}>← 戻る</AuthButton>
+            <AuthButton onClick={() => {
+              if (!section2Ready) {
+                setError('必須項目をすべて入力してください');
+                return;
+              }
+              setError('');
+              setSection(3);
+            }}>次へ <span style={{ marginLeft: 'auto' }}>→</span></AuthButton>
+          </div>
+        </div>
+      )}
+
+      {/* セクション3: 任意項目 */}
+      {section === 3 && (
+        <div style={{ display: 'flex', flexDirection: 'column', gap: 14 }}>
+          <AuthInput label="所属大学/職業 (任意)" value={dept} onChange={setDept} placeholder="例: 早稲田大学 / 株式会社XX / フリーランス" />
+
+          {/* 興味ジャンル — チェックボックス */}
+          <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
+            <span style={{
+              fontFamily: 'var(--jp)', fontSize: 12, fontWeight: 500,
+              color: '#0a2960', letterSpacing: '0.04em',
+            }}>興味ジャンル (任意、複数選択可)</span>
+            <div style={{ display: 'flex', flexWrap: 'wrap', gap: 6 }}>
+              {INTEREST_CATEGORIES.map(cat => {
+                const selected = interests.includes(cat);
+                return (
+                  <button key={cat} type="button"
+                    onClick={() => {
+                      if (selected) setInterests(interests.filter(i => i !== cat));
+                      else setInterests([...interests, cat]);
+                    }}
+                    style={{
+                      padding: '6px 12px',
+                      fontSize: 12,
+                      fontFamily: 'var(--jp)',
+                      color: selected ? '#fff' : '#0a2960',
+                      background: selected ? '#0a2960' : '#fff',
+                      border: '1px solid #0a2960',
+                      borderRadius: 0,
+                      cursor: 'pointer',
+                      transition: 'all .15s',
+                    }}>{cat}</button>
+                );
+              })}
+            </div>
+          </div>
+
+          {/* 言語スキル — チェックボックス */}
+          <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
+            <span style={{
+              fontFamily: 'var(--jp)', fontSize: 12, fontWeight: 500,
+              color: '#0a2960', letterSpacing: '0.04em',
+            }}>話せる言語 (任意、複数選択可)</span>
+            <div style={{ display: 'flex', flexWrap: 'wrap', gap: 6 }}>
+              {LANGUAGE_SKILLS.map(lang2 => {
+                const selected = languageSkills.includes(lang2);
+                return (
+                  <button key={lang2} type="button"
+                    onClick={() => {
+                      if (selected) setLanguageSkills(languageSkills.filter(l => l !== lang2));
+                      else setLanguageSkills([...languageSkills, lang2]);
+                    }}
+                    style={{
+                      padding: '6px 12px',
+                      fontSize: 12,
+                      fontFamily: 'var(--jp)',
+                      color: selected ? '#fff' : '#2c89e8',
+                      background: selected ? '#2c89e8' : '#fff',
+                      border: '1px solid #2c89e8',
+                      borderRadius: 0,
+                      cursor: 'pointer',
+                      transition: 'all .15s',
+                    }}>{lang2}</button>
+                );
+              })}
+            </div>
+          </div>
+
+          {error && (
+            <div style={{ padding: 12, background: '#fef2f2', border: '1px solid #fecaca', color: '#991b1b', fontSize: 13, fontFamily: 'var(--jp)' }}>{error}</div>
+          )}
+
+          <div style={{ marginTop: 8, display: 'flex', gap: 12 }}>
+            <AuthButton variant="outline" onClick={() => { setError(''); setSection(2); }}>← 戻る</AuthButton>
+            <AuthButton onClick={handleSubmit} disabled={submitting}>
+              {submitting ? '登録中...' : '登録を完了する'}
+              <span style={{ marginLeft: 'auto' }}>→</span>
+            </AuthButton>
+          </div>
+        </div>
+      )}
+    </AuthPageLayout>
+  );
+}
+
+
+// ============================================================================
 // FOOTER
 // ============================================================================
 function Footer({ lang, t }) {
@@ -8187,11 +9226,13 @@ function App() {
     pageTitle = t.nav.contact;
     Page = <PageStub lang={lang} t={t} title={pageTitle} />;
   } else if (route === '/login') {
-    pageTitle = t.nav.login;
-    Page = <PageStub lang={lang} t={t} title={pageTitle} />;
+    Page = <PageLogin lang={lang} t={t} />;
   } else if (route === '/signup') {
-    pageTitle = t.nav.signup;
-    Page = <PageStub lang={lang} t={t} title={pageTitle} />;
+    Page = <PageSignup lang={lang} t={t} />;
+  } else if (route.indexOf('/signup-verify') === 0) {
+    Page = <PageSignupVerify lang={lang} t={t} />;
+  } else if (route.indexOf('/signup-profile') === 0) {
+    Page = <PageSignupProfile lang={lang} t={t} />;
   } else if (route === '/mypage') {
     pageTitle = lang === 'en' ? 'My Page' : 'マイページ';
     Page = <PageStub lang={lang} t={t} title={pageTitle} />;
