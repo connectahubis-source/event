@@ -637,6 +637,191 @@ const I18N = {
 // ============================================================================
 // API & DATA UTILS
 // ============================================================================
+// ============================================================================
+// (Phase 7.7) 認証API クライアント + セッション管理
+// ============================================================================
+
+/**
+ * GAS への POST リクエスト (action + payload 形式)
+ * GASのdoPostは body を JSON.parse するので、Content-Type は text/plain で送信
+ * (CORS preflight 回避のため)
+ */
+async function postToGAS(action, payload) {
+  const controller = new AbortController();
+  const timeoutId = setTimeout(() => controller.abort(), 30000); // 30秒
+  try {
+    const res = await fetch(CONFIG.GAS_URL, {
+      method: 'POST',
+      headers: { 'Content-Type': 'text/plain;charset=utf-8' },
+      body: JSON.stringify({ action, payload }),
+      signal: controller.signal,
+      redirect: 'follow',
+    });
+    clearTimeout(timeoutId);
+    if (!res.ok) {
+      console.error('[postToGAS] HTTP error:', res.status);
+      throw new Error('サーバーとの通信に失敗しました');
+    }
+    const json = await res.json();
+    if (!json.ok) {
+      throw new Error(json.error || 'リクエストが失敗しました');
+    }
+    return json.data;
+  } catch (err) {
+    clearTimeout(timeoutId);
+    if (err.name === 'AbortError') {
+      throw new Error('応答がタイムアウトしました');
+    }
+    throw err;
+  }
+}
+
+/**
+ * 認証ストア — LocalStorage にセッショントークンを保管
+ */
+const AUTH_STORAGE_KEY = 'connecta_auth_session';
+
+const authStore = {
+  getToken() {
+    try {
+      const raw = localStorage.getItem(AUTH_STORAGE_KEY);
+      if (!raw) return null;
+      const data = JSON.parse(raw);
+      // 期限切れチェック
+      if (data.expires && new Date(data.expires) < new Date()) {
+        this.clear();
+        return null;
+      }
+      return data.token || null;
+    } catch (e) {
+      return null;
+    }
+  },
+  setToken(token, expires) {
+    try {
+      localStorage.setItem(AUTH_STORAGE_KEY, JSON.stringify({ token, expires }));
+    } catch (e) {
+      console.error('[authStore] setToken failed:', e);
+    }
+  },
+  clear() {
+    try {
+      localStorage.removeItem(AUTH_STORAGE_KEY);
+    } catch (e) {}
+  },
+};
+
+/**
+ * 認証API: 7つのエンドポイントをラップ
+ */
+const authApi = {
+  // ステップ1: メール+パスワードを送信して認証メール送信
+  async signupStart(email, password, lang) {
+    return postToGAS('auth.signupStart', { email, password, lang: lang || 'ja' });
+  },
+  // メール認証リンクのトークンを検証
+  async verifyEmail(token) {
+    return postToGAS('auth.verifyEmail', { token });
+  },
+  // ステップ2: プロフィール詳細を保存 → セッション発行
+  async signupComplete(profile) {
+    return postToGAS('auth.signupComplete', profile);
+  },
+  // ログイン
+  async login(email, password) {
+    return postToGAS('auth.login', { email, password });
+  },
+  // ログアウト
+  async logout(sessionToken) {
+    return postToGAS('auth.logout', { sessionToken });
+  },
+  // 現在のユーザー取得
+  async me(sessionToken) {
+    return postToGAS('auth.me', { sessionToken });
+  },
+  // プロフィール更新
+  async updateProfile(sessionToken, fields) {
+    return postToGAS('auth.updateProfile', { sessionToken, fields });
+  },
+};
+
+/**
+ * 認証コンテキスト (React Context) — 全ページで共有
+ */
+const AuthContext = React.createContext({
+  user: null,           // ログイン中ユーザー or null
+  loading: true,        // 初回 me 呼び出し中
+  login: async () => {},
+  logout: async () => {},
+  refresh: async () => {},
+});
+
+function AuthProvider({ children }) {
+  const [user, setUser] = React.useState(null);
+  const [loading, setLoading] = React.useState(true);
+
+  // 初回 mount: localStorage トークンがあれば me で復元
+  React.useEffect(() => {
+    let cancelled = false;
+    async function init() {
+      const token = authStore.getToken();
+      if (!token) {
+        if (!cancelled) setLoading(false);
+        return;
+      }
+      try {
+        const result = await authApi.me(token);
+        if (!cancelled) {
+          setUser(result.user || null);
+          if (!result.user) authStore.clear();  // 期限切れトークン
+        }
+      } catch (err) {
+        console.error('[AuthProvider] me failed:', err);
+        if (!cancelled) authStore.clear();
+      } finally {
+        if (!cancelled) setLoading(false);
+      }
+    }
+    init();
+    return () => { cancelled = true; };
+  }, []);
+
+  const login = React.useCallback(async (email, password) => {
+    const result = await authApi.login(email, password);
+    authStore.setToken(result.sessionToken, result.sessionExpires);
+    setUser(result.user);
+    return result.user;
+  }, []);
+
+  const logout = React.useCallback(async () => {
+    const token = authStore.getToken();
+    if (token) {
+      try { await authApi.logout(token); } catch (e) {}
+    }
+    authStore.clear();
+    setUser(null);
+  }, []);
+
+  const refresh = React.useCallback(async () => {
+    const token = authStore.getToken();
+    if (!token) return;
+    try {
+      const result = await authApi.me(token);
+      setUser(result.user || null);
+    } catch (err) {}
+  }, []);
+
+  return React.createElement(AuthContext.Provider,
+    { value: { user, loading, login, logout, refresh } },
+    children
+  );
+}
+
+function useAuth() {
+  return React.useContext(AuthContext);
+}
+
+
 async function fetchEvents() {
   // 15秒タイムアウト: GAS応答が極端に遅い場合でも永久loadingを防ぐ
   const controller = new AbortController();
@@ -1260,29 +1445,48 @@ function Nav({ lang, setLang, t, transparent }) {
           padding: '20px 56px',
           display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 32,
         }}>
-          {/* 左: ブランド名 + サブテキスト (KURASHITO風) */}
-          <a href="#/" style={{
-            display: 'flex', flexDirection: 'column', gap: 4,
-            color: '#0a2960',
-            textDecoration: 'none',
-          }}>
-            <span style={{
-              fontFamily: 'var(--sans)',
-              fontSize: 26,
-              fontWeight: 800,
-              letterSpacing: '0.08em',
-              lineHeight: 1,
+          {/* 左: ブランド名 + スカイライン画像 (Phase 7.7) */}
+          <div style={{display:'flex', alignItems:'center', gap:24, flex:1, minWidth:0}}>
+            <a href="#/" style={{
+              display: 'flex', flexDirection: 'column', gap: 4,
               color: '#0a2960',
-            }}>connec+a</span>
-            <span style={{
-              fontFamily: 'var(--jp)',
-              fontSize: 11,
-              fontWeight: 400,
-              color: '#6b7280',
-              letterSpacing: '0.04em',
-              lineHeight: 1.4,
-            }}>留学生と日本人を、東京の日常でつなぐ</span>
-          </a>
+              textDecoration: 'none',
+              flexShrink: 0,
+            }}>
+              <span style={{
+                fontFamily: 'var(--sans)',
+                fontSize: 26,
+                fontWeight: 800,
+                letterSpacing: '0.08em',
+                lineHeight: 1,
+                color: '#0a2960',
+              }}>connec+a</span>
+              <span style={{
+                fontFamily: 'var(--jp)',
+                fontSize: 11,
+                fontWeight: 400,
+                color: '#6b7280',
+                letterSpacing: '0.04em',
+                lineHeight: 1.4,
+              }}>留学生と日本人を、東京の日常でつなぐ</span>
+            </a>
+
+            {/* 東京スカイライン装飾 */}
+            <div className="desktop-only" style={{
+              flex: 1,
+              minWidth: 0,
+              display: 'flex',
+              alignItems: 'center',
+              opacity: 0.7,
+            }}>
+              <img
+                src="https://drive.google.com/thumbnail?id=1skWG774NajtD5z_4pHrWjWeZdJdQ3Qcs&sz=w2000"
+                alt=""
+                style={{ height: 90, width: 'auto', maxWidth: '100%', display: 'block' }}
+                onError={(e) => { e.target.style.display = 'none'; }}
+              />
+            </div>
+          </div>
 
           {/* Desktop nav */}
           <div className="desktop-only" style={{ display: 'flex', gap: 36, alignItems: 'center' }}>
@@ -2842,9 +3046,10 @@ function HeroSlideshow({ lang, t, events, heroSlides, loading, frontNews, siteSe
     <section data-section="hero" style={{
       position: 'relative',
       width: '100%',
-      height: '100vh',
-      minHeight: 640,
-      maxHeight: 920,
+      height: 'calc(100vh - 130px)',
+      minHeight: 580,
+      maxHeight: 870,
+      marginTop: 130,
       overflow: 'hidden',
       background: '#ffffff',
       display: 'grid',
@@ -3183,13 +3388,13 @@ function HeroSlideshow({ lang, t, events, heroSlides, loading, frontNews, siteSe
       {/* === 左コンテンツコンテナ (白パネル + クイックアクセス) === */}
       <div className="desktop-only" style={{
         position: 'absolute',
-        top: 'clamp(110px, 13vh, 140px)',
+        top: 'clamp(40px, 5vh, 80px)',
         left: 'clamp(48px, 8%, 110px)',  /* ベージュ帯の幅と一致 = 余白ゼロ */
         width: 'clamp(380px, 33%, 520px)',
         zIndex: 4,
         display: 'flex',
         flexDirection: 'column',
-        gap: 20,
+        gap: 0,
       }}>
         {/* 白パネル */}
         <div style={{
@@ -3263,7 +3468,8 @@ function HeroSlideshow({ lang, t, events, heroSlides, loading, frontNews, siteSe
         <div style={{
           display: 'flex',
           flexDirection: 'column',
-          gap: 12,
+          gap: 0,
+          marginTop: 12,
           animation: phase === 'done' ? 'heroQuickFadeIn 1.0s ease-out 2.0s both' : 'none',
         }}>
           <a href="#/events" className="hero-quick-btn hero-quick-btn-blue" style={{
@@ -3279,7 +3485,8 @@ function HeroSlideshow({ lang, t, events, heroSlides, loading, frontNews, siteSe
             textDecoration: 'none',
             background: '#ffffff',
             border: '2px solid #2c89e8',
-            borderRadius: 999,
+            borderRadius: 0,
+            maxWidth: 320,
             transition: 'all 0.2s cubic-bezier(0.2, 0.8, 0.2, 1)',
             boxShadow: '0 8px 24px -8px rgba(44, 137, 232, 0.25)',
           }}>
@@ -3303,7 +3510,8 @@ function HeroSlideshow({ lang, t, events, heroSlides, loading, frontNews, siteSe
             textDecoration: 'none',
             background: '#ffffff',
             border: '2px solid #0a2960',
-            borderRadius: 999,
+            borderRadius: 0,
+            maxWidth: 320,
             transition: 'all 0.2s cubic-bezier(0.2, 0.8, 0.2, 1)',
             boxShadow: '0 8px 24px -8px rgba(10, 41, 96, 0.25)',
           }}>
@@ -3369,6 +3577,10 @@ function HeroSlideshow({ lang, t, events, heroSlides, loading, frontNews, siteSe
         @keyframes heroDotsFadeIn {
           from { opacity: 0; transform: translateX(-12px); }
           to   { opacity: 0.7; transform: translateX(0); }
+        }
+        @keyframes heroSkylineFadeIn {
+          from { opacity: 0; transform: translateY(8px); }
+          to   { opacity: 0.85; transform: translateY(0); }
         }
       `}</style>
     </section>
@@ -8007,7 +8219,7 @@ try {
   const rootEl = document.getElementById('root');
   // フォールバックをクリア
   rootEl.innerHTML = '';
-  ReactDOM.createRoot(rootEl).render(<App />);
+  ReactDOM.createRoot(rootEl).render(<AuthProvider><App /></AuthProvider>);
 } catch (err) {
   console.error('[App Boot Error]', err);
   const fallback = document.getElementById('fallback');
