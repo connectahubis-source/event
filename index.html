@@ -145,32 +145,6 @@ button { font-family: inherit; cursor: pointer; }
   100% { transform: scaleX(1); transform-origin: left; }
 }
 
-/* (Phase 7.6) Hero オーバーレイのアニメーション群 */
-@keyframes heroOvFadeIn {
-  0%   { opacity: 0; }
-  100% { opacity: 1; }
-}
-@keyframes heroOvSlideUp {
-  0%   { opacity: 0; transform: translateY(30px) rotate(var(--rot, 0deg)); }
-  100% { opacity: 1; transform: translateY(0)    rotate(var(--rot, 0deg)); }
-}
-@keyframes heroOvSlideDown {
-  0%   { opacity: 0; transform: translateY(-30px); }
-  100% { opacity: 1; transform: translateY(0); }
-}
-@keyframes heroOvSlideLeft {
-  0%   { opacity: 0; transform: translateX(40px); }
-  100% { opacity: 1; transform: translateX(0); }
-}
-@keyframes heroOvSlideRight {
-  0%   { opacity: 0; transform: translateX(-40px); }
-  100% { opacity: 1; transform: translateX(0); }
-}
-@keyframes heroOvZoomIn {
-  0%   { opacity: 0; transform: scale(0.7); }
-  100% { opacity: 1; transform: scale(1); }
-}
-
 /* ===== スクロール連動ビルドイン ===== */
 .build-in {
   opacity: 0;
@@ -2427,29 +2401,19 @@ function HeroSlideshow({ lang, t, events, heroSlides, loading, frontNews, siteSe
       };
     });
 
-  // ② Adminで管理するヒーロースライド (有効、かつ 画像 or 背景色 のいずれか)
+  // ② Adminで管理するヒーロースライド (有効・画像ありのみ)
   const adminSlides = (heroSlides || [])
-    .filter(s => s.enabled && (s.imageUrl || s.bgColor))
+    .filter(s => s.enabled && s.imageUrl)
     .sort((a, b) => a.order - b.order)
-    .map(s => {
-      // (Phase 7.6) overlay: JSON文字列または配列
-      let overlay = [];
-      try {
-        if (Array.isArray(s.overlay)) overlay = s.overlay;
-        else if (typeof s.overlay === 'string' && s.overlay) overlay = JSON.parse(s.overlay);
-      } catch (err) { overlay = []; }
-      return {
-        img: s.imageUrl ? normalizeImageUrl(s.imageUrl) : '',
-        bgColor: s.bgColor || '',
-        eyebrow: s.eyebrow || 'CONNEC+A',
-        mainEn: s.titleEn || '',
-        mainEm: s.titleEm || '',
-        sub: s.sub || '',
-        tone: s.tone || 'warm',
-        isEvent: false,
-        heroOverlay: overlay,
-      };
-    });
+    .map(s => ({
+      img: normalizeImageUrl(s.imageUrl),
+      eyebrow: s.eyebrow || 'CONNEC+A',
+      mainEn: s.titleEn || '',
+      mainEm: s.titleEm || '',
+      sub: s.sub || '',
+      tone: s.tone || 'warm',
+      isEvent: false,
+    }));
 
   // ③ 混在表示: イベントスライドと Adminスライドを交互に挟む (イベント優先で先頭)
   // 例: [event1, admin1, event2, admin2, event3, admin3] のように
@@ -2463,14 +2427,23 @@ function HeroSlideshow({ lang, t, events, heroSlides, loading, frontNews, siteSe
     return result;
   };
 
-  // (Phase 7.6) Hero は Admin が管理するスライドのみ表示。
-  // イベントスライドは Heroには出さない方針 (UpcomingEvents セクションで一覧表示する)
   let slides;
   if (loading) {
-    // 初回 fetch 完了前: 待機画面
+    // 初回 fetch 完了前: 取得中は空配列にして placeholder を表示
     slides = [];
-  } else {
+  } else if (eventSlides.length === 0 && adminSlides.length === 0) {
+    // (Phase 6.7) 取得完了後、両方空でも defaultSlides にフォールバックしない。
+    // 空配列 → 下の分岐で loading と同じ待機画面を表示。
+    slides = [];
+  } else if (adminSlides.length === 0) {
+    // イベントのみ
+    slides = eventSlides;
+  } else if (eventSlides.length === 0) {
+    // Adminスライドのみ
     slides = adminSlides;
+  } else {
+    // 両方あり: 混在
+    slides = interleave(eventSlides, adminSlides);
   }
 
   const [idx, setIdx] = useState(0);
@@ -2899,49 +2872,22 @@ function HeroSlideshow({ lang, t, events, heroSlides, loading, frontNews, siteSe
           overflow: 'hidden',
           background: '#0a2960',
         }}>
-          {slides.map((s, i) => {
-            // (Phase 7.6) bgColor で写真なし背景塗り
-            const slideBg = s.bgColor === 'navy' ? '#0a2960'
-              : s.bgColor === 'white' ? '#ffffff'
-              : s.bgColor === 'beige' ? '#f5f0e8'
-              : s.bgColor === 'gradient-blue' ? 'linear-gradient(135deg, #1c89e8 0%, #0a2960 100%)'
-              : s.bgColor === 'gradient-navy' ? 'linear-gradient(135deg, #1a3661 0%, #0a2960 100%)'
-              : s.bgColor === 'gradient-sky' ? 'linear-gradient(180deg, #7cb9f0 0%, #ffffff 100%)'
-              : s.bgColor === 'gradient-warm' ? 'linear-gradient(135deg, #f5f0e8 0%, #ffffff 100%)'
-              : '#0a2960';
-            return (
+          {slides.map((s, i) => (
             <div key={i} style={{
               position: 'absolute', inset: 0,
               opacity: i === idx ? 1 : 0,
               transition: 'opacity 1.8s cubic-bezier(0.4, 0, 0.2, 1)',
               zIndex: i === idx ? 2 : 1,
-              background: slideBg,
             }}>
-              {s.img && (
-                <img src={s.img} alt="" style={{
-                  width: '100%', height: '100%',
-                  objectFit: 'cover', display: 'block',
-                  animation: i === idx ? 'cca-ken-burns 14s ease-out forwards' : 'none',
-                }}/>
-              )}
-              {/* (Phase 7.6) ヒーローオーバーレイ — adminで設定したテキスト/図形/画像 */}
+              <img src={s.img} alt="" style={{
+                width: '100%', height: '100%',
+                objectFit: 'cover', display: 'block',
+                animation: i === idx ? 'cca-ken-burns 14s ease-out forwards' : 'none',
+              }}/>
+              {/* (Phase 7.2) ヒーローオーバーレイ — adminで設定したテキスト/図形 */}
               {Array.isArray(s.heroOverlay) && s.heroOverlay.length > 0 && (
-                <div style={{position:'absolute', inset:0, pointerEvents:'none', zIndex:3, overflow:'hidden'}}>
-                  {[...s.heroOverlay].sort((a,b)=>(a.zOrder||0)-(b.zOrder||0)).map((item) => {
-                    // (Phase 7.6) アニメーション (item.animation, item.animationDelay)
-                    const animMap = {
-                      none: 'none',
-                      fadeIn: 'heroOvFadeIn 0.9s cubic-bezier(0.2,0.8,0.2,1) both',
-                      slideUp: 'heroOvSlideUp 0.9s cubic-bezier(0.2,0.8,0.2,1) both',
-                      slideDown: 'heroOvSlideDown 0.9s cubic-bezier(0.2,0.8,0.2,1) both',
-                      slideLeft: 'heroOvSlideLeft 0.9s cubic-bezier(0.2,0.8,0.2,1) both',
-                      slideRight: 'heroOvSlideRight 0.9s cubic-bezier(0.2,0.8,0.2,1) both',
-                      zoomIn: 'heroOvZoomIn 0.9s cubic-bezier(0.2,0.8,0.2,1) both',
-                    };
-                    const animValue = animMap[item.animation || 'none'] || 'none';
-                    // 現在表示中のスライドのみアニメ起動 (key で再マウント)
-                    const animation = (i === idx && animValue !== 'none') ? animValue : 'none';
-                    const animationDelay = (item.animationDelay || 0) + 's';
+                <div style={{position:'absolute', inset:0, pointerEvents:'none', zIndex:3}}>
+                  {s.heroOverlay.map((item) => {
                     const baseStyle = {
                       position:'absolute',
                       left: item.x + '%',
@@ -2950,11 +2896,10 @@ function HeroSlideshow({ lang, t, events, heroSlides, loading, frontNews, siteSe
                       height: item.h + '%',
                       transform: `rotate(${item.rotation||0}deg)`,
                       boxSizing: 'border-box',
-                      animation, animationDelay,
                     };
                     if (item.type === 'text') {
                       return (
-                        <div key={`${idx}-${item.id}`} style={{
+                        <div key={item.id} style={{
                           ...baseStyle,
                           display:'flex',
                           alignItems:'center',
@@ -2973,7 +2918,7 @@ function HeroSlideshow({ lang, t, events, heroSlides, loading, frontNews, siteSe
                       );
                     } else if (item.type === 'circle') {
                       return (
-                        <div key={`${idx}-${item.id}`} style={{
+                        <div key={item.id} style={{
                           ...baseStyle,
                           borderRadius: '50%',
                           background: item.color || 'transparent',
@@ -2982,7 +2927,7 @@ function HeroSlideshow({ lang, t, events, heroSlides, loading, frontNews, siteSe
                       );
                     } else if (item.type === 'rect') {
                       return (
-                        <div key={`${idx}-${item.id}`} style={{
+                        <div key={item.id} style={{
                           ...baseStyle,
                           background: item.color || 'transparent',
                           border: `${item.borderWidth || 0}px solid ${item.borderColor || 'transparent'}`,
@@ -2990,17 +2935,10 @@ function HeroSlideshow({ lang, t, events, heroSlides, loading, frontNews, siteSe
                       );
                     } else if (item.type === 'triangle') {
                       return (
-                        <div key={`${idx}-${item.id}`} style={baseStyle}>
+                        <div key={item.id} style={baseStyle}>
                           <svg width="100%" height="100%" viewBox="0 0 100 100" preserveAspectRatio="none" style={{display:'block'}}>
                             <polygon points="50,5 95,95 5,95" fill={item.color || 'transparent'} stroke={item.borderColor || 'transparent'} strokeWidth={item.borderWidth || 0}/>
                           </svg>
-                        </div>
-                      );
-                    } else if (item.type === 'image') {
-                      if (!item.imageUrl) return null;
-                      return (
-                        <div key={`${idx}-${item.id}`} style={baseStyle}>
-                          <img src={item.imageUrl} alt="" style={{width:'100%',height:'100%',objectFit:'contain',display:'block'}}/>
                         </div>
                       );
                     }
@@ -3009,8 +2947,7 @@ function HeroSlideshow({ lang, t, events, heroSlides, loading, frontNews, siteSe
                 </div>
               )}
             </div>
-            );
-          })}
+          ))}
           {slides.length === 0 && (
             <div style={{
               width:'100%', height:'100%',
