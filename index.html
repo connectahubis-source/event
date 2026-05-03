@@ -755,6 +755,13 @@ const authApi = {
   async getMyRegistrations(sessionToken) {
     return postToGAS('auth.getMyRegistrations', { sessionToken });
   },
+  // (Phase 7.7 - Phase B) パスワードリセット
+  async requestPasswordReset(email, lang) {
+    return postToGAS('auth.requestPasswordReset', { email, lang: lang || 'ja' });
+  },
+  async resetPassword(token, newPassword) {
+    return postToGAS('auth.resetPassword', { token, newPassword });
+  },
 };
 
 /**
@@ -9019,6 +9026,19 @@ function PageLogin({ lang, t }) {
           </AuthButton>
         </div>
 
+        {/* (Phase 7.7 - Phase B) パスワードを忘れた方 */}
+        <div style={{
+          fontSize: 12,
+          fontFamily: 'var(--jp)',
+          textAlign: 'right',
+        }}>
+          <a href="#/forgot-password" style={{
+            color: '#6b7280',
+            textDecoration: 'none',
+            borderBottom: '1px solid #d1d5db',
+          }}>パスワードを忘れた方</a>
+        </div>
+
         <div style={{
           paddingTop: 16,
           borderTop: '1px solid #e5e7eb',
@@ -9291,6 +9311,269 @@ function PageSignupVerify({ lang, t }) {
           textDecoration: 'none',
           fontWeight: 500,
         }}>← 会員登録に戻る</a>
+      </div>
+    </AuthPageLayout>
+  );
+}
+
+
+// ============================================================================
+// (Phase 7.7 - Phase B) パスワードリセット ステップ1 (メール送信)
+// ============================================================================
+function PageForgotPassword({ lang, t }) {
+  const [email, setEmail] = React.useState('');
+  const [submitting, setSubmitting] = React.useState(false);
+  const [error, setError] = React.useState('');
+  const [sent, setSent] = React.useState(false);
+
+  const handleSubmit = async (e) => {
+    if (e) e.preventDefault();
+    setError('');
+    if (!email || !email.match(/^[^\s@]+@[^\s@]+\.[^\s@]+$/)) {
+      setError('有効なメールアドレスを入力してください');
+      return;
+    }
+    setSubmitting(true);
+    try {
+      await authApi.requestPasswordReset(email, lang);
+      setSent(true);
+    } catch (err) {
+      setError(err.message || 'リクエストに失敗しました');
+    } finally {
+      setSubmitting(false);
+    }
+  };
+
+  if (sent) {
+    return (
+      <AuthPageLayout
+        title="メールを確認してください"
+        subtitle={`${email} 宛にパスワードリセットの案内を送信しました。 メール内のリンクをクリックして、新しいパスワードを設定してください。`}
+        lang={lang}
+      >
+        <div style={{
+          padding: 20,
+          background: '#f0f9ff',
+          border: '1px solid #bae6fd',
+          fontSize: 13,
+          fontFamily: 'var(--jp)',
+          color: '#075985',
+          lineHeight: 1.7,
+        }}>
+          <strong style={{ display: 'block', marginBottom: 8 }}>注意</strong>
+          リンクの有効期限は <strong>1時間</strong> です。<br/>
+          メールが届かない場合は、迷惑メールフォルダもご確認ください。<br/>
+          メールアドレスが登録されていない場合、 メールは送信されません。
+        </div>
+        <div style={{ marginTop: 16 }}>
+          <a href="#/login" style={{
+            color: '#2c89e8',
+            fontFamily: 'var(--jp)',
+            fontSize: 13,
+            textDecoration: 'none',
+          }}>← ログインに戻る</a>
+        </div>
+      </AuthPageLayout>
+    );
+  }
+
+  return (
+    <AuthPageLayout
+      title="パスワードを忘れた方"
+      subtitle="ご登録のメールアドレスを入力してください。 リセット用のリンクをお送りします。"
+      lang={lang}
+    >
+      <div style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
+        <AuthInput
+          label="メールアドレス"
+          type="email"
+          value={email}
+          onChange={setEmail}
+          placeholder="you@example.com"
+          autoComplete="email"
+          required
+        />
+
+        {error && (
+          <div style={{
+            padding: 12,
+            background: '#fef2f2',
+            border: '1px solid #fecaca',
+            color: '#991b1b',
+            fontSize: 13,
+            fontFamily: 'var(--jp)',
+          }}>{error}</div>
+        )}
+
+        <div style={{ marginTop: 8 }}>
+          <AuthButton onClick={handleSubmit} disabled={submitting}>
+            {submitting ? '送信中...' : 'リセットメールを送信'}
+            <span style={{ marginLeft: 'auto' }}>→</span>
+          </AuthButton>
+        </div>
+
+        <div style={{
+          paddingTop: 16,
+          borderTop: '1px solid #e5e7eb',
+          fontSize: 13,
+          fontFamily: 'var(--jp)',
+        }}>
+          <a href="#/login" style={{
+            color: '#2c89e8',
+            textDecoration: 'none',
+            fontWeight: 500,
+          }}>← ログインに戻る</a>
+        </div>
+      </div>
+    </AuthPageLayout>
+  );
+}
+
+
+// ============================================================================
+// (Phase 7.7 - Phase B) パスワードリセット ステップ2 (新パスワード設定)
+// ============================================================================
+function PageResetPassword({ lang, t }) {
+  const [token, setToken] = React.useState('');
+  const [password, setPassword] = React.useState('');
+  const [passwordConfirm, setPasswordConfirm] = React.useState('');
+  const [submitting, setSubmitting] = React.useState(false);
+  const [error, setError] = React.useState('');
+  const [done, setDone] = React.useState(false);
+
+  React.useEffect(() => {
+    const hash = window.location.hash;
+    const queryStart = hash.indexOf('?');
+    if (queryStart >= 0) {
+      const params = new URLSearchParams(hash.substring(queryStart + 1));
+      setToken(params.get('token') || '');
+    }
+  }, []);
+
+  const handleSubmit = async (e) => {
+    if (e) e.preventDefault();
+    setError('');
+    if (!token) {
+      setError('リセットトークンが見つかりません');
+      return;
+    }
+    if (password.length < 8) {
+      setError('パスワードは8文字以上にしてください');
+      return;
+    }
+    if (password !== passwordConfirm) {
+      setError('パスワードが一致しません');
+      return;
+    }
+    setSubmitting(true);
+    try {
+      await authApi.resetPassword(token, password);
+      setDone(true);
+      // 3秒後にログインページに遷移
+      setTimeout(() => {
+        window.location.hash = '/login';
+      }, 3000);
+    } catch (err) {
+      setError(err.message || 'パスワードの変更に失敗しました');
+      setSubmitting(false);
+    }
+  };
+
+  if (done) {
+    return (
+      <AuthPageLayout
+        title="パスワードを変更しました"
+        subtitle="新しいパスワードでログインできます。 ログインページに移動します..."
+        lang={lang}
+      >
+        <div style={{
+          padding: 20,
+          background: '#f0fdf4',
+          border: '1px solid #bbf7d0',
+          color: '#166534',
+          fontSize: 13,
+          fontFamily: 'var(--jp)',
+          lineHeight: 1.7,
+        }}>
+          ✓ パスワードの変更が完了しました。<br/>
+          セキュリティのため、 他のデバイスからは自動的にログアウトされました。
+        </div>
+        <div style={{ marginTop: 16 }}>
+          <a href="#/login" style={{
+            color: '#2c89e8',
+            fontFamily: 'var(--jp)',
+            fontSize: 13,
+            textDecoration: 'none',
+            fontWeight: 500,
+          }}>ログインページへ →</a>
+        </div>
+      </AuthPageLayout>
+    );
+  }
+
+  if (!token) {
+    return (
+      <AuthPageLayout
+        title="無効なリンク"
+        subtitle="リセットトークンが見つかりません。 メール内のリンクをクリックしてアクセスしてください。"
+        lang={lang}
+      >
+        <div style={{ marginTop: 16 }}>
+          <a href="#/forgot-password" style={{
+            color: '#2c89e8',
+            fontFamily: 'var(--jp)',
+            fontSize: 13,
+            textDecoration: 'none',
+            fontWeight: 500,
+          }}>← パスワードリセットをやり直す</a>
+        </div>
+      </AuthPageLayout>
+    );
+  }
+
+  return (
+    <AuthPageLayout
+      title="新しいパスワードを設定"
+      subtitle="新しいパスワードを入力してください (8文字以上)。"
+      lang={lang}
+    >
+      <div style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
+        <AuthInput
+          label="新しいパスワード"
+          type="password"
+          value={password}
+          onChange={setPassword}
+          placeholder="8文字以上"
+          autoComplete="new-password"
+          required
+        />
+        <AuthInput
+          label="パスワード (確認)"
+          type="password"
+          value={passwordConfirm}
+          onChange={setPasswordConfirm}
+          placeholder="もう一度入力"
+          autoComplete="new-password"
+          required
+        />
+
+        {error && (
+          <div style={{
+            padding: 12,
+            background: '#fef2f2',
+            border: '1px solid #fecaca',
+            color: '#991b1b',
+            fontSize: 13,
+            fontFamily: 'var(--jp)',
+          }}>{error}</div>
+        )}
+
+        <div style={{ marginTop: 8 }}>
+          <AuthButton onClick={handleSubmit} disabled={submitting}>
+            {submitting ? '変更中...' : 'パスワードを変更'}
+            <span style={{ marginLeft: 'auto' }}>→</span>
+          </AuthButton>
+        </div>
       </div>
     </AuthPageLayout>
   );
@@ -10544,6 +10827,10 @@ function App() {
     Page = <PageSignupVerify lang={lang} t={t} />;
   } else if (route.indexOf('/signup-profile') === 0) {
     Page = <PageSignupProfile lang={lang} t={t} />;
+  } else if (route === '/forgot-password') {
+    Page = <PageForgotPassword lang={lang} t={t} />;
+  } else if (route.indexOf('/reset-password') === 0) {
+    Page = <PageResetPassword lang={lang} t={t} />;
   } else if (route === '/mypage') {
     Page = <PageMyPage lang={lang} t={t} events={events} />;
   } else {
