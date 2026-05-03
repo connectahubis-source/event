@@ -1439,10 +1439,11 @@ function Nav({ lang, setLang, t, transparent }) {
     if (!confirm(lang === 'en' ? 'Log out?' : 'ログアウトしますか？')) return;
     try {
       await auth.logout();
-      window.location.hash = '/';
     } catch (e) {
       console.error('logout failed:', e);
     }
+    // ログアウト後はホームへ (state更新と次のレンダーをトリガする)
+    window.location.hash = '/';
   };
 
   return (
@@ -8404,12 +8405,8 @@ function PageLogin({ lang, t }) {
   const [submitting, setSubmitting] = React.useState(false);
   const [error, setError] = React.useState('');
 
-  // ログイン中なら / にリダイレクト
-  React.useEffect(() => {
-    if (auth.user) {
-      window.location.hash = '/mypage';
-    }
-  }, [auth.user]);
+  // (既にログイン中の場合の自動リダイレクトは削除した。
+  //  ログイン中でも /login にアクセスできる方が、ログアウト → 別アカウント等の操作で便利)
 
   const handleSubmit = async (e) => {
     if (e) e.preventDefault();
