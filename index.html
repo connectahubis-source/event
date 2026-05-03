@@ -2625,6 +2625,9 @@ function PageHero({
 // Phase 6: 公開中イベントのポスターを優先表示、無ければ既定スライドにフォールバック
 // ============================================================================
 function HeroSlideshow({ lang, t, events, heroSlides, loading, frontNews, siteSettings }) {
+  // (Phase 7.7) 認証状態 (CTAボタンの分岐用)
+  const auth = useAuth();
+
   // Google Drive の URL を表示可能な形式に正規化 (Phase 6 fix)
   const normalizeImageUrl = (url) => {
     if (!url || typeof url !== 'string') return url;
@@ -3554,7 +3557,7 @@ function HeroSlideshow({ lang, t, events, heroSlides, loading, frontNews, siteSe
               transition: 'transform 0.3s cubic-bezier(0.2, 0.8, 0.2, 1)',
             }}>→</span>
           </a>
-          <a href="#/signup" className="hero-quick-btn hero-quick-btn-navy" style={{
+          <a href={auth.user ? "#/mypage" : "#/signup"} className="hero-quick-btn hero-quick-btn-navy" style={{
             display: 'flex',
             alignItems: 'center',
             gap: 16,
@@ -3572,7 +3575,11 @@ function HeroSlideshow({ lang, t, events, heroSlides, loading, frontNews, siteSe
             transition: 'all 0.2s cubic-bezier(0.2, 0.8, 0.2, 1)',
             boxShadow: '0 8px 24px -8px rgba(10, 41, 96, 0.25)',
           }}>
-            <span style={{ flex: 1 }}>会員登録またはログイン</span>
+            <span style={{ flex: 1 }}>{
+              auth.user
+                ? (lang === 'en' ? 'My Page' : 'マイページ')
+                : (lang === 'en' ? 'Sign Up or Log In' : '会員登録またはログイン')
+            }</span>
             <span className="hero-quick-btn-arrow" style={{
               display: 'inline-block',
               fontSize: 18,
