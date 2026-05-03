@@ -1425,12 +1425,25 @@ function CountUpInline({ to, suffix = '', duration = 1400, style = {} }) {
 function Nav({ lang, setLang, t, transparent }) {
   const [menuOpen, setMenuOpen] = useState(false);
   const [scrolled, setScrolled] = useState(false);
+  // (Phase 7.7) 認証状態
+  const auth = useAuth();
 
   useEffect(() => {
     const onScroll = () => setScrolled(window.scrollY > 50);
     window.addEventListener('scroll', onScroll);
     return () => window.removeEventListener('scroll', onScroll);
   }, []);
+
+  // (Phase 7.7) ログアウト処理
+  const handleLogout = async () => {
+    if (!confirm(lang === 'en' ? 'Log out?' : 'ログアウトしますか？')) return;
+    try {
+      await auth.logout();
+      window.location.hash = '/';
+    } catch (e) {
+      console.error('logout failed:', e);
+    }
+  };
 
   return (
     <React.Fragment>
@@ -1498,21 +1511,48 @@ function Nav({ lang, setLang, t, transparent }) {
             {/* Lang picker */}
             <LangPicker lang={lang} setLang={setLang} t={t} transparent={false} />
 
-            <a href="#/login" className="btn-flip" style={{
-              padding: '10px 22px', fontSize: 13,
-            }}>{t.nav.login}</a>
-            <a href="#/signup" style={{
-              background: 'var(--coral)',
-              color: '#fff',
-              fontSize: 13, fontWeight: 700,
-              padding: '11px 22px',
-              borderRadius: 999,
-              textDecoration: 'none',
-              transition: 'all .25s',
-              boxShadow: '0 4px 14px -2px rgba(28, 137, 232, 0.4)',
-            }}
-            onMouseEnter={(e) => { e.target.style.transform = 'translateY(-2px)'; e.target.style.boxShadow = '0 8px 22px -4px rgba(28, 137, 232, 0.6)'; }}
-            onMouseLeave={(e) => { e.target.style.transform = 'none'; e.target.style.boxShadow = '0 4px 14px -2px rgba(28, 137, 232, 0.4)'; }}>{t.nav.signup}</a>
+            {/* (Phase 7.7) ログイン状態で表示分岐 */}
+            {auth.user ? (
+              <>
+                <a href="#/mypage" className="btn-flip" style={{
+                  padding: '10px 22px', fontSize: 13,
+                }}>{lang === 'en' ? 'My Page' : 'マイページ'}</a>
+                <button onClick={handleLogout} style={{
+                  background: 'transparent',
+                  color: '#0a2960',
+                  fontSize: 13, fontWeight: 600,
+                  padding: '10px 18px',
+                  border: '1px solid #0a2960',
+                  borderRadius: 0,
+                  fontFamily: 'var(--jp)',
+                  cursor: 'pointer',
+                  transition: 'all .2s',
+                  letterSpacing: '0.04em',
+                }}
+                onMouseEnter={(e) => { e.currentTarget.style.background = '#0a2960'; e.currentTarget.style.color = '#fff'; }}
+                onMouseLeave={(e) => { e.currentTarget.style.background = 'transparent'; e.currentTarget.style.color = '#0a2960'; }}>
+                  {lang === 'en' ? 'Log Out' : 'ログアウト'}
+                </button>
+              </>
+            ) : (
+              <>
+                <a href="#/login" className="btn-flip" style={{
+                  padding: '10px 22px', fontSize: 13,
+                }}>{t.nav.login}</a>
+                <a href="#/signup" style={{
+                  background: 'var(--coral)',
+                  color: '#fff',
+                  fontSize: 13, fontWeight: 700,
+                  padding: '11px 22px',
+                  borderRadius: 999,
+                  textDecoration: 'none',
+                  transition: 'all .25s',
+                  boxShadow: '0 4px 14px -2px rgba(28, 137, 232, 0.4)',
+                }}
+                onMouseEnter={(e) => { e.target.style.transform = 'translateY(-2px)'; e.target.style.boxShadow = '0 8px 22px -4px rgba(28, 137, 232, 0.6)'; }}
+                onMouseLeave={(e) => { e.target.style.transform = 'none'; e.target.style.boxShadow = '0 4px 14px -2px rgba(28, 137, 232, 0.4)'; }}>{t.nav.signup}</a>
+              </>
+            )}
           </div>
 
           {/* Mobile menu button */}
@@ -1558,14 +1598,30 @@ function Nav({ lang, setLang, t, transparent }) {
             <div style={{ height: 1, background: 'var(--line)', margin: '16px 0' }} />
             <LangPicker lang={lang} setLang={setLang} t={t} transparent={false} mobile />
             <div style={{ marginTop: 16, display: 'flex', flexDirection: 'column', gap: 10 }}>
-              <a href="#/login" onClick={() => setMenuOpen(false)} style={{
-                padding: '12px 20px', textAlign: 'center',
-                border: '1px solid var(--line)', borderRadius: 999, fontSize: 14,
-              }}>{t.nav.login}</a>
-              <a href="#/signup" onClick={() => setMenuOpen(false)} style={{
-                padding: '12px 20px', textAlign: 'center',
-                background: 'var(--coral)', color: '#fff', borderRadius: 999, fontSize: 14, fontWeight: 600,
-              }}>{t.nav.signup}</a>
+              {auth.user ? (
+                <>
+                  <a href="#/mypage" onClick={() => setMenuOpen(false)} style={{
+                    padding: '12px 20px', textAlign: 'center',
+                    border: '1px solid var(--line)', borderRadius: 999, fontSize: 14,
+                  }}>{lang === 'en' ? 'My Page' : 'マイページ'}</a>
+                  <button onClick={() => { setMenuOpen(false); handleLogout(); }} style={{
+                    padding: '12px 20px', textAlign: 'center',
+                    background: '#0a2960', color: '#fff', border: 'none', borderRadius: 999,
+                    fontSize: 14, fontWeight: 600, fontFamily: 'var(--jp)', cursor: 'pointer',
+                  }}>{lang === 'en' ? 'Log Out' : 'ログアウト'}</button>
+                </>
+              ) : (
+                <>
+                  <a href="#/login" onClick={() => setMenuOpen(false)} style={{
+                    padding: '12px 20px', textAlign: 'center',
+                    border: '1px solid var(--line)', borderRadius: 999, fontSize: 14,
+                  }}>{t.nav.login}</a>
+                  <a href="#/signup" onClick={() => setMenuOpen(false)} style={{
+                    padding: '12px 20px', textAlign: 'center',
+                    background: 'var(--coral)', color: '#fff', borderRadius: 999, fontSize: 14, fontWeight: 600,
+                  }}>{t.nav.signup}</a>
+                </>
+              )}
             </div>
           </div>
         </div>
@@ -9004,6 +9060,539 @@ function PageSignupProfile({ lang, t }) {
 
 
 // ============================================================================
+// (Phase 7.7) マイページ — プロフィール表示 + 参加予定 + 参加履歴
+// ============================================================================
+function PageMyPage({ lang, t, events }) {
+  const auth = useAuth();
+  const [editing, setEditing] = React.useState(false);
+
+  // 認証ガード: 未ログインなら /login にリダイレクト
+  React.useEffect(() => {
+    if (!auth.loading && !auth.user) {
+      window.location.hash = '/login';
+    }
+  }, [auth.loading, auth.user]);
+
+  if (auth.loading || !auth.user) {
+    return (
+      <div style={{
+        minHeight: '100vh',
+        paddingTop: 200,
+        textAlign: 'center',
+        fontFamily: 'var(--jp)',
+        color: '#6b7280',
+      }}>
+        <div className="spinner" style={{ marginBottom: 16 }}/>
+        <div>読み込み中...</div>
+      </div>
+    );
+  }
+
+  const user = auth.user;
+
+  // 参加予定 / 参加履歴の判定 (events から、該当ユーザーが参加するものを抽出)
+  // 注: 現状 events に参加者情報が結合されてないため、暫定で空配列
+  // 将来は GAS API で getMyRegistrations 等を追加して実装
+  const upcomingEvents = [];
+  const pastEvents = [];
+
+  return (
+    <section style={{
+      minHeight: 'calc(100vh - 130px)',
+      marginTop: 130,
+      background: '#fafbfc',
+      padding: 'clamp(40px, 6vh, 80px) clamp(24px, 4vw, 80px)',
+    }}>
+      <div style={{
+        maxWidth: 1100,
+        margin: '0 auto',
+        display: 'grid',
+        gridTemplateColumns: 'minmax(280px, 360px) 1fr',
+        gap: 40,
+      }}>
+        {/* 左: プロフィールカード */}
+        <aside style={{
+          background: '#fff',
+          padding: 32,
+          border: '1px solid #e5e7eb',
+          height: 'fit-content',
+          position: 'sticky',
+          top: 150,
+        }}>
+          {/* 装飾線 */}
+          <div style={{
+            width: 60, height: 1,
+            background: '#0a2960', opacity: 0.35,
+            marginBottom: 18,
+          }}/>
+
+          {/* 名前/ニックネーム */}
+          <div style={{ marginBottom: 24 }}>
+            <h2 style={{
+              margin: 0,
+              fontFamily: 'var(--jp)',
+              fontSize: 22,
+              fontWeight: 600,
+              color: '#0a2960',
+              letterSpacing: '0.02em',
+            }}>{user.nickname || user.name}</h2>
+            {user.nickname && user.nickname !== user.name && (
+              <div style={{
+                fontSize: 12, color: '#6b7280', marginTop: 4,
+                fontFamily: 'var(--jp)',
+              }}>{user.name}{user.kana && ` (${user.kana})`}</div>
+            )}
+          </div>
+
+          {/* バッジ */}
+          <div style={{ display: 'flex', flexWrap: 'wrap', gap: 6, marginBottom: 20 }}>
+            {user.residencyStatus && (
+              <span style={{
+                fontSize: 11, padding: '3px 8px',
+                background: user.residencyStatus === '在留外国人' ? '#ecfdf5' : '#f0f9ff',
+                color: user.residencyStatus === '在留外国人' ? '#065f46' : '#1e40af',
+                fontFamily: 'var(--jp)',
+              }}>{user.residencyStatus}</span>
+            )}
+            {user.nationality && (
+              <span style={{
+                fontSize: 11, padding: '3px 8px',
+                background: '#f3f4f6', color: '#374151',
+                fontFamily: 'var(--jp)',
+              }}>{user.nationality}</span>
+            )}
+            {user.prefecture && (
+              <span style={{
+                fontSize: 11, padding: '3px 8px',
+                background: '#f3f4f6', color: '#374151',
+                fontFamily: 'var(--jp)',
+              }}>{user.prefecture}</span>
+            )}
+          </div>
+
+          {/* プロフィール詳細 */}
+          <div style={{
+            display: 'grid', gridTemplateColumns: '90px 1fr', gap: '8px 12px',
+            fontSize: 13, fontFamily: 'var(--jp)',
+            paddingBottom: 20, borderBottom: '1px solid #e5e7eb',
+          }}>
+            <div style={{ color: '#6b7280' }}>メール</div>
+            <div style={{ color: '#1f2937', wordBreak: 'break-all' }}>{user.email}</div>
+
+            {user.birthdate && (<>
+              <div style={{ color: '#6b7280' }}>生年月日</div>
+              <div style={{ color: '#1f2937' }}>{user.birthdate} ({user.age}歳)</div>
+            </>)}
+
+            {user.dept && (<>
+              <div style={{ color: '#6b7280' }}>所属</div>
+              <div style={{ color: '#1f2937' }}>{user.dept}</div>
+            </>)}
+
+            {user.residencyStatus === '在留外国人' && (<>
+              <div style={{ color: '#6b7280' }}>日本語学校</div>
+              <div style={{ color: '#1f2937' }}>{user.jpSchool ? '通っている' : '通っていない'}</div>
+              <div style={{ color: '#6b7280' }}>JLPT</div>
+              <div style={{ color: '#1f2937' }}>{user.jlpt === 'none' ? '取得していない' : user.jlpt}</div>
+            </>)}
+
+            <div style={{ color: '#6b7280' }}>表示言語</div>
+            <div style={{ color: '#1f2937' }}>{
+              user.displayLang === 'ja' ? '日本語'
+              : user.displayLang === 'easy' ? 'やさしいにほんご'
+              : 'English'
+            }</div>
+          </div>
+
+          {/* 興味/言語 */}
+          {(user.interests && user.interests.length > 0) && (
+            <div style={{ marginTop: 16 }}>
+              <div style={{ fontSize: 11, color: '#6b7280', marginBottom: 6, fontFamily: 'var(--jp)', letterSpacing: '0.04em' }}>興味ジャンル</div>
+              <div style={{ display: 'flex', flexWrap: 'wrap', gap: 4 }}>
+                {user.interests.map(i => (
+                  <span key={i} style={{
+                    fontSize: 11, padding: '2px 7px',
+                    border: '1px solid #0a2960', color: '#0a2960',
+                    fontFamily: 'var(--jp)',
+                  }}>{i}</span>
+                ))}
+              </div>
+            </div>
+          )}
+
+          {(user.languageSkills && user.languageSkills.length > 0) && (
+            <div style={{ marginTop: 12 }}>
+              <div style={{ fontSize: 11, color: '#6b7280', marginBottom: 6, fontFamily: 'var(--jp)', letterSpacing: '0.04em' }}>話せる言語</div>
+              <div style={{ display: 'flex', flexWrap: 'wrap', gap: 4 }}>
+                {user.languageSkills.map(l => (
+                  <span key={l} style={{
+                    fontSize: 11, padding: '2px 7px',
+                    border: '1px solid #2c89e8', color: '#2c89e8',
+                    fontFamily: 'var(--jp)',
+                  }}>{l}</span>
+                ))}
+              </div>
+            </div>
+          )}
+
+          {/* 編集ボタン */}
+          <div style={{ marginTop: 24 }}>
+            <button onClick={() => setEditing(true)} style={{
+              width: '100%',
+              padding: '12px 20px',
+              fontFamily: 'var(--jp)',
+              fontSize: 13, fontWeight: 600,
+              color: '#fff',
+              background: '#0a2960',
+              border: 'none',
+              borderRadius: 0,
+              cursor: 'pointer',
+              letterSpacing: '0.06em',
+            }}>プロフィールを編集</button>
+          </div>
+        </aside>
+
+        {/* 右: メインコンテンツ */}
+        <main style={{ display: 'flex', flexDirection: 'column', gap: 32 }}>
+          <header>
+            <div style={{ width: 60, height: 1, background: '#0a2960', opacity: 0.35, marginBottom: 14 }}/>
+            <h1 style={{
+              margin: 0,
+              fontFamily: 'var(--jp)',
+              fontSize: 'clamp(24px, 2.6vw, 32px)',
+              fontWeight: 600,
+              color: '#0a2960',
+              letterSpacing: '0.04em',
+            }}>{lang === 'en' ? `Welcome, ${user.nickname}` : `こんにちは、${user.nickname}さん`}</h1>
+            <p style={{
+              margin: '8px 0 0',
+              fontSize: 13, color: '#6b7280', fontFamily: 'var(--jp)',
+            }}>{lang === 'en' ? 'Your events and activity' : 'あなたのイベントとアクティビティ'}</p>
+          </header>
+
+          {/* 参加予定 */}
+          <section>
+            <h2 style={{
+              margin: '0 0 12px',
+              fontFamily: 'var(--jp)',
+              fontSize: 16, fontWeight: 600,
+              color: '#0a2960',
+              letterSpacing: '0.04em',
+              display: 'flex', alignItems: 'center', gap: 8,
+            }}>
+              <span style={{ display: 'inline-block', width: 4, height: 16, background: '#2c89e8' }}/>
+              {lang === 'en' ? 'Upcoming Events' : '参加予定のイベント'}
+            </h2>
+            {upcomingEvents.length > 0 ? (
+              <div style={{ display: 'grid', gap: 12 }}>
+                {upcomingEvents.map(ev => <MyEventCard key={ev.id} event={ev} />)}
+              </div>
+            ) : (
+              <div style={{
+                padding: 24, background: '#fff', border: '1px dashed #d1d5db',
+                fontSize: 13, color: '#6b7280', fontFamily: 'var(--jp)',
+                textAlign: 'center',
+              }}>
+                参加予定のイベントはありません<br/>
+                <a href="#/events" style={{
+                  color: '#2c89e8', textDecoration: 'none', fontWeight: 500,
+                  marginTop: 8, display: 'inline-block',
+                }}>イベントを探す →</a>
+              </div>
+            )}
+          </section>
+
+          {/* 参加履歴 */}
+          <section>
+            <h2 style={{
+              margin: '0 0 12px',
+              fontFamily: 'var(--jp)',
+              fontSize: 16, fontWeight: 600,
+              color: '#0a2960',
+              letterSpacing: '0.04em',
+              display: 'flex', alignItems: 'center', gap: 8,
+            }}>
+              <span style={{ display: 'inline-block', width: 4, height: 16, background: '#0a2960' }}/>
+              {lang === 'en' ? 'Past Events' : '参加履歴'}
+            </h2>
+            {pastEvents.length > 0 ? (
+              <div style={{ display: 'grid', gap: 12 }}>
+                {pastEvents.map(ev => <MyEventCard key={ev.id} event={ev} past />)}
+              </div>
+            ) : (
+              <div style={{
+                padding: 24, background: '#fff', border: '1px dashed #d1d5db',
+                fontSize: 13, color: '#6b7280', fontFamily: 'var(--jp)',
+                textAlign: 'center',
+              }}>
+                参加履歴はまだありません
+              </div>
+            )}
+          </section>
+
+          <div style={{ fontSize: 11, color: '#9ca3af', fontFamily: 'var(--jp)', marginTop: 8 }}>
+            参加履歴の自動連携は近日対応予定です。
+          </div>
+        </main>
+      </div>
+
+      {/* 編集モーダル */}
+      {editing && (
+        <ProfileEditModal
+          user={user}
+          onClose={() => setEditing(false)}
+          onSaved={async () => {
+            await auth.refresh();
+            setEditing(false);
+          }}
+        />
+      )}
+    </section>
+  );
+}
+
+// 参加イベントカード
+function MyEventCard({ event, past }) {
+  return (
+    <a href={`#/events/${event.id}`} style={{
+      display: 'flex',
+      alignItems: 'center',
+      gap: 16,
+      padding: 16,
+      background: '#fff',
+      border: '1px solid #e5e7eb',
+      textDecoration: 'none',
+      transition: 'border-color .15s',
+      opacity: past ? 0.7 : 1,
+    }}
+    onMouseEnter={(e) => e.currentTarget.style.borderColor = '#2c89e8'}
+    onMouseLeave={(e) => e.currentTarget.style.borderColor = '#e5e7eb'}
+    >
+      <div style={{
+        flexShrink: 0,
+        width: 48, height: 48,
+        background: '#f5f7fa',
+        display: 'flex', alignItems: 'center', justifyContent: 'center',
+        fontSize: 20, color: '#0a2960',
+      }}>📅</div>
+      <div style={{ flex: 1, minWidth: 0 }}>
+        <div style={{
+          fontFamily: 'var(--jp)', fontSize: 14, fontWeight: 600,
+          color: '#0a2960', marginBottom: 2,
+          overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap',
+        }}>{event.title}</div>
+        <div style={{
+          fontSize: 11, color: '#6b7280', fontFamily: 'var(--jp)',
+        }}>{event.date} {event.venue && `· ${event.venue}`}</div>
+      </div>
+      <div style={{ color: '#9ca3af', fontSize: 14 }}>→</div>
+    </a>
+  );
+}
+
+// プロフィール編集モーダル
+function ProfileEditModal({ user, onClose, onSaved }) {
+  const [name, setName] = React.useState(user.name || '');
+  const [kana, setKana] = React.useState(user.kana || '');
+  const [nickname, setNickname] = React.useState(user.nickname || '');
+  const [residencyStatus, setResidencyStatus] = React.useState(user.residencyStatus || '');
+  const [nationality, setNationality] = React.useState(user.nationality || '');
+  const [birthdate, setBirthdate] = React.useState(user.birthdate || '');
+  const [prefecture, setPrefecture] = React.useState(user.prefecture || '');
+  const [displayLang, setDisplayLang] = React.useState(user.displayLang || 'ja');
+  const [jpSchool, setJpSchool] = React.useState(user.jpSchool ? 'yes' : 'no');
+  const [jlpt, setJlpt] = React.useState(user.jlpt || 'none');
+  const [dept, setDept] = React.useState(user.dept === '—' ? '' : (user.dept || ''));
+  const [interests, setInterests] = React.useState(user.interests || []);
+  const [languageSkills, setLanguageSkills] = React.useState(user.languageSkills || []);
+
+  const [submitting, setSubmitting] = React.useState(false);
+  const [error, setError] = React.useState('');
+
+  const isForeign = residencyStatus === '在留外国人';
+
+  const handleSave = async () => {
+    setError('');
+    if (!name || !nickname || !residencyStatus || !nationality || !birthdate || !prefecture || !displayLang) {
+      setError('必須項目をすべて入力してください');
+      return;
+    }
+    setSubmitting(true);
+    try {
+      const token = authStore.getToken();
+      await authApi.updateProfile(token, {
+        name: name.trim(),
+        kana: kana.trim(),
+        nickname: nickname.trim(),
+        residencyStatus,
+        nationality,
+        birthdate,
+        prefecture,
+        displayLang,
+        jpSchool: isForeign ? (jpSchool === 'yes') : false,
+        jlpt: isForeign ? jlpt : 'none',
+        dept: dept.trim(),
+        interests,
+        languageSkills,
+      });
+      await onSaved();
+    } catch (err) {
+      setError(err.message || '保存に失敗しました');
+      setSubmitting(false);
+    }
+  };
+
+  return (
+    <div onClick={onClose} style={{
+      position: 'fixed',
+      inset: 0,
+      background: 'rgba(10, 41, 96, 0.55)',
+      display: 'flex',
+      alignItems: 'center',
+      justifyContent: 'center',
+      zIndex: 1000,
+      padding: 20,
+      overflowY: 'auto',
+    }}>
+      <div onClick={(e) => e.stopPropagation()} style={{
+        background: '#fff',
+        width: '100%',
+        maxWidth: 600,
+        maxHeight: '90vh',
+        overflowY: 'auto',
+        padding: 32,
+      }}>
+        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: 20 }}>
+          <h2 style={{
+            margin: 0, fontFamily: 'var(--jp)', fontSize: 20, fontWeight: 600, color: '#0a2960',
+            letterSpacing: '0.04em',
+          }}>プロフィール編集</h2>
+          <button onClick={onClose} style={{
+            background: 'transparent', border: 'none', fontSize: 24, color: '#6b7280',
+            cursor: 'pointer', padding: 0, lineHeight: 1,
+          }}>×</button>
+        </div>
+
+        <div style={{ display: 'flex', flexDirection: 'column', gap: 14 }}>
+          <AuthInput label="名前" value={name} onChange={setName} required />
+          <AuthInput label="フリガナ" value={kana} onChange={setKana} placeholder="任意 (名前がローマ字なら省略可)" />
+          <AuthInput label="ニックネーム" value={nickname} onChange={setNickname} required />
+          <AuthInput label="生年月日" type="date" value={birthdate} onChange={setBirthdate} required />
+
+          <AuthSelect label="在留ステータス" value={residencyStatus} onChange={setResidencyStatus} required
+            options={[
+              { value: '在留外国人', label: '在留外国人' },
+              { value: '日本人', label: '日本人' },
+              { value: 'その他', label: 'その他' },
+            ]} />
+          <AuthSelect label="国籍" value={nationality} onChange={setNationality} required
+            options={COUNTRIES.map(c => ({ value: c, label: c }))} />
+          <AuthSelect label="都道府県" value={prefecture} onChange={setPrefecture} required
+            options={PREFECTURES.map(p => ({ value: p, label: p }))} />
+          <AuthSelect label="表示言語" value={displayLang} onChange={setDisplayLang} required
+            options={[
+              { value: 'ja', label: '日本語' },
+              { value: 'easy', label: 'やさしいにほんご' },
+              { value: 'en', label: 'English' },
+            ]} />
+
+          {isForeign && (
+            <>
+              <AuthSelect label="日本語学校に通っている" value={jpSchool} onChange={setJpSchool} required
+                options={[
+                  { value: 'yes', label: 'はい' },
+                  { value: 'no', label: 'いいえ' },
+                ]} />
+              <AuthSelect label="日本語検定 (JLPT)" value={jlpt} onChange={setJlpt} required
+                options={[
+                  { value: 'none', label: '取得していない' },
+                  { value: 'N1', label: 'N1' },
+                  { value: 'N2', label: 'N2' },
+                  { value: 'N3', label: 'N3' },
+                  { value: 'N4', label: 'N4' },
+                  { value: 'N5', label: 'N5' },
+                ]} />
+            </>
+          )}
+
+          <AuthInput label="所属大学/職業 (任意)" value={dept} onChange={setDept} />
+
+          {/* 興味ジャンル */}
+          <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
+            <span style={{ fontFamily: 'var(--jp)', fontSize: 12, fontWeight: 500, color: '#0a2960', letterSpacing: '0.04em' }}>興味ジャンル (任意)</span>
+            <div style={{ display: 'flex', flexWrap: 'wrap', gap: 6 }}>
+              {INTEREST_CATEGORIES.map(cat => {
+                const selected = interests.includes(cat);
+                return (
+                  <button key={cat} type="button"
+                    onClick={() => {
+                      if (selected) setInterests(interests.filter(i => i !== cat));
+                      else setInterests([...interests, cat]);
+                    }}
+                    style={{
+                      padding: '6px 12px', fontSize: 12, fontFamily: 'var(--jp)',
+                      color: selected ? '#fff' : '#0a2960',
+                      background: selected ? '#0a2960' : '#fff',
+                      border: '1px solid #0a2960',
+                      borderRadius: 0, cursor: 'pointer',
+                    }}>{cat}</button>
+                );
+              })}
+            </div>
+          </div>
+
+          {/* 言語スキル */}
+          <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
+            <span style={{ fontFamily: 'var(--jp)', fontSize: 12, fontWeight: 500, color: '#0a2960', letterSpacing: '0.04em' }}>話せる言語 (任意)</span>
+            <div style={{ display: 'flex', flexWrap: 'wrap', gap: 6 }}>
+              {LANGUAGE_SKILLS.map(l => {
+                const selected = languageSkills.includes(l);
+                return (
+                  <button key={l} type="button"
+                    onClick={() => {
+                      if (selected) setLanguageSkills(languageSkills.filter(x => x !== l));
+                      else setLanguageSkills([...languageSkills, l]);
+                    }}
+                    style={{
+                      padding: '6px 12px', fontSize: 12, fontFamily: 'var(--jp)',
+                      color: selected ? '#fff' : '#2c89e8',
+                      background: selected ? '#2c89e8' : '#fff',
+                      border: '1px solid #2c89e8',
+                      borderRadius: 0, cursor: 'pointer',
+                    }}>{l}</button>
+                );
+              })}
+            </div>
+          </div>
+
+          {error && (
+            <div style={{
+              padding: 12, background: '#fef2f2', border: '1px solid #fecaca',
+              color: '#991b1b', fontSize: 13, fontFamily: 'var(--jp)',
+            }}>{error}</div>
+          )}
+
+          <div style={{ display: 'flex', gap: 12, marginTop: 8 }}>
+            <button onClick={onClose} disabled={submitting} style={{
+              padding: '12px 24px', fontFamily: 'var(--jp)', fontSize: 13, fontWeight: 600,
+              color: '#0a2960', background: '#fff', border: '2px solid #0a2960',
+              borderRadius: 0, cursor: 'pointer',
+            }}>キャンセル</button>
+            <button onClick={handleSave} disabled={submitting} style={{
+              flex: 1,
+              padding: '12px 24px', fontFamily: 'var(--jp)', fontSize: 13, fontWeight: 600,
+              color: '#fff', background: submitting ? '#94a3b8' : '#0a2960',
+              border: 'none', borderRadius: 0, cursor: submitting ? 'not-allowed' : 'pointer',
+            }}>{submitting ? '保存中...' : '保存する'}</button>
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+
+// ============================================================================
 // FOOTER
 // ============================================================================
 function Footer({ lang, t }) {
@@ -9234,8 +9823,7 @@ function App() {
   } else if (route.indexOf('/signup-profile') === 0) {
     Page = <PageSignupProfile lang={lang} t={t} />;
   } else if (route === '/mypage') {
-    pageTitle = lang === 'en' ? 'My Page' : 'マイページ';
-    Page = <PageStub lang={lang} t={t} title={pageTitle} />;
+    Page = <PageMyPage lang={lang} t={t} events={events} />;
   } else {
     pageTitle = '404';
     Page = <PageStub lang={lang} t={t} title="Not Found" />;
