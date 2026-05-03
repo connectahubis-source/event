@@ -834,6 +834,231 @@ function useAuth() {
 }
 
 
+// ============================================================================
+// (Phase 7.7) 汎用ダイアログ (confirm/alert/info/error)
+// ============================================================================
+
+/**
+ * UIDialog — サイト内統一スタイルのダイアログ
+ * Props:
+ *   open: boolean
+ *   variant: 'confirm' | 'info' | 'success' | 'error'
+ *   title: string
+ *   message: string | ReactNode
+ *   confirmLabel: string (default: 'OK')
+ *   cancelLabel: string (default: 'キャンセル') — confirmのみ表示
+ *   onConfirm: () => void
+ *   onCancel: () => void  (confirmのみ。 nullの場合はクローズ動作のみ)
+ *   loading: boolean (送信中表示)
+ */
+function UIDialog({ open, variant, title, message, confirmLabel, cancelLabel, onConfirm, onCancel, loading }) {
+  if (!open) return null;
+
+  const colorMap = {
+    confirm: { accent: '#0a2960', icon: '?' },
+    info:    { accent: '#2c89e8', icon: 'i' },
+    success: { accent: '#16a34a', icon: '✓' },
+    error:   { accent: '#dc2626', icon: '!' },
+  };
+  const cfg = colorMap[variant || 'confirm'];
+
+  const handleBackdropClick = () => {
+    if (loading) return;
+    if (onCancel) onCancel();
+    else if (onConfirm && variant !== 'confirm') onConfirm(); // info/success/errorは「閉じる」=OK
+  };
+
+  return React.createElement('div', {
+    onClick: handleBackdropClick,
+    style: {
+      position: 'fixed',
+      inset: 0,
+      background: 'rgba(10, 41, 96, 0.55)',
+      display: 'flex',
+      alignItems: 'center',
+      justifyContent: 'center',
+      zIndex: 1100,
+      padding: 20,
+    },
+  }, React.createElement('div', {
+    onClick: (e) => e.stopPropagation(),
+    style: {
+      background: '#fff',
+      width: '100%',
+      maxWidth: 420,
+      padding: 32,
+    },
+  }, [
+    // 装飾線 + アイコン
+    React.createElement('div', {
+      key: 'header',
+      style: { display: 'flex', alignItems: 'center', gap: 14, marginBottom: 16 },
+    }, [
+      React.createElement('div', {
+        key: 'icon',
+        style: {
+          width: 36, height: 36,
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'center',
+          border: `1.5px solid ${cfg.accent}`,
+          color: cfg.accent,
+          fontFamily: 'var(--sans)',
+          fontSize: 18,
+          fontWeight: 700,
+          flexShrink: 0,
+        },
+      }, cfg.icon),
+      React.createElement('h3', {
+        key: 'title',
+        style: {
+          margin: 0,
+          fontFamily: 'var(--jp)',
+          fontSize: 18,
+          fontWeight: 600,
+          color: '#0a2960',
+          letterSpacing: '0.04em',
+        },
+      }, title || ''),
+    ]),
+    // メッセージ
+    React.createElement('div', {
+      key: 'msg',
+      style: {
+        fontFamily: 'var(--jp)',
+        fontSize: 14,
+        color: '#374151',
+        lineHeight: 1.7,
+        marginBottom: 24,
+        whiteSpace: 'pre-wrap',
+      },
+    }, message || ''),
+    // ボタン群
+    React.createElement('div', {
+      key: 'buttons',
+      style: {
+        display: 'flex',
+        gap: 10,
+        justifyContent: variant === 'confirm' ? 'flex-end' : 'flex-end',
+      },
+    }, [
+      variant === 'confirm' && React.createElement('button', {
+        key: 'cancel',
+        onClick: () => { if (!loading && onCancel) onCancel(); },
+        disabled: loading,
+        style: {
+          padding: '10px 20px',
+          fontFamily: 'var(--jp)',
+          fontSize: 13,
+          fontWeight: 600,
+          color: '#0a2960',
+          background: '#fff',
+          border: '1.5px solid #0a2960',
+          borderRadius: 0,
+          cursor: loading ? 'not-allowed' : 'pointer',
+          letterSpacing: '0.04em',
+        },
+      }, cancelLabel || 'キャンセル'),
+      React.createElement('button', {
+        key: 'confirm',
+        onClick: () => { if (!loading) onConfirm && onConfirm(); },
+        disabled: loading,
+        style: {
+          padding: '10px 24px',
+          fontFamily: 'var(--jp)',
+          fontSize: 13,
+          fontWeight: 600,
+          color: '#fff',
+          background: loading ? '#94a3b8' : cfg.accent,
+          border: 'none',
+          borderRadius: 0,
+          cursor: loading ? 'not-allowed' : 'pointer',
+          letterSpacing: '0.04em',
+        },
+      }, loading ? '処理中...' : (confirmLabel || 'OK')),
+    ]),
+  ]));
+}
+
+/**
+ * useDialog フック — どのコンポーネントからも統一ダイアログを開ける
+ * 使い方:
+ *   const dialog = useDialog();
+ *   const ok = await dialog.confirm({ title, message });   // boolean
+ *   await dialog.info({ title, message });
+ *   await dialog.error({ title, message });
+ *   await dialog.success({ title, message });
+ *
+ * トップレベルで <DialogProvider> でラップする必要あり。
+ */
+const DialogContext = React.createContext({
+  confirm: async () => false,
+  info: async () => {},
+  success: async () => {},
+  error: async () => {},
+});
+
+function DialogProvider({ children }) {
+  const [state, setState] = React.useState({ open: false });
+  const resolverRef = React.useRef(null);
+
+  const showDialog = React.useCallback((variant, opts) => {
+    return new Promise((resolve) => {
+      resolverRef.current = resolve;
+      setState({
+        open: true,
+        variant,
+        title: opts.title || '',
+        message: opts.message || '',
+        confirmLabel: opts.confirmLabel || (variant === 'confirm' ? 'OK' : '閉じる'),
+        cancelLabel: opts.cancelLabel || 'キャンセル',
+      });
+    });
+  }, []);
+
+  const handleConfirm = () => {
+    if (resolverRef.current) {
+      resolverRef.current(true);
+      resolverRef.current = null;
+    }
+    setState({ open: false });
+  };
+
+  const handleCancel = () => {
+    if (resolverRef.current) {
+      resolverRef.current(false);
+      resolverRef.current = null;
+    }
+    setState({ open: false });
+  };
+
+  const api = React.useMemo(() => ({
+    confirm: (opts) => showDialog('confirm', opts || {}),
+    info:    (opts) => showDialog('info', opts || {}),
+    success: (opts) => showDialog('success', opts || {}),
+    error:   (opts) => showDialog('error', opts || {}),
+  }), [showDialog]);
+
+  return React.createElement(DialogContext.Provider, { value: api },
+    children,
+    React.createElement(UIDialog, {
+      open: state.open,
+      variant: state.variant,
+      title: state.title,
+      message: state.message,
+      confirmLabel: state.confirmLabel,
+      cancelLabel: state.cancelLabel,
+      onConfirm: handleConfirm,
+      onCancel: state.variant === 'confirm' ? handleCancel : null,
+    })
+  );
+}
+
+function useDialog() {
+  return React.useContext(DialogContext);
+}
+
+
 async function fetchEvents() {
   // 15秒タイムアウト: GAS応答が極端に遅い場合でも永久loadingを防ぐ
   const controller = new AbortController();
@@ -1439,6 +1664,7 @@ function Nav({ lang, setLang, t, transparent }) {
   const [scrolled, setScrolled] = useState(false);
   // (Phase 7.7) 認証状態
   const auth = useAuth();
+  const dialog = useDialog();
 
   useEffect(() => {
     const onScroll = () => setScrolled(window.scrollY > 50);
@@ -1448,13 +1674,18 @@ function Nav({ lang, setLang, t, transparent }) {
 
   // (Phase 7.7) ログアウト処理
   const handleLogout = async () => {
-    if (!confirm(lang === 'en' ? 'Log out?' : 'ログアウトしますか？')) return;
+    const ok = await dialog.confirm({
+      title: lang === 'en' ? 'Log Out' : 'ログアウト',
+      message: lang === 'en' ? 'Are you sure you want to log out?' : 'ログアウトしますか？',
+      confirmLabel: lang === 'en' ? 'Log Out' : 'ログアウト',
+      cancelLabel: lang === 'en' ? 'Cancel' : 'キャンセル',
+    });
+    if (!ok) return;
     try {
       await auth.logout();
     } catch (e) {
       console.error('logout failed:', e);
     }
-    // ログアウト後はホームへ (state更新と次のレンダーをトリガする)
     window.location.hash = '/';
   };
 
@@ -7013,6 +7244,7 @@ function PageEventDetail({ lang, t, eventId }) {
 
   // (Phase 7.7) 認証 + 参加申込関連
   const auth = useAuth();
+  const dialog = useDialog();
   const [myRegistrations, setMyRegistrations] = useState([]);  // 自分の参加申込一覧
   const [registerModalOpen, setRegisterModalOpen] = useState(false);
   const [registerStatus, setRegisterStatus] = useState(''); // '' | 'submitting' | 'done' | 'error'
@@ -7117,25 +7349,38 @@ function PageEventDetail({ lang, t, eventId }) {
   const handleRegister = async () => {
     if (!auth.user) {
       // 未ログイン: ログインページへ
-      const next = '/events/' + eventId;
       window.location.hash = '/login';
-      // 簡易: ログイン後 mypage に飛ぶ仕様。 後で next パラメータ対応するならここで保存
       return;
     }
     if (alreadyRegistered) {
-      alert('すでにこのイベントに申込済みです。');
+      await dialog.info({
+        title: '申込済み',
+        message: 'すでにこのイベントに申込済みです。',
+      });
       return;
     }
     if (isFree) {
       // 無料 → 確認のみ
-      if (!confirm('本当にこのイベントに参加しますか？')) return;
+      const ok = await dialog.confirm({
+        title: '参加申込の確認',
+        message: 'このイベントに参加します。\nよろしいですか？',
+        confirmLabel: '参加する',
+        cancelLabel: 'キャンセル',
+      });
+      if (!ok) return;
       await submitRegistration('');
     } else if (isPaid) {
       // 有料 → モーダルで決済方法選択
       setRegisterModalOpen(true);
     } else {
       // 料金タイプ不明 → 確認のみ
-      if (!confirm('本当にこのイベントに参加しますか？')) return;
+      const ok = await dialog.confirm({
+        title: '参加申込の確認',
+        message: 'このイベントに参加します。\nよろしいですか？',
+        confirmLabel: '参加する',
+        cancelLabel: 'キャンセル',
+      });
+      if (!ok) return;
       await submitRegistration('');
     }
   };
@@ -7155,29 +7400,60 @@ function PageEventDetail({ lang, t, eventId }) {
       // 事前決済なら決済URLにリダイレクト
       if (paymentMethod === '事前決済' && result.paymentUrl) {
         if (result.paymentUrl === 'TODO_PAYMENT_URL') {
-          alert('決済リンクがまだ設定されていません。 運営にお問い合わせください。');
+          await dialog.error({
+            title: '決済リンク未設定',
+            message: '決済リンクがまだ設定されていません。\n運営にお問い合わせください。',
+          });
         } else {
           setTimeout(function() { window.location.href = result.paymentUrl; }, 1500);
         }
       }
+      // 無料イベントの場合は即完了ダイアログ
+      if (!paymentMethod) {
+        await dialog.success({
+          title: '申込完了',
+          message: result.message || '参加申込が完了しました',
+        });
+        setRegisterStatus('');
+      }
     } catch (err) {
       setRegisterStatus('error');
       setRegisterMessage(err.message || '申込に失敗しました');
+      // 無料イベントの場合 (モーダル外) はダイアログでエラー表示
+      if (!paymentMethod) {
+        await dialog.error({
+          title: '申込に失敗しました',
+          message: err.message || 'もう一度お試しください',
+        });
+        setRegisterStatus('');
+      }
     }
   };
 
   // キャンセル処理
   const handleCancel = async () => {
     if (!myReg) return;
-    if (!confirm('本当にキャンセルしますか？')) return;
+    const ok = await dialog.confirm({
+      title: '参加キャンセルの確認',
+      message: 'このイベントへの参加申込をキャンセルします。\nよろしいですか？',
+      confirmLabel: 'キャンセルする',
+      cancelLabel: '戻る',
+    });
+    if (!ok) return;
     try {
       const token = authStore.getToken();
       await authApi.cancelRegistration(token, myReg.regId);
       const refreshed = await authApi.getMyRegistrations(token);
       setMyRegistrations(refreshed.registrations || []);
-      alert('参加申込をキャンセルしました');
+      await dialog.success({
+        title: 'キャンセル完了',
+        message: '参加申込をキャンセルしました',
+      });
     } catch (err) {
-      alert(err.message || 'キャンセルに失敗しました');
+      await dialog.error({
+        title: 'キャンセル失敗',
+        message: err.message || 'もう一度お試しください',
+      });
     }
   };
 
@@ -9334,7 +9610,12 @@ function PageSignupProfile({ lang, t }) {
 // ============================================================================
 function PageMyPage({ lang, t, events }) {
   const auth = useAuth();
+  const dialog = useDialog();
   const [editing, setEditing] = React.useState(false);
+
+  // (Phase A) 自分の参加申込一覧
+  const [myRegistrations, setMyRegistrations] = React.useState([]);
+  const [regsLoading, setRegsLoading] = React.useState(true);
 
   // 認証ガード: 未ログインなら /login にリダイレクト
   React.useEffect(() => {
@@ -9342,6 +9623,57 @@ function PageMyPage({ lang, t, events }) {
       window.location.hash = '/login';
     }
   }, [auth.loading, auth.user]);
+
+  // (Phase A) 自分の参加申込一覧を取得
+  React.useEffect(() => {
+    if (!auth.user) return;
+    let cancelled = false;
+    (async () => {
+      setRegsLoading(true);
+      try {
+        const token = authStore.getToken();
+        if (!token) {
+          if (!cancelled) setRegsLoading(false);
+          return;
+        }
+        const result = await authApi.getMyRegistrations(token);
+        if (!cancelled) {
+          setMyRegistrations(result.registrations || []);
+          setRegsLoading(false);
+        }
+      } catch (err) {
+        console.error('getMyRegistrations failed:', err);
+        if (!cancelled) setRegsLoading(false);
+      }
+    })();
+    return () => { cancelled = true; };
+  }, [auth.user]);
+
+  // キャンセル処理 (マイページから)
+  const handleCancel = async (reg) => {
+    const ok = await dialog.confirm({
+      title: '参加キャンセルの確認',
+      message: `${reg.event ? reg.event.title : 'このイベント'}\nへの参加申込をキャンセルします。\nよろしいですか？`,
+      confirmLabel: 'キャンセルする',
+      cancelLabel: '戻る',
+    });
+    if (!ok) return;
+    try {
+      const token = authStore.getToken();
+      await authApi.cancelRegistration(token, reg.regId);
+      const refreshed = await authApi.getMyRegistrations(token);
+      setMyRegistrations(refreshed.registrations || []);
+      await dialog.success({
+        title: 'キャンセル完了',
+        message: '参加申込をキャンセルしました',
+      });
+    } catch (err) {
+      await dialog.error({
+        title: 'キャンセル失敗',
+        message: err.message || 'もう一度お試しください',
+      });
+    }
+  };
 
   if (auth.loading || !auth.user) {
     return (
@@ -9360,11 +9692,41 @@ function PageMyPage({ lang, t, events }) {
 
   const user = auth.user;
 
-  // 参加予定 / 参加履歴の判定 (events から、該当ユーザーが参加するものを抽出)
-  // 注: 現状 events に参加者情報が結合されてないため、暫定で空配列
-  // 将来は GAS API で getMyRegistrations 等を追加して実装
-  const upcomingEvents = [];
-  const pastEvents = [];
+  // (Phase A) 参加予定 / 参加履歴の判定
+  // 参加予定: event.date が今日以降 (キャンセル済みも含めて表示)
+  // 参加履歴: event.date が今日より前 (キャンセル済みも含めて表示)
+  const today = new Date();
+  const todayStart = new Date(today.getFullYear(), today.getMonth(), today.getDate());
+
+  const allRegsWithEvent = myRegistrations.filter(function(r) {
+    return r.event;
+  });
+
+  const upcomingEvents = allRegsWithEvent
+    .filter(function(r) {
+      const endStr = r.event.endDate || r.event.date;
+      if (!endStr) return true;  // 日付不明なら予定扱い
+      const endDate = new Date(String(endStr) + 'T23:59:59');
+      return !isNaN(endDate.getTime()) && endDate >= todayStart;
+    })
+    .sort(function(a, b) {
+      const ad = new Date(a.event.date || '9999-12-31');
+      const bd = new Date(b.event.date || '9999-12-31');
+      return ad - bd;  // 昇順 (近い順)
+    });
+
+  const pastEvents = allRegsWithEvent
+    .filter(function(r) {
+      const endStr = r.event.endDate || r.event.date;
+      if (!endStr) return false;
+      const endDate = new Date(String(endStr) + 'T23:59:59');
+      return !isNaN(endDate.getTime()) && endDate < todayStart;
+    })
+    .sort(function(a, b) {
+      const ad = new Date(a.event.date || '0000-01-01');
+      const bd = new Date(b.event.date || '0000-01-01');
+      return bd - ad;  // 降順 (新しい順)
+    });
 
   return (
     <section style={{
@@ -9552,10 +9914,25 @@ function PageMyPage({ lang, t, events }) {
             }}>
               <span style={{ display: 'inline-block', width: 4, height: 16, background: '#2c89e8' }}/>
               {lang === 'en' ? 'Upcoming Events' : '参加予定のイベント'}
+              {upcomingEvents.length > 0 && (
+                <span style={{
+                  fontSize: 11, color: '#6b7280', fontWeight: 400, marginLeft: 6,
+                }}>({upcomingEvents.length})</span>
+              )}
             </h2>
-            {upcomingEvents.length > 0 ? (
+            {regsLoading ? (
+              <div style={{
+                padding: 24, textAlign: 'center',
+                fontSize: 13, color: '#6b7280', fontFamily: 'var(--jp)',
+              }}>
+                <div className="spinner" style={{ marginBottom: 8 }}/>
+                読み込み中...
+              </div>
+            ) : upcomingEvents.length > 0 ? (
               <div style={{ display: 'grid', gap: 12 }}>
-                {upcomingEvents.map(ev => <MyEventCard key={ev.id} event={ev} />)}
+                {upcomingEvents.map(reg => (
+                  <MyEventCard key={reg.regId} registration={reg} onCancel={handleCancel} />
+                ))}
               </div>
             ) : (
               <div style={{
@@ -9584,10 +9961,17 @@ function PageMyPage({ lang, t, events }) {
             }}>
               <span style={{ display: 'inline-block', width: 4, height: 16, background: '#0a2960' }}/>
               {lang === 'en' ? 'Past Events' : '参加履歴'}
+              {pastEvents.length > 0 && (
+                <span style={{
+                  fontSize: 11, color: '#6b7280', fontWeight: 400, marginLeft: 6,
+                }}>({pastEvents.length})</span>
+              )}
             </h2>
-            {pastEvents.length > 0 ? (
+            {regsLoading ? null : pastEvents.length > 0 ? (
               <div style={{ display: 'grid', gap: 12 }}>
-                {pastEvents.map(ev => <MyEventCard key={ev.id} event={ev} past />)}
+                {pastEvents.map(reg => (
+                  <MyEventCard key={reg.regId} registration={reg} past />
+                ))}
               </div>
             ) : (
               <div style={{
@@ -9599,10 +9983,6 @@ function PageMyPage({ lang, t, events }) {
               </div>
             )}
           </section>
-
-          <div style={{ fontSize: 11, color: '#9ca3af', fontFamily: 'var(--jp)', marginTop: 8 }}>
-            参加履歴の自動連携は近日対応予定です。
-          </div>
         </main>
       </div>
 
@@ -9622,41 +10002,113 @@ function PageMyPage({ lang, t, events }) {
 }
 
 // 参加イベントカード
-function MyEventCard({ event, past }) {
+function MyEventCard({ registration, past, onCancel }) {
+  const event = registration.event;
+  if (!event) return null;
+
+  const isCancelled = registration.status === 'キャンセル';
+
+  // ステータスバッジの色
+  const statusColor = (() => {
+    switch (registration.status) {
+      case '確定':       return { bg: '#ecfdf5', fg: '#065f46', label: '確定' };
+      case '未決済':     return { bg: '#fef3c7', fg: '#92400e', label: registration.memo && registration.memo.indexOf('当日払い') >= 0 ? '当日払い' : '未決済' };
+      case 'チェックイン済': return { bg: '#f0f9ff', fg: '#1e40af', label: '参加済み' };
+      case 'キャンセル':  return { bg: '#f3f4f6', fg: '#6b7280', label: 'キャンセル済み' };
+      default:          return { bg: '#f3f4f6', fg: '#374151', label: registration.status || '' };
+    }
+  })();
+
   return (
-    <a href={`#/events/${event.id}`} style={{
+    <div style={{
       display: 'flex',
-      alignItems: 'center',
-      gap: 16,
-      padding: 16,
+      alignItems: 'stretch',
+      gap: 12,
+      padding: 14,
       background: '#fff',
       border: '1px solid #e5e7eb',
-      textDecoration: 'none',
       transition: 'border-color .15s',
-      opacity: past ? 0.7 : 1,
-    }}
-    onMouseEnter={(e) => e.currentTarget.style.borderColor = '#2c89e8'}
-    onMouseLeave={(e) => e.currentTarget.style.borderColor = '#e5e7eb'}
-    >
-      <div style={{
+      opacity: (past || isCancelled) ? 0.6 : 1,
+    }}>
+      {/* ポスター or アイコン */}
+      <a href={`#/events/${event.id}`} style={{
         flexShrink: 0,
-        width: 48, height: 48,
-        background: '#f5f7fa',
+        width: 60, height: 80,
+        background: event.posterUrl
+          ? `#f5f7fa url(${event.posterUrl}) center/cover no-repeat`
+          : '#f5f7fa',
         display: 'flex', alignItems: 'center', justifyContent: 'center',
-        fontSize: 20, color: '#0a2960',
-      }}>📅</div>
-      <div style={{ flex: 1, minWidth: 0 }}>
-        <div style={{
+        fontSize: 22, color: '#0a2960',
+        textDecoration: 'none',
+        filter: isCancelled ? 'grayscale(100%)' : 'none',
+      }}>{!event.posterUrl && '📅'}</a>
+
+      {/* メイン情報 */}
+      <div style={{ flex: 1, minWidth: 0, display: 'flex', flexDirection: 'column', gap: 4 }}>
+        <a href={`#/events/${event.id}`} style={{
           fontFamily: 'var(--jp)', fontSize: 14, fontWeight: 600,
-          color: '#0a2960', marginBottom: 2,
+          color: '#0a2960', textDecoration: isCancelled ? 'line-through' : 'none',
           overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap',
-        }}>{event.title}</div>
+        }}>{event.title}</a>
         <div style={{
           fontSize: 11, color: '#6b7280', fontFamily: 'var(--jp)',
-        }}>{event.date} {event.venue && `· ${event.venue}`}</div>
+        }}>{event.date}{event.time && ` ${event.time}`}{event.venue && ` · ${event.venue}`}</div>
+
+        {/* ステータス + 金額バッジ */}
+        <div style={{ display: 'flex', gap: 6, marginTop: 2, flexWrap: 'wrap' }}>
+          <span style={{
+            fontSize: 10, padding: '2px 8px',
+            background: statusColor.bg, color: statusColor.fg,
+            fontFamily: 'var(--jp)', fontWeight: 600, letterSpacing: '0.04em',
+          }}>{statusColor.label}</span>
+          {!isCancelled && registration.amount > 0 && (
+            <span style={{
+              fontSize: 10, padding: '2px 8px',
+              background: '#f3f4f6', color: '#374151',
+              fontFamily: 'var(--jp)',
+            }}>¥{registration.amount.toLocaleString()}</span>
+          )}
+        </div>
       </div>
-      <div style={{ color: '#9ca3af', fontSize: 14 }}>→</div>
-    </a>
+
+      {/* アクション: キャンセル可能な場合のみ */}
+      {!past && !isCancelled && onCancel && registration.status !== 'チェックイン済' && (
+        <button onClick={() => onCancel(registration)} style={{
+          flexShrink: 0,
+          padding: '6px 12px',
+          fontSize: 11,
+          fontFamily: 'var(--jp)',
+          color: '#dc2626',
+          background: 'transparent',
+          border: '1px solid #fecaca',
+          borderRadius: 0,
+          cursor: 'pointer',
+          alignSelf: 'center',
+          letterSpacing: '0.04em',
+        }}
+        onMouseEnter={(e) => { e.currentTarget.style.background = '#fef2f2'; }}
+        onMouseLeave={(e) => { e.currentTarget.style.background = 'transparent'; }}>
+          キャンセル
+        </button>
+      )}
+
+      {/* キャンセル済みなら「再申込」リンク */}
+      {!past && isCancelled && (
+        <a href={`#/events/${event.id}`} style={{
+          flexShrink: 0,
+          padding: '6px 12px',
+          fontSize: 11,
+          fontFamily: 'var(--jp)',
+          color: '#2c89e8',
+          background: 'transparent',
+          border: '1px solid #bfdbfe',
+          borderRadius: 0,
+          alignSelf: 'center',
+          letterSpacing: '0.04em',
+          textDecoration: 'none',
+        }}>再申込</a>
+      )}
+    </div>
   );
 }
 
@@ -10118,7 +10570,7 @@ try {
   const rootEl = document.getElementById('root');
   // フォールバックをクリア
   rootEl.innerHTML = '';
-  ReactDOM.createRoot(rootEl).render(<AuthProvider><App /></AuthProvider>);
+  ReactDOM.createRoot(rootEl).render(<AuthProvider><DialogProvider><App /></DialogProvider></AuthProvider>);
 } catch (err) {
   console.error('[App Boot Error]', err);
   const fallback = document.getElementById('fallback');
