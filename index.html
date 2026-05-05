@@ -446,7 +446,7 @@ const { useState, useEffect, useRef, useMemo } = React;
 // CONFIG
 // ============================================================================
 const CONFIG = {
-  GAS_URL: 'https://script.google.com/macros/s/AKfycbxCJQ6miz5JecF7W_W0bc2QogrJFKuZ_aNZ0crQmJFm9o7I7GsjVQZ3knlzbNCx7aw5/exec',
+  GAS_URL: 'https://script.google.com/macros/s/AKfycbxWj7QUGYe-0RLXQHl-E9V-aQIPKxM62d-XOpEgqrz4bmd9fAR0mKfepok003Np6lTp/exec',
   ORG: {
     name: 'connec+a',
     nameEn: 'connec+a · Tokyo NPO',
@@ -1739,7 +1739,7 @@ function Nav({ lang, setLang, t, transparent }) {
                 color: '#6b7280',
                 letterSpacing: '0.04em',
                 lineHeight: 1.4,
-              }}>留学生と日本人を、東京の日常でつなぐ</span>
+              }}>connec+a hub</span>
             </a>
 
             {/* 東京スカイライン装飾 */}
@@ -2275,7 +2275,7 @@ function FeaturedEventCard({ ev, lang, t }) {
             alignItems: 'center',
             gap: 6,
           }}>
-            {isFull ? '—' : '詳細を見る'}
+            {isFull ? '—' : (lang === 'en' ? 'View details' : lang === 'easy' ? 'くわしく みる' : '詳細を見る')}
             <span style={{ fontSize: 16 }}>→</span>
           </span>
         </div>
@@ -2664,7 +2664,7 @@ function EventPosterRow({ ev, lang, t }) {
               fontWeight: 700,
               boxShadow: '0 6px 16px -4px rgba(28, 137, 232, 0.4)',
             }}>
-              詳しく見る
+              {lang === 'en' ? 'View details' : lang === 'easy' ? 'くわしく みる' : '詳しく見る'}
               <span style={{ fontSize: 14 }}>→</span>
             </span>
           </div>
@@ -3807,7 +3807,7 @@ function HeroSlideshow({ lang, t, events, heroSlides, loading, frontNews, siteSe
             transition: 'all 0.2s cubic-bezier(0.2, 0.8, 0.2, 1)',
             boxShadow: '0 8px 24px -8px rgba(44, 137, 232, 0.25)',
           }}>
-            <span style={{ flex: 1 }}>イベントを見る</span>
+            <span style={{ flex: 1 }}>{lang === 'en' ? 'See Events' : lang === 'easy' ? 'イベントを みる' : 'イベントを見る'}</span>
             <span className="hero-quick-btn-arrow" style={{
               display: 'inline-block',
               fontSize: 18,
@@ -3834,8 +3834,8 @@ function HeroSlideshow({ lang, t, events, heroSlides, loading, frontNews, siteSe
           }}>
             <span style={{ flex: 1 }}>{
               auth.user
-                ? (lang === 'en' ? 'My Page' : 'マイページ')
-                : (lang === 'en' ? 'Sign Up or Log In' : '会員登録またはログイン')
+                ? (lang === 'en' ? 'My Page' : lang === 'easy' ? 'マイページ' : 'マイページ')
+                : (lang === 'en' ? 'Sign Up or Log In' : lang === 'easy' ? 'とうろく または ログイン' : '会員登録またはログイン')
             }</span>
             <span className="hero-quick-btn-arrow" style={{
               display: 'inline-block',
@@ -4029,7 +4029,7 @@ function AdRotator({ ads, placement = '参加者ヒーロー' }) {
                   fontWeight: 600,
                   marginTop: 8,
                 }}>
-                  詳細を見る →
+                  {lang === 'en' ? 'View details →' : lang === 'easy' ? 'くわしく みる →' : '詳細を見る →'}
                 </div>
               )}
             </div>
@@ -4317,7 +4317,7 @@ function ConceptSection({ settings }) {
                 fontSize:11, fontWeight:500,
                 color:'rgba(10, 41, 96, 0.7)',
                 letterSpacing:'0.08em',
-              }}>私たちについて</span>
+              }}>{lang === 'en' ? 'About us' : lang === 'easy' ? 'わたしたちのこと' : '私たちについて'}</span>
             </div>
           </Reveal>
 
@@ -4450,7 +4450,7 @@ function ConceptSection({ settings }) {
             transition: 'all 0.3s cubic-bezier(0.2, 0.8, 0.2, 1)',
             boxShadow: '0 8px 24px -8px rgba(10, 41, 96, 0.35)',
           }}>
-            <span>もっと知る</span>
+            <span>{lang === 'en' ? 'Learn more' : lang === 'easy' ? 'もっと しる' : 'もっと知る'}</span>
             <span className="concept-more-btn-arrow" style={{
               display: 'inline-block',
               fontSize: 17,
@@ -4473,9 +4473,13 @@ function ConceptSection({ settings }) {
   );
 }
 
-function EventsEntrySection({ settings }) {
+function EventsEntrySection({ settings, lang, t }) {
   const bgImage  = settings.events_section_bg_image || '';
-  const ctaText  = settings.events_section_cta_text || '参加する';
+  // (Phase 7.8) ctaText/sub テキストを多言語対応
+  const ctaText = lang === 'en' ? (settings.events_section_cta_text_en || 'Join us')
+                : lang === 'easy' ? (settings.events_section_cta_text_easy || 'さんかする')
+                : (settings.events_section_cta_text || '参加する');
+  const galleryText = lang === 'en' ? 'See past events' : lang === 'easy' ? 'むかしの イベント' : '過去のイベントを見る';
   const ctaLink  = settings.events_section_cta_link || '#/events';
   const galleryLink = settings.events_gallery_link || '#/gallery';
 
@@ -4661,7 +4665,7 @@ function EventsEntrySection({ settings }) {
               boxShadow: '0 8px 24px -8px rgba(10, 41, 96, 0.25)',
               whiteSpace: 'nowrap',
             }}>
-              <span>過去のイベントを見る</span>
+              <span>{galleryText}</span>
               <span className="events-cta-btn-arrow" style={{
                 display: 'inline-block',
                 fontSize: 17,
@@ -4738,7 +4742,7 @@ function EventsEntrySection({ settings }) {
                 fontSize:11, fontWeight:500,
                 color:'rgba(10, 41, 96, 0.7)',
                 letterSpacing:'0.08em',
-              }}>イベント</span>
+              }}>{lang === 'en' ? 'Events' : lang === 'easy' ? 'イベント' : 'イベント'}</span>
             </div>
           </Reveal>
 
@@ -5017,7 +5021,7 @@ function NewsSection({ settings, newsList, lang, t }) {
                 cursor: 'pointer',
                 marginTop: 8,
               }}>
-                <span>{news.ctaText || '詳細を見る'}</span>
+                <span>{lang === 'en' ? 'View details' : lang === 'easy' ? 'くわしく みる' : '詳細を見る'}</span>
                 <span style={{
                   width: 48, height: 48,
                   borderRadius:'50%',
@@ -5191,7 +5195,10 @@ function NewsSection({ settings, newsList, lang, t }) {
 
 function UpcomingEventsSection({ settings, events, lang, t }) {
   const labelEn = settings.upcoming_events_label_en || 'Events';
-  const labelJa = settings.upcoming_events_label_ja || '近日開催';
+  // (Phase 7.8) 「近日開催」を多言語化
+  const labelJa = lang === 'en' ? (settings.upcoming_events_label_en_us || 'Upcoming')
+                : lang === 'easy' ? (settings.upcoming_events_label_easy || 'これから')
+                : (settings.upcoming_events_label_ja || '近日開催');
 
   // 公開中の近日開催イベントを最大3件
   const items = (events || []).slice(0, 3);
@@ -5268,11 +5275,11 @@ function UpcomingEventsSection({ settings, events, lang, t }) {
               display:'flex', alignItems:'center', gap: 12,
             }}>
               <span style={{display:'inline-block', height: 1, width: 40, background:'rgba(255,255,255,0.5)'}}/>
-              {settings.upcoming_events_label_ja || '近日開催'}
+              {labelJa}
             </div>
           </div>
           <div style={{color: 'rgba(255,255,255,0.85)', fontFamily: 'var(--jp)', fontSize: 18, lineHeight: 2}}>
-            近日開催のイベントは現在準備中です。
+            {lang === 'en' ? 'Upcoming events are being prepared.' : lang === 'easy' ? 'これからの イベントは いま じゅんびちゅうです。' : '近日開催のイベントは現在準備中です。'}
           </div>
         </div>
       </section>
@@ -5490,7 +5497,7 @@ function UpcomingEventsSection({ settings, events, lang, t }) {
                 cursor: 'pointer',
                 marginTop: 8,
               }}>
-                <span>詳細を見る</span>
+                <span>{lang === 'en' ? 'View details' : lang === 'easy' ? 'くわしく みる' : '詳細を見る'}</span>
                 <span style={{
                   width: 48, height: 48,
                   borderRadius: '50%',
@@ -5678,7 +5685,7 @@ function PageHome({ lang, t, events, ads, heroSlides, loading, siteSettings, fro
       <ConceptSection settings={siteSettings || {}} />
 
       {/* (Phase 6.9) Events 入口 (右タイトル / 左本文) */}
-      <EventsEntrySection settings={siteSettings || {}} />
+      <EventsEntrySection settings={siteSettings || {}} lang={lang} t={t} />
 
       {/* (Phase 6.9) News セクション (左タイトル / 右本文 / 自動切替) */}
       <NewsSection settings={siteSettings || {}} newsList={frontNews || []} lang={lang} t={t} />
@@ -6107,7 +6114,7 @@ function PageNewsList({ lang, t, frontNews, loading, siteSettings }) {
                   cursor: 'pointer',
                   transition: 'all 0.3s cubic-bezier(0.2, 0.8, 0.2, 1)',
                 }}
-              >新しい順</button>
+              >{lang === 'en' ? 'Newest' : lang === 'easy' ? 'あたらしい じゅん' : '新しい順'}</button>
               <button
                 onClick={() => setSortOrder('asc')}
                 style={{
@@ -6123,7 +6130,7 @@ function PageNewsList({ lang, t, frontNews, loading, siteSettings }) {
                   cursor: 'pointer',
                   transition: 'all 0.3s cubic-bezier(0.2, 0.8, 0.2, 1)',
                 }}
-              >古い順</button>
+              >{lang === 'en' ? 'Oldest' : lang === 'easy' ? 'ふるい じゅん' : '古い順'}</button>
             </div>
           </div>
         )}
@@ -6133,7 +6140,7 @@ function PageNewsList({ lang, t, frontNews, loading, siteSettings }) {
             textAlign: 'center', padding: 80,
             fontFamily: 'var(--jp)', fontSize: 14,
             color: 'rgba(255, 255, 255, 0.5)',
-          }}>読み込み中...</div>
+          }}>{lang === 'en' ? 'Loading...' : lang === 'easy' ? 'よみこみちゅう...' : '読み込み中...'}</div>
         ) : items.length === 0 ? (
           <div style={{
             textAlign: 'center', padding: 80,
@@ -6263,7 +6270,7 @@ function PageNewsList({ lang, t, frontNews, loading, siteSettings }) {
               }}
             >
               <span>←</span>
-              <span>前へ</span>
+              <span>{lang === 'en' ? 'Prev' : lang === 'easy' ? 'まえ' : '前へ'}</span>
             </button>
 
             {/* ページ番号インジケーター */}
@@ -6341,7 +6348,7 @@ function PageNewsList({ lang, t, frontNews, loading, siteSettings }) {
                 }
               }}
             >
-              <span>次へ</span>
+              <span>{lang === 'en' ? 'Next' : lang === 'easy' ? 'つぎ' : '次へ'}</span>
               <span>→</span>
             </button>
           </div>
@@ -6376,7 +6383,7 @@ function PageNewsDetail({ lang, t, newsId, frontNews, loading }) {
         background: '#ffffff',
         display: 'flex', alignItems: 'center', justifyContent: 'center',
         fontFamily: 'var(--jp)', fontSize: 14, color: 'rgba(10, 41, 96, 0.5)',
-      }}>読み込み中...</div>
+      }}>{lang === 'en' ? 'Loading...' : lang === 'easy' ? 'よみこみちゅう...' : '読み込み中...'}</div>
     );
   }
 
@@ -6409,7 +6416,7 @@ function PageNewsDetail({ lang, t, newsId, frontNews, loading }) {
           transition: 'all 0.3s ease',
         }}>
           <span>←</span>
-          <span>一覧に戻る</span>
+          <span>{lang === 'en' ? 'Back to list' : lang === 'easy' ? 'いちらんに もどる' : '一覧に戻る'}</span>
         </a>
       </div>
     );
@@ -6441,7 +6448,7 @@ function PageNewsDetail({ lang, t, newsId, frontNews, loading }) {
             onMouseLeave={e => { e.currentTarget.style.color = 'rgba(10, 41, 96, 0.7)'; e.currentTarget.style.transform = 'translateX(0)'; }}
           >
             <span>←</span>
-            <span>ニュース一覧に戻る</span>
+            <span>{lang === 'en' ? 'Back to news list' : lang === 'easy' ? 'おしらせ いちらんに もどる' : 'ニュース一覧に戻る'}</span>
           </a>
         </Reveal>
       </div>
@@ -6578,7 +6585,7 @@ function PageNewsDetail({ lang, t, newsId, frontNews, loading }) {
                 fontSize:11, fontWeight:500,
                 color:'rgba(10, 41, 96, 0.7)',
                 letterSpacing:'0.08em',
-              }}>関連記事</span>
+              }}>{lang === 'en' ? 'Related articles' : lang === 'easy' ? 'かんれん きじ' : '関連記事'}</span>
             </div>
           </Reveal>
           <div style={{
@@ -6807,7 +6814,7 @@ function PageEvents({ lang, t, events, loading, siteSettings }) {
                 fontSize:11, fontWeight:500,
                 color:'rgba(255, 255, 255, 0.7)',
                 letterSpacing:'0.08em',
-              }}>イベント一覧</span>
+              }}>{lang === 'en' ? 'All events' : lang === 'easy' ? 'イベント いちらん' : 'イベント一覧'}</span>
             </div>
           </Reveal>
 
@@ -6888,7 +6895,7 @@ function PageEvents({ lang, t, events, loading, siteSettings }) {
                     cursor: 'pointer',
                     transition: 'all 0.3s cubic-bezier(0.2, 0.8, 0.2, 1)',
                   }}
-                >開催日が近い順</button>
+                >{lang === 'en' ? 'Soonest' : lang === 'easy' ? 'ちかい じゅん' : '開催日が近い順'}</button>
                 <button
                   onClick={() => setSortOrder('desc')}
                   style={{
@@ -6903,7 +6910,7 @@ function PageEvents({ lang, t, events, loading, siteSettings }) {
                     cursor: 'pointer',
                     transition: 'all 0.3s cubic-bezier(0.2, 0.8, 0.2, 1)',
                   }}
-                >遠い順</button>
+                >{lang === 'en' ? 'Farthest' : lang === 'easy' ? 'とおい じゅん' : '遠い順'}</button>
               </div>
             </div>
           )}
@@ -7010,7 +7017,7 @@ function PageEvents({ lang, t, events, loading, siteSettings }) {
                     }}
                     onMouseEnter={e => { e.currentTarget.style.color = '#fff'; e.currentTarget.style.borderColor = 'rgba(255, 255, 255, 0.6)'; }}
                     onMouseLeave={e => { e.currentTarget.style.color = 'rgba(255, 255, 255, 0.7)'; e.currentTarget.style.borderColor = 'rgba(255, 255, 255, 0.25)'; }}
-                  >× クリア</button>
+                  >{lang === 'en' ? '× Clear' : lang === 'easy' ? '× クリア' : '× クリア'}</button>
                 )}
               </div>
             </div>
@@ -7021,13 +7028,13 @@ function PageEvents({ lang, t, events, loading, siteSettings }) {
               textAlign: 'center', padding: 80,
               fontFamily: 'var(--jp)', fontSize: 14,
               color: 'rgba(255, 255, 255, 0.5)',
-            }}>読み込み中...</div>
+            }}>{lang === 'en' ? 'Loading...' : lang === 'easy' ? 'よみこみちゅう...' : '読み込み中...'}</div>
           ) : filteredAndSorted.length === 0 ? (
             <div style={{
               textAlign: 'center', padding: 80,
               fontFamily: 'var(--jp)', fontSize: 14,
               color: 'rgba(255, 255, 255, 0.5)',
-            }}>該当するイベントはありません。</div>
+            }}>{lang === 'en' ? 'No matching events.' : lang === 'easy' ? 'みつかる イベントは ありません。' : '該当するイベントはありません。'}</div>
           ) : (
             <div style={{
               display: 'flex',
@@ -7159,7 +7166,7 @@ function PageEvents({ lang, t, events, loading, siteSettings }) {
                 }}
               >
                 <span>←</span>
-                <span>前へ</span>
+                <span>{lang === 'en' ? 'Prev' : lang === 'easy' ? 'まえ' : '前へ'}</span>
               </button>
 
               <div style={{display: 'flex', gap: 4}}>
@@ -7232,7 +7239,7 @@ function PageEvents({ lang, t, events, loading, siteSettings }) {
                   }
                 }}
               >
-                <span>次へ</span>
+                <span>{lang === 'en' ? 'Next' : lang === 'easy' ? 'つぎ' : '次へ'}</span>
                 <span>→</span>
               </button>
             </div>
@@ -8062,7 +8069,7 @@ function PageEventDetail({ lang, t, eventId }) {
                     fontWeight: 600,
                     cursor: 'pointer',
                     letterSpacing: '0.06em',
-                  }}>閉じる</button>
+                  }}>{lang === 'en' ? 'Close' : lang === 'easy' ? 'とじる' : '閉じる'}</button>
                 </div>
               </>
             ) : (
@@ -8101,8 +8108,8 @@ function PageEventDetail({ lang, t, eventId }) {
                   }}>
                     <span style={{ fontSize: 20 }}>💳</span>
                     <div style={{ flex: 1 }}>
-                      <div style={{ fontWeight: 700, marginBottom: 2 }}>事前決済</div>
-                      <div style={{ fontSize: 11, color: '#6b7280', fontWeight: 400 }}>クレジットカードで今すぐ支払う</div>
+                      <div style={{ fontWeight: 700, marginBottom: 2 }}>{lang === 'en' ? 'Pay now' : lang === 'easy' ? 'いま はらう' : '事前決済'}</div>
+                      <div style={{ fontSize: 11, color: '#6b7280', fontWeight: 400 }}>{lang === 'en' ? 'Pay now by credit card' : lang === 'easy' ? 'クレジットカードで いま はらう' : 'クレジットカードで今すぐ支払う'}</div>
                     </div>
                     <span style={{ fontSize: 16 }}>→</span>
                   </button>
@@ -8125,8 +8132,8 @@ function PageEventDetail({ lang, t, eventId }) {
                   }}>
                     <span style={{ fontSize: 20 }}>💴</span>
                     <div style={{ flex: 1 }}>
-                      <div style={{ fontWeight: 700, marginBottom: 2 }}>当日払い</div>
-                      <div style={{ fontSize: 11, color: '#6b7280', fontWeight: 400 }}>会場で現金支払い (請求書をメール送信)</div>
+                      <div style={{ fontWeight: 700, marginBottom: 2 }}>{lang === 'en' ? 'Pay on the day' : lang === 'easy' ? 'とうじつ はらう' : '当日払い'}</div>
+                      <div style={{ fontSize: 11, color: '#6b7280', fontWeight: 400 }}>{lang === 'en' ? 'Cash at venue (invoice via email)' : lang === 'easy' ? 'かいじょうで げんきん (せいきゅうしょは メール)' : '会場で現金支払い (請求書をメール送信)'}</div>
                     </div>
                     <span style={{ fontSize: 16 }}>→</span>
                   </button>
@@ -8147,7 +8154,7 @@ function PageEventDetail({ lang, t, eventId }) {
                     fontSize: 13,
                     fontFamily: 'var(--jp)',
                     cursor: 'pointer',
-                  }}>キャンセル</button>
+                  }}>{lang === 'en' ? 'Cancel' : lang === 'easy' ? 'キャンセル' : 'キャンセル'}</button>
                 </div>
               </>
             )}
