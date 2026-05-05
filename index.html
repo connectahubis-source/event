@@ -3581,17 +3581,9 @@ function HeroSlideshow({ lang, t, events, heroSlides, loading, frontNews, siteSe
   if (heroVp.isMobile) {
     const currentSlide = slides[idx] || slides[0];
     const slideImg = currentSlide ? currentSlide.img : '';
-
-    // (Phase 13.2 修正) heroOverlay の text 要素を抽出 (PC版と整合)
-    // y 座標で並び替え、画像下にコピーとして縦並び表示
-    const overlayTexts = (currentSlide && Array.isArray(currentSlide.heroOverlay))
-      ? [...currentSlide.heroOverlay]
-          .filter(item => item.type === 'text' && item.text && String(item.text).trim())
-          .sort((a, b) => (a.y || 0) - (b.y || 0))
+    const overlayItems = (currentSlide && Array.isArray(currentSlide.heroOverlay))
+      ? currentSlide.heroOverlay
       : [];
-
-    // フォールバック: heroOverlay が空なら旧フィールド (eyebrow/mainEn/mainEm/sub) を使う
-    const useFallback = overlayTexts.length === 0;
 
     return (
       <section data-section="hero" style={{
@@ -3601,7 +3593,7 @@ function HeroSlideshow({ lang, t, events, heroSlides, loading, frontNews, siteSe
         background: '#0a2960',
         overflow: 'hidden',
       }}>
-        {/* メイン画像 */}
+        {/* メイン画像エリア (アスペクト比 4:5、スマホで縦長) */}
         <div style={{
           position: 'relative',
           width: '100%',
@@ -3609,7 +3601,7 @@ function HeroSlideshow({ lang, t, events, heroSlides, loading, frontNews, siteSe
           background: '#0a2960',
           overflow: 'hidden',
         }}>
-          {/* 画像 (PC版と同じ <img> タグ方式) */}
+          {/* 画像 */}
           {slideImg && (
             <img src={slideImg} alt="" style={{
               position: 'absolute', inset: 0,
@@ -3618,80 +3610,99 @@ function HeroSlideshow({ lang, t, events, heroSlides, loading, frontNews, siteSe
               display: 'block',
             }}/>
           )}
-          {/* 暗オーバーレイ */}
-          <div style={{
-            position: 'absolute', inset: 0,
-            background: useFallback
-              ? 'linear-gradient(180deg, rgba(10,41,96,0.2) 0%, rgba(10,41,96,0.7) 80%, rgba(10,41,96,0.95) 100%)'
-              : 'linear-gradient(180deg, rgba(10,41,96,0.15) 0%, rgba(10,41,96,0.55) 60%, rgba(10,41,96,0.85) 100%)',
-          }}/>
 
-          {/* メインコピー */}
-          <div style={{
-            position: 'absolute',
-            left: 20, right: 20, bottom: 24,
-            color: '#fff',
-            fontFamily: 'var(--jp)',
-          }}>
-            {useFallback ? (
-              // フォールバック: 旧フィールドを使う
-              <>
-                <div style={{
-                  fontSize: 11, letterSpacing: '0.2em', opacity: 0.85, marginBottom: 8,
-                }}>{currentSlide?.eyebrow || 'CONNEC+A'}</div>
-                <div style={{
-                  fontFamily: '"Noto Serif JP", serif',
-                  fontSize: 26, lineHeight: 1.3, fontWeight: 600,
-                }}>
-                  {currentSlide?.mainEn || ''}
-                  {currentSlide?.mainEm && <span style={{fontStyle: 'italic'}}> {currentSlide.mainEm}</span>}
-                </div>
-                {currentSlide?.sub && (
-                  <div style={{
-                    marginTop: 8,
-                    fontSize: 13, opacity: 0.9, lineHeight: 1.5,
-                  }}>{currentSlide.sub}</div>
-                )}
-              </>
-            ) : (
-              // heroOverlay の text を縦並び (PC版と整合)
-              <div style={{ display: 'grid', gap: 6 }}>
-                {overlayTexts.map((item, i) => {
-                  // フォントサイズ: PC版の半分程度を base にして clamp
-                  const baseSize = item.fontSize || 28;
-                  const mobileSize = Math.max(13, Math.min(28, Math.round(baseSize * 0.55)));
+          {/* (Phase 7.6 / 13.2) ヒーローオーバーレイ — Adminで設定したテキスト/図形/画像 */}
+          {/* PC版と同じ絶対配置ロジックを使い、モバイルでも x/y/w/h % をそのまま反映 */}
+          {overlayItems.length > 0 && (
+            <div style={{position:'absolute', inset:0, pointerEvents:'none', zIndex:3, overflow:'hidden'}}>
+              {[...overlayItems].sort((a,b)=>(a.zOrder||0)-(b.zOrder||0)).map((item) => {
+                const baseStyle = {
+                  position:'absolute',
+                  left: item.x + '%',
+                  top: item.y + '%',
+                  width: item.w + '%',
+                  height: item.h + '%',
+                  transform: `rotate(${item.rotation||0}deg)`,
+                  boxSizing: 'border-box',
+                };
+                if (item.type === 'text') {
                   return (
-                    <div key={item.id || i} style={{
-                      fontSize: mobileSize,
-                      fontWeight: item.fontWeight || 500,
-                      fontFamily: item.fontFamily || 'var(--jp)',
+                    <div key={item.id} style={{
+                      ...baseStyle,
+                      display:'flex',
+                      alignItems:'center',
+                      justifyContent: item.textAlign === 'left' ? 'flex-start' : item.textAlign === 'right' ? 'flex-end' : 'center',
+                      // モバイル用にフォントサイズ縮小: PC指定の0.5倍を base にして clamp
+                      fontSize: item.fontSize
+                        ? `clamp(${Math.round(item.fontSize*0.4)}px, ${item.fontSize/24}vw, ${Math.round(item.fontSize*0.7)}px)`
+                        : 'clamp(13px, 3.5vw, 22px)',
                       color: item.color || '#fff',
-                      lineHeight: 1.3,
-                      textShadow: '0 2px 12px rgba(0,0,0,0.4)',
+                      fontFamily: item.fontFamily,
+                      fontWeight: item.fontWeight || 400,
+                      textAlign: item.textAlign || 'center',
+                      lineHeight: 1.15,
                       whiteSpace: 'pre-wrap',
                       wordBreak: 'break-word',
-                    }}>{item.text}</div>
+                      padding: 2,
+                      textShadow: '0 2px 12px rgba(0,0,0,0.35)',
+                    }}>{item.text || ''}</div>
                   );
-                })}
-              </div>
-            )}
+                } else if (item.type === 'circle') {
+                  return (
+                    <div key={item.id} style={{
+                      ...baseStyle,
+                      borderRadius: '50%',
+                      background: item.color || 'transparent',
+                      border: `${item.borderWidth || 0}px solid ${item.borderColor || 'transparent'}`,
+                    }}/>
+                  );
+                } else if (item.type === 'rect') {
+                  return (
+                    <div key={item.id} style={{
+                      ...baseStyle,
+                      background: item.color || 'transparent',
+                      border: `${item.borderWidth || 0}px solid ${item.borderColor || 'transparent'}`,
+                    }}/>
+                  );
+                } else if (item.type === 'triangle') {
+                  return (
+                    <div key={item.id} style={baseStyle}>
+                      <svg width="100%" height="100%" viewBox="0 0 100 100" preserveAspectRatio="none" style={{display:'block'}}>
+                        <polygon points="50,5 95,95 5,95" fill={item.color || 'transparent'} stroke={item.borderColor || 'transparent'} strokeWidth={item.borderWidth || 0}/>
+                      </svg>
+                    </div>
+                  );
+                } else if (item.type === 'image') {
+                  if (!item.imageUrl) return null;
+                  return (
+                    <div key={item.id} style={baseStyle}>
+                      <img src={item.imageUrl} alt="" style={{width:'100%',height:'100%',objectFit:'contain',display:'block'}}/>
+                    </div>
+                  );
+                }
+                return null;
+              })}
+            </div>
+          )}
 
-            {/* インジケータ */}
-            {slides.length > 1 && (
-              <div style={{
-                marginTop: 16, display: 'flex', gap: 6,
-              }}>
-                {slides.map((_, i) => (
-                  <span key={i} style={{
-                    width: i === idx ? 20 : 6, height: 6,
-                    background: i === idx ? '#fff' : 'rgba(255,255,255,0.4)',
-                    borderRadius: 3,
-                    transition: 'all .25s',
-                  }}/>
-                ))}
-              </div>
-            )}
-          </div>
+          {/* インジケータ (左下) */}
+          {slides.length > 1 && (
+            <div style={{
+              position: 'absolute',
+              left: 20, bottom: 16,
+              zIndex: 4,
+              display: 'flex', gap: 6,
+            }}>
+              {slides.map((_, i) => (
+                <span key={i} style={{
+                  width: i === idx ? 20 : 6, height: 6,
+                  background: i === idx ? '#fff' : 'rgba(255,255,255,0.4)',
+                  borderRadius: 3,
+                  transition: 'all .25s',
+                }}/>
+              ))}
+            </div>
+          )}
         </div>
 
         {/* CTA ボタン群 */}
