@@ -8791,6 +8791,41 @@ const AUTH_T = {
     resetTokenMissing: 'リセットトークンが見つかりません',
     resetFailed: 'パスワードの変更に失敗しました',
     pwNewLabel: '新しいパスワード',
+    // (Phase 8) マイページ・QRチケット関連
+    qrShowTicket: 'QRチケットを表示',
+    detailLink: '詳細 →',
+    daysToday: '本日',
+    daysTomorrow: '明日',
+    daysLeft: 'あと%n%日',
+    upcomingLabel: '参加予定',
+    attendedLabel: '参加実績',
+    cancelledLabel: 'キャンセル',
+    cancelledSection: 'キャンセル済み',
+    nextEventToday: '本日が次のイベント',
+    nextEventTomorrow: '明日が次のイベント',
+    nextEventInDays: '次まで あと%n%日',
+    ticketBackToMyPage: '← マイページに戻る',
+    ticketYourTicket: 'YOUR TICKET',
+    ticketCheckedIn: 'CHECKED IN',
+    ticketStartsIn: 'STARTS IN',
+    ticketDays: 'DAYS',
+    ticketHrs: 'HRS',
+    ticketMin: 'MIN',
+    ticketSec: 'SEC',
+    ticketReceptionMsg: 'このQRコードを当日受付で提示してください',
+    ticketCheckedInMsg: '✓ 受付済み (チェックイン完了)',
+    ticketIdLabel: 'ID',
+    ticketAddCalendar: 'カレンダーに追加',
+    ticketEventDetail: 'イベント詳細',
+    ticketShare: '共有',
+    ticketUrlCopied: 'URLをコピーしました',
+    ticketNotFound: '該当する申込が見つかりません',
+    ticketCancelledErr: 'このイベントはキャンセル済みです',
+    ticketLoadFailed: '読み込みに失敗しました',
+    ticketGenerating: 'QR生成中...',
+    cardAriaLabel: '%title% の詳細を見る',
+    gcalDetailText: 'connec+a イベント',
+    shareText: '%title% に参加します',
   },
   easy: {
     required: 'ぜんぶ いれて ください',
@@ -8941,6 +8976,41 @@ const AUTH_T = {
     resetTokenMissing: 'リセットトークンが ありません',
     resetFailed: 'パスワードの へんこうが できません でした',
     pwNewLabel: 'あたらしい パスワード',
+    // (Phase 8) マイページ・QRチケット関連
+    qrShowTicket: 'QRチケットを ひらく',
+    detailLink: 'くわしく →',
+    daysToday: 'きょう',
+    daysTomorrow: 'あした',
+    daysLeft: 'あと%n%にち',
+    upcomingLabel: 'さんかよてい',
+    attendedLabel: 'さんかしたかいすう',
+    cancelledLabel: 'キャンセル',
+    cancelledSection: 'キャンセルずみ',
+    nextEventToday: 'きょうが つぎのイベント',
+    nextEventTomorrow: 'あしたが つぎのイベント',
+    nextEventInDays: 'つぎまで あと%n%にち',
+    ticketBackToMyPage: '← マイページに もどる',
+    ticketYourTicket: 'YOUR TICKET',
+    ticketCheckedIn: 'CHECKED IN',
+    ticketStartsIn: 'STARTS IN',
+    ticketDays: 'にち',
+    ticketHrs: 'じかん',
+    ticketMin: 'ふん',
+    ticketSec: 'びょう',
+    ticketReceptionMsg: 'このQRコードを、うけつけで みせてください',
+    ticketCheckedInMsg: '✓ うけつけずみ (チェックイン かんりょう)',
+    ticketIdLabel: 'ID',
+    ticketAddCalendar: 'カレンダーに いれる',
+    ticketEventDetail: 'イベントの くわしく',
+    ticketShare: 'おしえる',
+    ticketUrlCopied: 'URLを コピーしました',
+    ticketNotFound: 'みつかりません',
+    ticketCancelledErr: 'このイベントは キャンセルずみです',
+    ticketLoadFailed: 'よみこみが できません でした',
+    ticketGenerating: 'QRを つくっています...',
+    cardAriaLabel: '%title% の くわしく',
+    gcalDetailText: 'connec+a イベント',
+    shareText: '%title% に さんかします',
   },
   en: {
     required: 'Please fill in all required fields',
@@ -9091,6 +9161,41 @@ const AUTH_T = {
     resetTokenMissing: 'Reset token not found',
     resetFailed: 'Password change failed',
     pwNewLabel: 'New Password',
+    // (Phase 8) My Page & QR Ticket
+    qrShowTicket: 'Show QR Ticket',
+    detailLink: 'Details →',
+    daysToday: 'Today',
+    daysTomorrow: 'Tomorrow',
+    daysLeft: '%n% days left',
+    upcomingLabel: 'Upcoming',
+    attendedLabel: 'Attended',
+    cancelledLabel: 'Cancelled',
+    cancelledSection: 'Cancelled',
+    nextEventToday: 'Next event is today',
+    nextEventTomorrow: 'Next event is tomorrow',
+    nextEventInDays: '%n% days until next',
+    ticketBackToMyPage: '← Back to My Page',
+    ticketYourTicket: 'YOUR TICKET',
+    ticketCheckedIn: 'CHECKED IN',
+    ticketStartsIn: 'STARTS IN',
+    ticketDays: 'DAYS',
+    ticketHrs: 'HRS',
+    ticketMin: 'MIN',
+    ticketSec: 'SEC',
+    ticketReceptionMsg: 'Please show this QR code at the reception',
+    ticketCheckedInMsg: '✓ Check-in complete',
+    ticketIdLabel: 'ID',
+    ticketAddCalendar: 'Add to Calendar',
+    ticketEventDetail: 'Event Details',
+    ticketShare: 'Share',
+    ticketUrlCopied: 'URL copied',
+    ticketNotFound: 'Registration not found',
+    ticketCancelledErr: 'This event is cancelled',
+    ticketLoadFailed: 'Failed to load',
+    ticketGenerating: 'Generating QR...',
+    cardAriaLabel: 'View details of %title%',
+    gcalDetailText: 'connec+a event',
+    shareText: "I'm joining %title%",
   },
 };
 
@@ -10806,7 +10911,7 @@ function PageMyPage({ lang, t, events }) {
                 <div style={{
                   fontSize: 11, color: '#6b7280', fontFamily: 'var(--jp)',
                   marginTop: 6,
-                }}>参加予定</div>
+                }}>{at.upcomingLabel}</div>
                 {/* (Phase 8 C2) 次のイベントまで */}
                 {nextEventDays !== null && nextEventDays >= 0 && (
                   <div style={{
@@ -10818,7 +10923,7 @@ function PageMyPage({ lang, t, events }) {
                     display: 'flex', alignItems: 'center', gap: 4,
                   }}>
                     <PIcon.Clock size={11} color="#2c89e8"/>
-                    {nextEventDays === 0 ? '本日が次のイベント' : nextEventDays === 1 ? '明日が次のイベント' : `次まで あと${nextEventDays}日`}
+                    {nextEventDays === 0 ? at.nextEventToday : nextEventDays === 1 ? at.nextEventTomorrow : at.nextEventInDays.replace('%n%', nextEventDays)}
                   </div>
                 )}
               </div>
@@ -10850,7 +10955,7 @@ function PageMyPage({ lang, t, events }) {
                 <div style={{
                   fontSize: 11, color: '#6b7280', fontFamily: 'var(--jp)',
                   marginTop: 6,
-                }}>参加実績</div>
+                }}>{at.attendedLabel}</div>
               </div>
 
               {/* キャンセル (件数 > 0 のみ) */}
@@ -10880,7 +10985,7 @@ function PageMyPage({ lang, t, events }) {
                   <div style={{
                     fontSize: 11, color: '#6b7280', fontFamily: 'var(--jp)',
                     marginTop: 6,
-                  }}>キャンセル</div>
+                  }}>{at.cancelledLabel}</div>
                 </div>
               )}
             </div>
@@ -10980,7 +11085,7 @@ function PageMyPage({ lang, t, events }) {
                 display: 'flex', alignItems: 'center', gap: 8,
               }}>
                 <span style={{ display: 'inline-block', width: 4, height: 16, background: '#9ca3af' }}/>
-                キャンセル済み
+                {at.cancelledSection}
                 <span style={{
                   fontSize: 11, color: '#9ca3af', fontWeight: 400, marginLeft: 6,
                 }}>({cancelledEvents.length})</span>
@@ -11030,10 +11135,10 @@ function MyEventCard({ registration, past, onCancel, lang }) {
     const today = new Date();
     today.setHours(0, 0, 0, 0);
     const diff = Math.round((eventDate - today) / (1000 * 60 * 60 * 24));
-    if (diff === 0) return { label: '本日', color: '#dc2626', bg: '#fef2f2' };
-    if (diff === 1) return { label: '明日', color: '#f59e0b', bg: '#fffbeb' };
-    if (diff > 0 && diff <= 7) return { label: `あと${diff}日`, color: '#2c89e8', bg: '#eff6ff' };
-    if (diff > 0) return { label: `あと${diff}日`, color: '#6b7280', bg: '#f9fafb' };
+    if (diff === 0) return { label: at.daysToday, color: '#dc2626', bg: '#fef2f2', isToday: true };
+    if (diff === 1) return { label: at.daysTomorrow, color: '#f59e0b', bg: '#fffbeb' };
+    if (diff > 0 && diff <= 7) return { label: at.daysLeft.replace('%n%', diff), color: '#2c89e8', bg: '#eff6ff' };
+    if (diff > 0) return { label: at.daysLeft.replace('%n%', diff), color: '#6b7280', bg: '#f9fafb' };
     return null;
   })();
 
@@ -11062,7 +11167,7 @@ function MyEventCard({ registration, past, onCancel, lang }) {
       onMouseLeave={() => setHover(false)}
       role="button"
       tabIndex={0}
-      aria-label={`${event.title} の詳細を見る`}
+      aria-label={at.cardAriaLabel.replace('%title%', event.title || '')}
       onKeyDown={(e) => {
         if (e.key === 'Enter' || e.key === ' ') {
           e.preventDefault();
@@ -11091,7 +11196,7 @@ function MyEventCard({ registration, past, onCancel, lang }) {
           fontFamily: 'var(--jp)', fontWeight: 600, letterSpacing: '0.04em',
           zIndex: 1,
           display: 'inline-flex', alignItems: 'center', gap: 4,
-          animation: daysRemaining.label === '本日' ? 'cca-pulse-soft 1.6s ease-in-out infinite' : 'none',
+          animation: daysRemaining.isToday ? 'cca-pulse-soft 1.6s ease-in-out infinite' : 'none',
         }}>
           <PIcon.Clock size={11} color={daysRemaining.color}/>
           {daysRemaining.label}
@@ -11196,7 +11301,7 @@ function MyEventCard({ registration, past, onCancel, lang }) {
           {!past ? (
             <a href={`#/ticket/${registration.regId}`}
                onClick={(e) => e.stopPropagation()}
-               aria-label="QRチケットを表示"
+               aria-label={at.qrShowTicket}
                onMouseEnter={(e) => { e.currentTarget.style.background = '#1d6bb8'; }}
                onMouseLeave={(e) => { e.currentTarget.style.background = '#2c89e8'; }}
                style={{
@@ -11209,7 +11314,7 @@ function MyEventCard({ registration, past, onCancel, lang }) {
                  transition: 'background .15s',
                }}>
               <PIcon.QRCode size={16} color="#fff"/>
-              QRチケットを表示
+              {at.qrShowTicket}
             </a>
           ) : <span/>}
 
@@ -11222,7 +11327,7 @@ function MyEventCard({ registration, past, onCancel, lang }) {
             transition: 'all .18s ease',
             transform: hover ? 'translateX(3px)' : 'translateX(0)',
             letterSpacing: '0.02em',
-          }}>詳細 →</span>
+          }}>{at.detailLink}</span>
         </div>
       )}
     </div>
@@ -11269,9 +11374,9 @@ function PageTicket({ regId, lang }) {
         const found = (result.registrations || []).find(r => r.regId === regId);
         if (!cancelled) {
           if (!found) {
-            setError('該当する申込が見つかりません');
+            setError(at.ticketNotFound);
           } else if (found.status === 'キャンセル') {
-            setError('このイベントはキャンセル済みです');
+            setError(at.ticketCancelledErr);
           } else {
             setReg(found);
           }
@@ -11280,7 +11385,7 @@ function PageTicket({ regId, lang }) {
       } catch (err) {
         console.error('PageTicket fetch failed:', err);
         if (!cancelled) {
-          setError('読み込みに失敗しました');
+          setError(at.ticketLoadFailed);
           setLoading(false);
         }
       }
@@ -11331,13 +11436,13 @@ function PageTicket({ regId, lang }) {
           <h2 style={{
             margin: '0 0 12px', fontFamily: 'var(--jp)',
             fontSize: 20, fontWeight: 600, color: '#0a2960',
-          }}>{error || '該当する申込が見つかりません'}</h2>
+          }}>{error || at.ticketNotFound}</h2>
           <a href="#/mypage" style={{
             display: 'inline-block', marginTop: 24,
             padding: '10px 24px', fontSize: 13, fontFamily: 'var(--jp)',
             color: '#2c89e8', border: '1px solid #2c89e8',
             textDecoration: 'none', letterSpacing: '0.04em',
-          }}>← マイページに戻る</a>
+          }}>{at.ticketBackToMyPage}</a>
         </div>
       </section>
     );
@@ -11378,7 +11483,7 @@ function PageTicket({ regId, lang }) {
         action: 'TEMPLATE',
         text: event.title || '',
         dates: `${start}/${end}`,
-        details: `connec+a イベント\nID: ${reg.regId}\nQRチケット: ${window.location.href}`,
+        details: `${at.gcalDetailText}\nID: ${reg.regId}\nQRチケット: ${window.location.href}`,
         location: event.venue || '',
       });
       return `https://www.google.com/calendar/render?${params.toString()}`;
@@ -11393,7 +11498,7 @@ function PageTicket({ regId, lang }) {
     const url = window.location.href;
     const shareData = {
       title: event.title,
-      text: `${event.title} に参加します`,
+      text: at.shareText.replace('%title%', event.title || ''),
       url,
     };
     try {
@@ -11401,7 +11506,7 @@ function PageTicket({ regId, lang }) {
         await navigator.share(shareData);
       } else if (navigator.clipboard) {
         await navigator.clipboard.writeText(url);
-        setShareToast('URLをコピーしました');
+        setShareToast(at.ticketUrlCopied);
         setTimeout(() => setShareToast(''), 2000);
       }
     } catch (e) {
@@ -11423,7 +11528,7 @@ function PageTicket({ regId, lang }) {
           display: 'inline-block', marginBottom: 24,
           fontSize: 13, color: '#6b7280', fontFamily: 'var(--jp)',
           textDecoration: 'none',
-        }}>← マイページに戻る</a>
+        }}>{at.ticketBackToMyPage}</a>
 
         {/* チケットカード */}
         <div style={{
@@ -11444,7 +11549,7 @@ function PageTicket({ regId, lang }) {
               fontSize: 11, color: '#6b7280', fontFamily: 'var(--jp)',
               letterSpacing: '0.14em', marginBottom: 10,
               textTransform: 'uppercase', fontWeight: 600,
-            }}>{isCheckedIn ? 'CHECKED IN' : 'YOUR TICKET'}</div>
+            }}>{isCheckedIn ? at.ticketCheckedIn : at.ticketYourTicket}</div>
             <h1 style={{
               margin: 0, fontFamily: 'var(--jp)',
               fontSize: 'clamp(24px, 3.4vw, 32px)', fontWeight: 600,
@@ -11483,7 +11588,7 @@ function PageTicket({ regId, lang }) {
                 display: 'inline-flex', alignItems: 'center', gap: 6,
               }}>
                 <PIcon.Clock size={11} color="#1e40af"/>
-                Starts In
+                {at.ticketStartsIn}
               </div>
               <div style={{
                 display: 'grid',
@@ -11492,10 +11597,10 @@ function PageTicket({ regId, lang }) {
                 textAlign: 'center',
               }}>
                 {[
-                  {value: countdown.days, label: 'DAYS'},
-                  {value: countdown.hours, label: 'HRS'},
-                  {value: countdown.minutes, label: 'MIN'},
-                  {value: countdown.seconds, label: 'SEC'},
+                  {value: countdown.days, label: at.ticketDays},
+                  {value: countdown.hours, label: at.ticketHrs},
+                  {value: countdown.minutes, label: at.ticketMin},
+                  {value: countdown.seconds, label: at.ticketSec},
                 ].map((unit, idx) => (
                   <div key={unit.label}>
                     <div style={{
@@ -11567,7 +11672,7 @@ function PageTicket({ regId, lang }) {
                 background: '#f3f4f6',
                 display: 'flex', alignItems: 'center', justifyContent: 'center',
                 fontSize: 13, color: '#9ca3af', fontFamily: 'var(--jp)',
-              }}>QR生成中...</div>
+              }}>{at.ticketGenerating}</div>
             )}
           </div>
 
@@ -11579,15 +11684,10 @@ function PageTicket({ regId, lang }) {
           }}>
             {isCheckedIn ? (
               <span style={{ color: '#1e40af', fontWeight: 600 }}>
-                ✓ 受付済み (チェックイン完了)
+                {at.ticketCheckedInMsg}
               </span>
             ) : (
-              <>
-                このQRコードを当日受付で提示してください<br/>
-                <span style={{ fontSize: 10, color: '#9ca3af' }}>
-                  Please show this QR code at the reception
-                </span>
-              </>
+              <span>{at.ticketReceptionMsg}</span>
             )}
           </div>
 
@@ -11599,7 +11699,7 @@ function PageTicket({ regId, lang }) {
             fontSize: 10, color: '#9ca3af', fontFamily: 'var(--jp)',
             letterSpacing: '0.08em',
           }}>
-            ID: {reg.regId}
+            {at.ticketIdLabel}: {reg.regId}
           </div>
         </div>
 
@@ -11614,7 +11714,7 @@ function PageTicket({ regId, lang }) {
             {/* Google Calendar に追加 */}
             {gcalUrl && (
               <a href={gcalUrl} target="_blank" rel="noopener noreferrer"
-                 aria-label="Googleカレンダーに追加"
+                 aria-label={at.ticketAddCalendar}
                  onMouseEnter={(e) => { e.currentTarget.style.background = '#f9fafb'; }}
                  onMouseLeave={(e) => { e.currentTarget.style.background = '#fff'; }}
                  style={{
@@ -11628,14 +11728,14 @@ function PageTicket({ regId, lang }) {
                    transition: 'background .15s',
                  }}>
                 <PIcon.CalendarPlus size={14} color="#374151"/>
-                カレンダーに追加
+                {at.ticketAddCalendar}
               </a>
             )}
 
             {/* イベント詳細を見る */}
             {event.id && (
               <a href={`#/events/${event.id}`}
-                 aria-label="イベント詳細を見る"
+                 aria-label={at.ticketEventDetail}
                  onMouseEnter={(e) => { e.currentTarget.style.background = '#f9fafb'; }}
                  onMouseLeave={(e) => { e.currentTarget.style.background = '#fff'; }}
                  style={{
@@ -11649,13 +11749,13 @@ function PageTicket({ regId, lang }) {
                    transition: 'background .15s',
                  }}>
                 <PIcon.ExternalLink size={14} color="#374151"/>
-                イベント詳細
+                {at.ticketEventDetail}
               </a>
             )}
 
             {/* 共有 */}
             <button onClick={handleShare}
-                    aria-label="このチケットを共有"
+                    aria-label={at.ticketShare}
                     onMouseEnter={(e) => { e.currentTarget.style.background = '#f9fafb'; }}
                     onMouseLeave={(e) => { e.currentTarget.style.background = '#fff'; }}
                     style={{
@@ -11669,7 +11769,7 @@ function PageTicket({ regId, lang }) {
                       transition: 'background .15s',
                     }}>
               <PIcon.Share size={14} color="#374151"/>
-              共有
+              {at.ticketShare}
             </button>
           </div>
         )}
