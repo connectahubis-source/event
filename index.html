@@ -3606,8 +3606,18 @@ function HeroSlideshow({ lang, t, events, heroSlides, loading, frontNews, siteSe
           position: 'relative',
           width: '100%',
           aspectRatio: '4 / 5',
-          background: slideImg ? `center / cover no-repeat url("${slideImg}")` : '#0a2960',
+          background: '#0a2960',
+          overflow: 'hidden',
         }}>
+          {/* 画像 (PC版と同じ <img> タグ方式) */}
+          {slideImg && (
+            <img src={slideImg} alt="" style={{
+              position: 'absolute', inset: 0,
+              width: '100%', height: '100%',
+              objectFit: 'cover',
+              display: 'block',
+            }}/>
+          )}
           {/* 暗オーバーレイ */}
           <div style={{
             position: 'absolute', inset: 0,
@@ -5861,12 +5871,21 @@ function UpcomingEventsSection({ settings, events, lang, t }) {
             return (
               <a key={ev.id} href={`#/events/${ev.id}`} style={{
                 display: 'block',
-                background: bg ? `center / cover no-repeat url("${bg}")` : '#0a2960',
+                background: '#0a2960',
                 aspectRatio: '16 / 10',
                 position: 'relative',
                 textDecoration: 'none',
                 overflow: 'hidden',
               }}>
+                {/* 画像 (img タグ方式、Google Drive Thumbnail 対策) */}
+                {bg && (
+                  <img src={bg} alt="" style={{
+                    position: 'absolute', inset: 0,
+                    width: '100%', height: '100%',
+                    objectFit: 'cover',
+                    display: 'block',
+                  }}/>
+                )}
                 <div style={{
                   position: 'absolute', inset: 0,
                   background: 'linear-gradient(180deg, rgba(0,0,0,0) 30%, rgba(10,41,96,0.85) 100%)',
