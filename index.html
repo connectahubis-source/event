@@ -4173,7 +4173,7 @@ function SeibanBackgroundImage({ src }) {
 // ============================================================================
 // (Phase 6.9) ConceptSection
 // ============================================================================
-function ConceptSection({ settings }) {
+function ConceptSection({ settings, lang, t }) {
   const mainEn = settings.concept_main_en || 'Where strangers become friends.';
   const mainJa = settings.concept_main_ja || '一緒に、東京を歩こう';
   const bodyEn = settings.concept_body_en || "For international students arriving in Tokyo, we don't host events. We host encounters — small, daily, real.";
@@ -5682,7 +5682,7 @@ function PageHome({ lang, t, events, ads, heroSlides, loading, siteSettings, fro
       <AdRotator ads={ads} placement="参加者ヒーロー" />
 
       {/* (Phase 6.9) Concept セクション */}
-      <ConceptSection settings={siteSettings || {}} />
+      <ConceptSection settings={siteSettings || {}} lang={lang} t={t} />
 
       {/* (Phase 6.9) Events 入口 (右タイトル / 左本文) */}
       <EventsEntrySection settings={siteSettings || {}} lang={lang} t={t} />
