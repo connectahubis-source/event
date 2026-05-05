@@ -3581,6 +3581,18 @@ function HeroSlideshow({ lang, t, events, heroSlides, loading, frontNews, siteSe
   if (heroVp.isMobile) {
     const currentSlide = slides[idx] || slides[0];
     const slideImg = currentSlide ? currentSlide.img : '';
+
+    // (Phase 13.2 修正) heroOverlay の text 要素を抽出 (PC版と整合)
+    // y 座標で並び替え、画像下にコピーとして縦並び表示
+    const overlayTexts = (currentSlide && Array.isArray(currentSlide.heroOverlay))
+      ? [...currentSlide.heroOverlay]
+          .filter(item => item.type === 'text' && item.text && String(item.text).trim())
+          .sort((a, b) => (a.y || 0) - (b.y || 0))
+      : [];
+
+    // フォールバック: heroOverlay が空なら旧フィールド (eyebrow/mainEn/mainEm/sub) を使う
+    const useFallback = overlayTexts.length === 0;
+
     return (
       <section data-section="hero" style={{
         position: 'relative',
@@ -3599,8 +3611,11 @@ function HeroSlideshow({ lang, t, events, heroSlides, loading, frontNews, siteSe
           {/* 暗オーバーレイ */}
           <div style={{
             position: 'absolute', inset: 0,
-            background: 'linear-gradient(180deg, rgba(10,41,96,0.2) 0%, rgba(10,41,96,0.7) 80%, rgba(10,41,96,0.95) 100%)',
+            background: useFallback
+              ? 'linear-gradient(180deg, rgba(10,41,96,0.2) 0%, rgba(10,41,96,0.7) 80%, rgba(10,41,96,0.95) 100%)'
+              : 'linear-gradient(180deg, rgba(10,41,96,0.15) 0%, rgba(10,41,96,0.55) 60%, rgba(10,41,96,0.85) 100%)',
           }}/>
+
           {/* メインコピー */}
           <div style={{
             position: 'absolute',
@@ -3608,22 +3623,49 @@ function HeroSlideshow({ lang, t, events, heroSlides, loading, frontNews, siteSe
             color: '#fff',
             fontFamily: 'var(--jp)',
           }}>
-            <div style={{
-              fontSize: 11, letterSpacing: '0.2em', opacity: 0.85, marginBottom: 8,
-            }}>{currentSlide?.eyebrow || 'CONNEC+A'}</div>
-            <div style={{
-              fontFamily: '"Noto Serif JP", serif',
-              fontSize: 26, lineHeight: 1.3, fontWeight: 600,
-            }}>
-              {currentSlide?.mainEn || ''}
-              {currentSlide?.mainEm && <span style={{fontStyle: 'italic'}}> {currentSlide.mainEm}</span>}
-            </div>
-            {currentSlide?.sub && (
-              <div style={{
-                marginTop: 8,
-                fontSize: 13, opacity: 0.9, lineHeight: 1.5,
-              }}>{currentSlide.sub}</div>
+            {useFallback ? (
+              // フォールバック: 旧フィールドを使う
+              <>
+                <div style={{
+                  fontSize: 11, letterSpacing: '0.2em', opacity: 0.85, marginBottom: 8,
+                }}>{currentSlide?.eyebrow || 'CONNEC+A'}</div>
+                <div style={{
+                  fontFamily: '"Noto Serif JP", serif',
+                  fontSize: 26, lineHeight: 1.3, fontWeight: 600,
+                }}>
+                  {currentSlide?.mainEn || ''}
+                  {currentSlide?.mainEm && <span style={{fontStyle: 'italic'}}> {currentSlide.mainEm}</span>}
+                </div>
+                {currentSlide?.sub && (
+                  <div style={{
+                    marginTop: 8,
+                    fontSize: 13, opacity: 0.9, lineHeight: 1.5,
+                  }}>{currentSlide.sub}</div>
+                )}
+              </>
+            ) : (
+              // heroOverlay の text を縦並び (PC版と整合)
+              <div style={{ display: 'grid', gap: 6 }}>
+                {overlayTexts.map((item, i) => {
+                  // フォントサイズ: PC版の半分程度を base にして clamp
+                  const baseSize = item.fontSize || 28;
+                  const mobileSize = Math.max(13, Math.min(28, Math.round(baseSize * 0.55)));
+                  return (
+                    <div key={item.id || i} style={{
+                      fontSize: mobileSize,
+                      fontWeight: item.fontWeight || 500,
+                      fontFamily: item.fontFamily || 'var(--jp)',
+                      color: item.color || '#fff',
+                      lineHeight: 1.3,
+                      textShadow: '0 2px 12px rgba(0,0,0,0.4)',
+                      whiteSpace: 'pre-wrap',
+                      wordBreak: 'break-word',
+                    }}>{item.text}</div>
+                  );
+                })}
+              </div>
             )}
+
             {/* インジケータ */}
             {slides.length > 1 && (
               <div style={{
