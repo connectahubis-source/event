@@ -336,6 +336,16 @@ button { font-family: inherit; cursor: pointer; }
 .cloud-float-3 { animation: cca-float 26s ease-in-out infinite; }
 
 /* ===== モバイル対応 ===== */
+/* 横スクロール完全防止 (Phase 13.1) */
+html, body {
+  overflow-x: hidden;
+  max-width: 100vw;
+}
+* {
+  max-width: 100%;
+  box-sizing: border-box;
+}
+
 @media (max-width: 880px) {
   .hero-grid {
     grid-template-columns: 1fr !important;
@@ -346,6 +356,28 @@ button { font-family: inherit; cursor: pointer; }
   .hero-side-blur {
     width: 100% !important;
     background: linear-gradient(180deg, rgba(10, 41, 96, 0.7) 0%, rgba(10, 41, 96, 0.4) 70%, transparent 100%) !important;
+  }
+}
+
+/* (Phase 13.1) スマホ (≤640px) で全要素のpadding/font縮小 */
+@media (max-width: 640px) {
+  /* セクション padding 縮小 */
+  section {
+    padding-left: clamp(16px, 4vw, 24px) !important;
+    padding-right: clamp(16px, 4vw, 24px) !important;
+  }
+  /* ヘッダーのロゴ位置 */
+  header > div {
+    padding-left: 16px !important;
+    padding-right: 16px !important;
+  }
+  /* 大きいh1/h2をスマホで縮小 */
+  h1 { font-size: clamp(24px, 6vw, 36px) !important; }
+  h2 { font-size: clamp(20px, 5vw, 28px) !important; }
+  /* 画像が画面幅を超えないよう */
+  img, video, iframe {
+    max-width: 100% !important;
+    height: auto;
   }
 }
 
@@ -3068,6 +3100,8 @@ function PageHero({
 function HeroSlideshow({ lang, t, events, heroSlides, loading, frontNews, siteSettings }) {
   // (Phase 7.7) 認証状態 (CTAボタンの分岐用)
   const auth = useAuth();
+  // (Phase 13.2) ビューポート
+  const heroVp = useViewport();
 
   // Google Drive の URL を表示可能な形式に正規化 (Phase 6 fix)
   const normalizeImageUrl = (url) => {
@@ -3543,19 +3577,144 @@ function HeroSlideshow({ lang, t, events, heroSlides, loading, frontNews, siteSe
   const topNews = topNewsList[Math.min(newsIdx, topNewsList.length - 1)] || null;
   const subSlide = slides.length > 1 ? slides[(idx + 1) % slides.length] : null;
 
+  // (Phase 13.2) モバイル時はシンプルなHero代替版
+  if (heroVp.isMobile) {
+    const currentSlide = slides[idx] || slides[0];
+    const slideImg = currentSlide ? normalizeImageUrl(currentSlide.imageUrl) : '';
+    return (
+      <section data-section="hero" style={{
+        position: 'relative',
+        width: '100%',
+        marginTop: 80,
+        background: '#0a2960',
+        overflow: 'hidden',
+      }}>
+        {/* メイン画像 */}
+        <div style={{
+          position: 'relative',
+          width: '100%',
+          aspectRatio: '4 / 5',
+          background: slideImg ? `center / cover no-repeat url("${slideImg}")` : '#0a2960',
+        }}>
+          {/* 暗オーバーレイ */}
+          <div style={{
+            position: 'absolute', inset: 0,
+            background: 'linear-gradient(180deg, rgba(10,41,96,0.2) 0%, rgba(10,41,96,0.7) 80%, rgba(10,41,96,0.95) 100%)',
+          }}/>
+          {/* メインコピー */}
+          <div style={{
+            position: 'absolute',
+            left: 20, right: 20, bottom: 24,
+            color: '#fff',
+            fontFamily: 'var(--jp)',
+          }}>
+            <div style={{
+              fontSize: 11, letterSpacing: '0.2em', opacity: 0.85, marginBottom: 8,
+            }}>{currentSlide?.eyebrow || 'CONNEC+A'}</div>
+            <div style={{
+              fontFamily: '"Noto Serif JP", serif',
+              fontSize: 26, lineHeight: 1.3, fontWeight: 600,
+            }}>
+              {currentSlide?.titleEn || ''}
+              {currentSlide?.titleEm && <span style={{fontStyle: 'italic'}}> {currentSlide.titleEm}</span>}
+            </div>
+            {currentSlide?.sub && (
+              <div style={{
+                marginTop: 8,
+                fontSize: 13, opacity: 0.9, lineHeight: 1.5,
+              }}>{currentSlide.sub}</div>
+            )}
+            {/* インジケータ */}
+            {slides.length > 1 && (
+              <div style={{
+                marginTop: 16, display: 'flex', gap: 6,
+              }}>
+                {slides.map((_, i) => (
+                  <span key={i} style={{
+                    width: i === idx ? 20 : 6, height: 6,
+                    background: i === idx ? '#fff' : 'rgba(255,255,255,0.4)',
+                    borderRadius: 3,
+                    transition: 'all .25s',
+                  }}/>
+                ))}
+              </div>
+            )}
+          </div>
+        </div>
+
+        {/* CTA ボタン群 */}
+        <div style={{
+          padding: '20px 16px 28px',
+          background: '#0a2960',
+          display: 'grid',
+          gap: 10,
+        }}>
+          <a href="#/events" style={{
+            display: 'block',
+            padding: '14px 20px',
+            background: '#2c89e8',
+            color: '#fff',
+            textDecoration: 'none',
+            fontSize: 14, fontWeight: 600,
+            fontFamily: 'var(--jp)',
+            letterSpacing: '0.04em',
+            textAlign: 'center',
+          }}>{lang === 'ja' ? 'イベントを見る' : lang === 'easy' ? 'イベントを みる' : 'See events'} →</a>
+          <a href={auth.user ? '#/mypage' : '#/signup'} style={{
+            display: 'block',
+            padding: '14px 20px',
+            background: 'transparent',
+            color: '#fff',
+            textDecoration: 'none',
+            fontSize: 14, fontWeight: 600,
+            fontFamily: 'var(--jp)',
+            letterSpacing: '0.04em',
+            textAlign: 'center',
+            border: '1.5px solid rgba(255,255,255,0.5)',
+          }}>{auth.user
+            ? (lang === 'ja' ? 'マイページ' : lang === 'easy' ? 'マイページ' : 'My Page')
+            : (lang === 'ja' ? '会員登録' : lang === 'easy' ? 'とうろく' : 'Sign up')} →</a>
+        </div>
+
+        {/* TOP NEWS (あれば) */}
+        {topNews && (
+          <a href={`#/news/${topNews.id}`} style={{
+            display: 'block',
+            padding: '14px 20px',
+            background: '#0a2960',
+            color: '#fff',
+            textDecoration: 'none',
+            borderTop: '1px solid rgba(255,255,255,0.15)',
+          }}>
+            <div style={{
+              fontSize: 10, letterSpacing: '0.2em', opacity: 0.7, marginBottom: 4,
+              fontFamily: 'var(--jp)',
+            }}>NEWS</div>
+            <div style={{
+              fontSize: 13, lineHeight: 1.5,
+              fontFamily: 'var(--jp)',
+            }}>{topNews.title || ''}</div>
+          </a>
+        )}
+      </section>
+    );
+  }
+
   return (
     <section data-section="hero" style={{
       position: 'relative',
       width: '100%',
-      height: 'calc(100vh - 130px)',
-      minHeight: 580,
-      maxHeight: 870,
-      marginTop: 130,
+      height: heroVp.isMobile ? 'auto' : 'calc(100vh - 130px)',
+      minHeight: heroVp.isMobile ? 'auto' : 580,
+      maxHeight: heroVp.isMobile ? 'none' : 870,
+      marginTop: heroVp.isMobile ? 80 : 130,
       overflow: 'hidden',
       background: '#ffffff',
       display: 'grid',
-      gridTemplateColumns: 'clamp(48px, 8%, 110px) minmax(280px, 28%) 1fr clamp(40px, 5%, 80px)',
-      gridTemplateRows: '1fr',
+      gridTemplateColumns: heroVp.isMobile
+        ? '1fr'
+        : 'clamp(48px, 8%, 110px) minmax(280px, 28%) 1fr clamp(40px, 5%, 80px)',
+      gridTemplateRows: heroVp.isMobile ? 'auto auto' : '1fr',
     }}>
 
       {/* === 左ベージュ縦帯 === */}
@@ -3563,6 +3722,7 @@ function HeroSlideshow({ lang, t, events, heroSlides, loading, frontNews, siteSe
         background: '#f5f0e8',
         position: 'relative',
         zIndex: 2,
+        display: heroVp.isMobile ? 'none' : 'block',
       }}>
         {/* SCROLL 縦書き (下部) */}
         <div className="desktop-only" aria-hidden style={{
@@ -4363,6 +4523,9 @@ function ConceptSection({ settings, lang, t }) {
   const bodyEn = settings.concept_body_en || "For international students arriving in Tokyo, we don't host events. We host encounters — small, daily, real.";
   const bodyJa = settings.concept_body_ja || 'イベントではなく、出会いを。\n一夜限りでなく、日常のなかで。';
 
+  // (Phase 13.3) モバイルビューポート
+  const conceptVp = useViewport();
+
   // (Phase 7.1) Conceptセクション全体を額縁とし、内部で青ノーズが下→上にビルドイン・ビルドアウト
   // 内容はHero流の左寄せ白パネル
   const sectionRef = useRef(null);
@@ -4418,6 +4581,38 @@ function ConceptSection({ settings, lang, t }) {
       io.disconnect();
     };
   }, []);
+
+  // (Phase 13.3) モバイル時はシンプル版
+  if (conceptVp.isMobile) {
+    return (
+      <section data-section="concept" style={{
+        background: '#0a2960',
+        padding: '60px 20px',
+        color: '#fff',
+      }}>
+        <div style={{
+          fontSize: 11, letterSpacing: '0.3em', opacity: 0.7, marginBottom: 16,
+          fontFamily: 'var(--jp)',
+        }}>CONCEPT</div>
+        <h2 style={{
+          fontSize: 28, lineHeight: 1.4, fontWeight: 600, margin: '0 0 8px',
+          fontFamily: '"Noto Serif JP", serif',
+          letterSpacing: '0.02em',
+        }}>{mainEn}</h2>
+        <p style={{
+          fontSize: 16, lineHeight: 1.7, margin: '0 0 24px',
+          fontFamily: 'var(--jp)',
+          fontWeight: 500,
+          color: '#cfdcf2',
+        }}>{mainJa}</p>
+        <p style={{
+          fontSize: 13, lineHeight: 1.8, opacity: 0.85,
+          fontFamily: 'var(--jp)',
+          whiteSpace: 'pre-wrap',
+        }}>{lang === 'ja' || lang === 'easy' ? bodyJa : bodyEn}</p>
+      </section>
+    );
+  }
 
   return (
     <section ref={sectionRef} data-section="concept" style={{
@@ -4667,6 +4862,9 @@ function EventsEntrySection({ settings, lang, t }) {
   const ctaLink  = settings.events_section_cta_link || '#/events';
   const galleryLink = settings.events_gallery_link || '#/gallery';
 
+  // (Phase 13.3) モバイルビューポート
+  const eventsEntryVp = useViewport();
+
   // (Phase 7.1) Concept と同じ青ノーズアニメ、左右反対のレイアウト (左写真、右白パネル)
   const sectionRef = useRef(null);
   const noseRef = useRef(null);
@@ -4734,6 +4932,55 @@ function EventsEntrySection({ settings, lang, t }) {
         if (target) target.scrollIntoView({ behavior: 'smooth' });
       } catch (err) {}
     }
+  }
+
+  // (Phase 13.3) モバイル時はシンプル版
+  if (eventsEntryVp.isMobile) {
+    const heading = lang === 'en' ? 'Events' : lang === 'easy' ? 'イベント' : 'イベント';
+    return (
+      <section data-section="events-entry" style={{
+        background: bgImage
+          ? `linear-gradient(180deg, rgba(255,255,255,0.92) 0%, rgba(245,247,250,0.94) 100%), center / cover no-repeat url("${bgImage}")`
+          : '#fafbfc',
+        padding: '60px 20px',
+      }}>
+        <div style={{
+          fontSize: 11, letterSpacing: '0.3em', color: '#6b7280', marginBottom: 12,
+          fontFamily: 'var(--jp)',
+        }}>EVENTS</div>
+        <h2 style={{
+          fontSize: 26, lineHeight: 1.3, fontWeight: 600, margin: '0 0 20px',
+          fontFamily: '"Noto Serif JP", serif',
+          color: '#0a2960',
+          letterSpacing: '0.02em',
+        }}>{heading}</h2>
+        <div style={{ display: 'grid', gap: 10 }}>
+          <a href={ctaLink} onClick={(e) => handleCta(e, ctaLink)} style={{
+            display: 'block',
+            padding: '14px 20px',
+            background: '#2c89e8',
+            color: '#fff',
+            textDecoration: 'none',
+            fontSize: 14, fontWeight: 600,
+            fontFamily: 'var(--jp)',
+            letterSpacing: '0.04em',
+            textAlign: 'center',
+          }}>{ctaText} →</a>
+          <a href={galleryLink} onClick={(e) => handleCta(e, galleryLink)} style={{
+            display: 'block',
+            padding: '14px 20px',
+            background: 'transparent',
+            color: '#0a2960',
+            textDecoration: 'none',
+            fontSize: 13, fontWeight: 600,
+            fontFamily: 'var(--jp)',
+            letterSpacing: '0.04em',
+            textAlign: 'center',
+            border: '1.5px solid #0a2960',
+          }}>{galleryText} →</a>
+        </div>
+      </section>
+    );
   }
 
   return (
@@ -5020,6 +5267,9 @@ function NewsSection({ settings, newsList, lang, t }) {
   const labelEn = settings.news_section_label_en || 'News';
   const labelJa = settings.news_section_label_ja || '最新のお知らせ';
 
+  // (Phase 13.3) モバイルビューポート
+  const newsVp = useViewport();
+
   const items = (newsList || []).slice(0, 3);
   const [idx, setIdx] = useState(0);
   const [paused, setPaused] = useState(false);
@@ -5053,6 +5303,59 @@ function NewsSection({ settings, newsList, lang, t }) {
         if (target) target.scrollIntoView({ behavior: 'smooth' });
       } catch (err) {}
     }
+  }
+
+  // (Phase 13.3) モバイル時はシンプル版
+  if (newsVp.isMobile) {
+    return (
+      <section data-section="news" style={{
+        background: '#0a2960',
+        padding: '60px 20px',
+        color: '#fff',
+      }}>
+        <div style={{
+          fontSize: 11, letterSpacing: '0.3em', opacity: 0.7, marginBottom: 12,
+          fontFamily: 'var(--jp)',
+        }}>NEWS</div>
+        <h2 style={{
+          fontSize: 24, lineHeight: 1.3, fontWeight: 600, margin: '0 0 24px',
+          fontFamily: '"Noto Serif JP", serif',
+          letterSpacing: '0.02em',
+        }}>{labelEn}</h2>
+        {items.length === 0 ? (
+          <p style={{
+            fontSize: 13, opacity: 0.7,
+            fontFamily: 'var(--jp)',
+          }}>{lang === 'en' ? 'No news yet.' : 'お知らせはまだありません'}</p>
+        ) : (
+          <div style={{ display: 'grid', gap: 12 }}>
+            {items.map(n => {
+              const title = lang === 'en' ? (n.title_en || n.title)
+                          : lang === 'easy' ? (n.title_easy || n.title)
+                          : n.title;
+              return (
+                <a key={n.id} href={`#/news/${n.id}`} style={{
+                  display: 'block',
+                  padding: '14px 0',
+                  borderBottom: '1px solid rgba(255,255,255,0.15)',
+                  textDecoration: 'none',
+                  color: '#fff',
+                }}>
+                  <div style={{
+                    fontSize: 11, opacity: 0.6, marginBottom: 4,
+                    fontFamily: 'var(--jp)',
+                  }}>{n.publishedAt || ''} · {n.category || ''}</div>
+                  <div style={{
+                    fontSize: 14, lineHeight: 1.5, fontWeight: 500,
+                    fontFamily: 'var(--jp)',
+                  }}>{title}</div>
+                </a>
+              );
+            })}
+          </div>
+        )}
+      </section>
+    );
   }
 
   return (
@@ -5384,6 +5687,9 @@ function UpcomingEventsSection({ settings, events, lang, t }) {
                 : lang === 'easy' ? (settings.upcoming_events_label_easy || 'これから')
                 : (settings.upcoming_events_label_ja || '近日開催');
 
+  // (Phase 13.3) モバイルビューポート
+  const upcomingVp = useViewport();
+
   // 公開中の近日開催イベントを最大3件
   const items = (events || []).slice(0, 3);
   const [idx, setIdx] = useState(0);
@@ -5489,6 +5795,72 @@ function UpcomingEventsSection({ settings, events, lang, t }) {
   // 現在のイベントの背景画像
   const currentEvent = items[idx];
   const currentBg = normalizeImageUrl(currentEvent.heroImageUrl || currentEvent.posterUrl);
+
+  // (Phase 13.3) モバイル時はシンプル版
+  if (upcomingVp.isMobile) {
+    return (
+      <section data-section="upcoming-events" style={{
+        background: '#fafbfc',
+        padding: '60px 20px',
+      }}>
+        <div style={{
+          fontSize: 11, letterSpacing: '0.3em', color: '#6b7280', marginBottom: 12,
+          fontFamily: 'var(--jp)',
+        }}>UPCOMING</div>
+        <h2 style={{
+          fontSize: 24, lineHeight: 1.3, fontWeight: 600, margin: '0 0 24px',
+          fontFamily: '"Noto Serif JP", serif',
+          color: '#0a2960',
+          letterSpacing: '0.02em',
+        }}>{labelJa}</h2>
+        <div style={{ display: 'grid', gap: 12 }}>
+          {items.map(ev => {
+            const bg = normalizeImageUrl(ev.heroImageUrl || ev.posterUrl);
+            return (
+              <a key={ev.id} href={`#/events/${ev.id}`} style={{
+                display: 'block',
+                background: bg ? `center / cover no-repeat url("${bg}")` : '#0a2960',
+                aspectRatio: '16 / 10',
+                position: 'relative',
+                textDecoration: 'none',
+                overflow: 'hidden',
+              }}>
+                <div style={{
+                  position: 'absolute', inset: 0,
+                  background: 'linear-gradient(180deg, rgba(0,0,0,0) 30%, rgba(10,41,96,0.85) 100%)',
+                }}/>
+                <div style={{
+                  position: 'absolute', left: 14, right: 14, bottom: 12,
+                  color: '#fff',
+                }}>
+                  <div style={{
+                    fontSize: 10, opacity: 0.8, marginBottom: 4,
+                    fontFamily: 'var(--jp)',
+                    letterSpacing: '0.04em',
+                  }}>{ev.date || ''}{ev.venue ? ' · ' + ev.venue : ''}</div>
+                  <div style={{
+                    fontSize: 15, lineHeight: 1.4, fontWeight: 600,
+                    fontFamily: 'var(--jp)',
+                  }}>{ev.title || ''}</div>
+                </div>
+              </a>
+            );
+          })}
+        </div>
+        <a href="#/events" style={{
+          display: 'block',
+          marginTop: 20,
+          padding: '12px 16px',
+          color: '#0a2960',
+          textDecoration: 'none',
+          fontSize: 13, fontWeight: 600,
+          fontFamily: 'var(--jp)',
+          textAlign: 'center',
+          border: '1.5px solid #0a2960',
+        }}>{lang === 'en' ? 'See all events' : 'すべてのイベントを見る'} →</a>
+      </section>
+    );
+  }
 
   return (
     <section data-section="upcoming-events"
@@ -6108,6 +6480,8 @@ function PageNewsList({ lang, t, frontNews, loading, siteSettings }) {
   const rawItems = frontNews || [];
   const settings = siteSettings || {};
   const bgImage = settings.news_section_bg_image || '';
+  // (Phase 13.5) モバイルビューポート
+  const newsListVp = useViewport();
   const [sortOrder, setSortOrder] = useState('desc');
   const [page, setPage] = useState(1);
   const PAGE_SIZE = 3;
@@ -6340,10 +6714,12 @@ function PageNewsList({ lang, t, frontNews, loading, siteSettings }) {
               <Reveal key={news.id || i} y={20} blur={false} delay={i * 80}>
                 <a href={`#/news/${news.id || i}`} style={{
                   display: 'grid',
-                  gridTemplateColumns: 'minmax(120px, 0.5fr) minmax(0, 3fr) auto',
-                  gap: 'clamp(20px, 3vw, 48px)',
-                  alignItems: 'center',
-                  padding: 'clamp(20px, 3vh, 28px) clamp(8px, 1vw, 16px)',
+                  gridTemplateColumns: newsListVp.isMobile
+                    ? '1fr'
+                    : 'minmax(120px, 0.5fr) minmax(0, 3fr) auto',
+                  gap: newsListVp.isMobile ? 8 : 'clamp(20px, 3vw, 48px)',
+                  alignItems: newsListVp.isMobile ? 'stretch' : 'center',
+                  padding: newsListVp.isMobile ? '16px 0' : 'clamp(20px, 3vh, 28px) clamp(8px, 1vw, 16px)',
                   borderTop: '1px solid rgba(255, 255, 255, 0.18)',
                   textDecoration: 'none',
                   color: 'inherit',
@@ -6549,6 +6925,8 @@ function PageNewsList({ lang, t, frontNews, loading, siteSettings }) {
 function PageNewsDetail({ lang, t, newsId, frontNews, loading }) {
   const items = frontNews || [];
   const news = items.find(n => String(n.id) === String(newsId)) || items[Number(newsId)] || null;
+  // (Phase 13.5) モバイルビューポート
+  const newsDetailVp = useViewport();
 
   function fmtDate(d) {
     if (!d) return '';
@@ -6642,8 +7020,8 @@ function PageNewsDetail({ lang, t, newsId, frontNews, loading }) {
         maxWidth: 1320,
         margin: '0 auto',
         display: 'grid',
-        gridTemplateColumns: 'minmax(0, 0.9fr) minmax(0, 1.3fr)',
-        gap: 'clamp(40px, 6vw, 96px)',
+        gridTemplateColumns: newsDetailVp.isMobile ? '1fr' : 'minmax(0, 0.9fr) minmax(0, 1.3fr)',
+        gap: newsDetailVp.isMobile ? 24 : 'clamp(40px, 6vw, 96px)',
         alignItems: 'start',
       }}>
         {/* 左: 写真 */}
@@ -6774,8 +7152,8 @@ function PageNewsDetail({ lang, t, newsId, frontNews, loading }) {
           </Reveal>
           <div style={{
             display: 'grid',
-            gridTemplateColumns: 'repeat(3, minmax(0, 1fr))',
-            gap: 'clamp(24px, 3vw, 40px)',
+            gridTemplateColumns: newsDetailVp.isMobile ? '1fr' : 'repeat(3, minmax(0, 1fr))',
+            gap: newsDetailVp.isMobile ? 16 : 'clamp(24px, 3vw, 40px)',
           }}>
             {related.map((rn, i) => (
               <Reveal key={rn.id || i} y={20} blur={false} delay={i * 100}>
@@ -6846,6 +7224,8 @@ function PageNewsDetail({ lang, t, newsId, frontNews, loading }) {
 function PageEvents({ lang, t, events, loading, siteSettings }) {
   const settings = siteSettings || {};
   const bgImage = settings.events_section_bg_image || '';
+  // (Phase 13.4) モバイルビューポート
+  const eventsPageVp = useViewport();
 
   const [sortOrder, setSortOrder] = useState('asc');  // 'asc' = 開催日が近い順
   // エリアフィルタ: 関東/関西の複数選択 (Set)、空集合 = フィルタなし
@@ -7228,10 +7608,12 @@ function PageEvents({ lang, t, events, loading, siteSettings }) {
                 <Reveal key={ev.id || i} y={20} blur={false} delay={i * 80}>
                   <a href={`#/events/${ev.id}`} style={{
                     display: 'grid',
-                    gridTemplateColumns: 'minmax(140px, 0.5fr) minmax(0, 3fr) auto',
-                    gap: 'clamp(20px, 3vw, 48px)',
-                    alignItems: 'center',
-                    padding: 'clamp(20px, 3vh, 28px) clamp(8px, 1vw, 16px)',
+                    gridTemplateColumns: eventsPageVp.isMobile
+                      ? '1fr'
+                      : 'minmax(140px, 0.5fr) minmax(0, 3fr) auto',
+                    gap: eventsPageVp.isMobile ? 12 : 'clamp(20px, 3vw, 48px)',
+                    alignItems: eventsPageVp.isMobile ? 'stretch' : 'center',
+                    padding: eventsPageVp.isMobile ? '20px 0' : 'clamp(20px, 3vh, 28px) clamp(8px, 1vw, 16px)',
                     borderTop: '1px solid rgba(255, 255, 255, 0.18)',
                     textDecoration: 'none',
                     color: 'inherit',
