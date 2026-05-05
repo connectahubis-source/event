@@ -3580,7 +3580,7 @@ function HeroSlideshow({ lang, t, events, heroSlides, loading, frontNews, siteSe
   // (Phase 13.2) モバイル時はシンプルなHero代替版
   if (heroVp.isMobile) {
     const currentSlide = slides[idx] || slides[0];
-    const slideImg = currentSlide ? normalizeImageUrl(currentSlide.imageUrl) : '';
+    const slideImg = currentSlide ? currentSlide.img : '';
     return (
       <section data-section="hero" style={{
         position: 'relative',
@@ -3615,8 +3615,8 @@ function HeroSlideshow({ lang, t, events, heroSlides, loading, frontNews, siteSe
               fontFamily: '"Noto Serif JP", serif',
               fontSize: 26, lineHeight: 1.3, fontWeight: 600,
             }}>
-              {currentSlide?.titleEn || ''}
-              {currentSlide?.titleEm && <span style={{fontStyle: 'italic'}}> {currentSlide.titleEm}</span>}
+              {currentSlide?.mainEn || ''}
+              {currentSlide?.mainEm && <span style={{fontStyle: 'italic'}}> {currentSlide.mainEm}</span>}
             </div>
             {currentSlide?.sub && (
               <div style={{
