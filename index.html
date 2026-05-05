@@ -1250,16 +1250,23 @@ function formatEventDate(dateStr) {
 function getEventVenueLabel(ev, opts) {
   opts = opts || {};
   const maxLen = opts.maxLen || 35;
+  const lang = opts.lang || 'ja';
+
+  // (Phase 7.8) 多言語対応: ev.venue_easy / ev.venue_en があれば優先
+  const venue = (lang === 'easy' && ev.venue_easy) ? ev.venue_easy
+              : (lang === 'en' && ev.venue_en) ? ev.venue_en
+              : ev.venue;
 
   if (Array.isArray(ev.venues) && ev.venues.length > 1) {
     const joined = ev.venues.join(' / ');
     if (joined.length <= maxLen) return joined;
-    return `${ev.venues[0]} ほか${ev.venues.length - 1}会場`;
+    const moreLabel = lang === 'en' ? `+${ev.venues.length - 1} more` : lang === 'easy' ? `ほか${ev.venues.length - 1}かいじょう` : `ほか${ev.venues.length - 1}会場`;
+    return `${ev.venues[0]} ${moreLabel}`;
   }
-  if (ev.venue) return ev.venue;
-  if (ev.online) return 'オンライン開催';
-  if (ev.format === 'multi') return '会場は各セッションで確認';
-  return '会場未定';
+  if (venue) return venue;
+  if (ev.online) return lang === 'en' ? 'Online' : lang === 'easy' ? 'オンライン' : 'オンライン開催';
+  if (ev.format === 'multi') return lang === 'en' ? 'See each session' : lang === 'easy' ? 'かくセッションで かくにん' : '会場は各セッションで確認';
+  return lang === 'en' ? 'TBA' : lang === 'easy' ? 'みてい' : '会場未定';
 }
 
 // 時刻を「HH:MM」形式に正規化
@@ -1989,7 +1996,7 @@ function EventCard({ ev, lang, t, big }) {
           letterSpacing: '0.1em',
           padding: '5px 10px',
           borderRadius: 4,
-        }}>{(ev.category || 'EVENT').toUpperCase()}</div>
+        }}>{((getI18nField(ev, 'category', lang) || ev.category) || 'EVENT').toUpperCase()}</div>
 
         {/* Status badge */}
         {isFull && (
@@ -2032,7 +2039,7 @@ function EventCard({ ev, lang, t, big }) {
         }}>
           <span style={{display:'inline-flex',alignItems:'center',gap:6}}>
             <IconMapPin size={14}/>
-            <span>{getEventVenueLabel(ev)}</span>
+            <span>{getEventVenueLabel(ev, { lang })}</span>
           </span>
           {ev.time && (
             <span style={{display:'inline-flex',alignItems:'center',gap:6}}>
@@ -2154,7 +2161,7 @@ function FeaturedEventCard({ ev, lang, t }) {
             padding: '6px 12px',
             borderRadius: 999,
             backdropFilter: 'blur(8px)',
-          }}>{(ev.category || 'EVENT').toUpperCase()}</span>
+          }}>{((getI18nField(ev, 'category', lang) || ev.category) || 'EVENT').toUpperCase()}</span>
           {isFull && (
             <span style={{
               background: 'var(--coral)',
@@ -2204,7 +2211,7 @@ function FeaturedEventCard({ ev, lang, t }) {
           color: 'var(--sky-900)',
         }}>{ev.title}</h3>
 
-        {ev.summary && (
+        {getI18nField(ev, 'summary', lang) && (
           <p style={{
             fontFamily: 'var(--jp)',
             fontSize: 14,
@@ -2216,7 +2223,7 @@ function FeaturedEventCard({ ev, lang, t }) {
             WebkitLineClamp: 2,
             WebkitBoxOrient: 'vertical',
             overflow: 'hidden',
-          }}>{ev.summary.split('\n')[0]}</p>
+          }}>{getI18nField(ev, 'summary', lang).split('\n')[0]}</p>
         )}
 
         {/* メタ情報 */}
@@ -2235,10 +2242,10 @@ function FeaturedEventCard({ ev, lang, t }) {
               {fmtTime(ev.time)}
             </span>
           )}
-          {ev.venue && (
+          {getI18nField(ev, 'venue', lang) && (
             <span style={{ display: 'inline-flex', alignItems: 'center', gap: 6 }}>
               <span style={{ color: 'var(--coral)' }}>●</span>
-              {ev.venue}
+              {getI18nField(ev, 'venue', lang)}
             </span>
           )}
         </div>
@@ -2359,7 +2366,7 @@ function CompactEventCard({ ev, lang, t }) {
           letterSpacing: '0.18em',
           fontWeight: 700,
         }}>
-          <span style={{ color: 'var(--coral)' }}>{(ev.category || 'EVENT').toUpperCase()}</span>
+          <span style={{ color: 'var(--coral)' }}>{((getI18nField(ev, 'category', lang) || ev.category) || 'EVENT').toUpperCase()}</span>
           {isFull && (
             <span style={{ color: 'var(--coral)', background: 'var(--coral-soft)', padding: '2px 8px', borderRadius: 999, fontSize: 9 }}>
               FULL
@@ -2389,7 +2396,7 @@ function CompactEventCard({ ev, lang, t }) {
           justifyContent: 'space-between',
           gap: 8,
         }}>
-          <span>{ev.venue ? (ev.venue.length > 14 ? ev.venue.slice(0, 14) + '…' : ev.venue) : '会場未定'}</span>
+          <span>{getI18nField(ev, 'venue', lang) ? (getI18nField(ev, 'venue', lang).length > 14 ? getI18nField(ev, 'venue', lang).slice(0, 14) + '…' : getI18nField(ev, 'venue', lang)) : '会場未定'}</span>
           <span style={{ color: 'var(--coral)', fontWeight: 700, whiteSpace: 'nowrap' }}>
             {isFull ? '満員' : `残${spotsLeft}`} →
           </span>
@@ -2427,7 +2434,7 @@ function EventPosterRow({ ev, lang, t }) {
   const dateLabel = ev.date || (ev.format === 'multi' ? '複数日程' : '日程未定');
   const formatJa = ev.format === 'multi' ? `${ev.sessionCount || ''}セッション` : '';
   // 会場表示は共通ヘルパー getEventVenueLabel を利用
-  const venueLabel = getEventVenueLabel(ev);
+  const venueLabel = getEventVenueLabel(ev, { lang });
 
   return (
     <a href={`#/events/${ev.id}`} style={{
@@ -2567,7 +2574,7 @@ function EventPosterRow({ ev, lang, t }) {
               flexWrap: 'wrap',
               textShadow: heroImg ? '0 1px 2px rgba(255,255,255,0.8)' : 'none',
             }}>
-              {ev.category && <span>{String(ev.category).toUpperCase()}</span>}
+              {ev.category && <span>{String(getI18nField(ev, 'category', lang) || ev.category).toUpperCase()}</span>}
               {ev.category && <span style={{ width: 4, height: 4, borderRadius: '50%', background: 'var(--coral)' }} />}
               <span style={{ color: 'var(--sky-800)' }}>{dateLabel}</span>
               {formatJa && (
@@ -2591,7 +2598,7 @@ function EventPosterRow({ ev, lang, t }) {
             }}>{ev.title || '(無題)'}</h3>
 
             {/* 概要 */}
-            {ev.summary && (
+            {getI18nField(ev, 'summary', lang) && (
               <p style={{
                 fontFamily: 'var(--jp)',
                 fontSize: 'clamp(13px, 1.1vw, 15px)',
@@ -2603,7 +2610,7 @@ function EventPosterRow({ ev, lang, t }) {
                 WebkitBoxOrient: 'vertical',
                 overflow: 'hidden',
                 textShadow: heroImg ? '0 1px 2px rgba(255,255,255,0.8)' : 'none',
-              }}>{ev.summary}</p>
+              }}>{getI18nField(ev, 'summary', lang)}</p>
             )}
 
             {/* 会場 */}
@@ -2929,7 +2936,7 @@ function HeroSlideshow({ lang, t, events, heroSlides, loading, frontNews, siteSe
         eyebrow: e.category ? String(e.category).toUpperCase() : 'EVENT',
         mainEn: e.title || 'Upcoming Event',
         mainEm: e.format === 'multi' ? `${e.sessionCount || ''} sessions` : (e.date || ''),
-        sub: e.summary ? e.summary.slice(0, 60) : (e.venue || ''),
+        sub: (getI18nField(e, 'summary', lang) || e.summary) ? ((getI18nField(e, 'summary', lang) || e.summary).slice(0, 60)) : ((getI18nField(e, 'venue', lang) || e.venue) || ''),
         tone: e.status === '満員' ? 'night' : 'warm',
         isEvent: true,
         eventId: e.id,
@@ -2956,10 +2963,10 @@ function HeroSlideshow({ lang, t, events, heroSlides, loading, frontNews, siteSe
       return {
         img: s.imageUrl ? normalizeImageUrl(s.imageUrl) : '',
         bgColor: s.bgColor || '',
-        eyebrow: s.eyebrow || 'CONNEC+A',
+        eyebrow: getI18nField(s, 'eyebrow', lang) || s.eyebrow || 'CONNEC+A',
         mainEn: s.titleEn || '',
         mainEm: s.titleEm || '',
-        sub: s.sub || '',
+        sub: getI18nField(s, 'sub', lang) || s.sub || '',
         tone: s.tone || 'warm',
         isEvent: false,
         heroOverlay: overlay,
@@ -3612,7 +3619,7 @@ function HeroSlideshow({ lang, t, events, heroSlides, loading, frontNews, siteSe
               fontFamily: 'var(--jp)',
               fontSize: 'clamp(12px, 0.9vw, 14px)',
               color: '#9ca3af',
-            }}>新着のお知らせはありません</div>
+            }}>{lang === 'en' ? 'No new announcements' : lang === 'easy' ? 'あたらしい おしらせは ありません' : '新着のお知らせはありません'}</div>
           )}
 
           {/* インジケーター (複数あるときだけ) */}
@@ -4970,7 +4977,7 @@ function NewsSection({ settings, newsList }) {
                     display:'inline-block', height:1, background:'rgba(255,255,255,0.5)',
                     animation: i === idx ? 'seibanLineGrow 1s ease-out 0.2s both' : 'none',
                   }}/>
-                  {news.category}
+                  {localizeNewsCategory(news.category, lang)}
                 </div>
               )}
               <h3 style={{
@@ -4984,9 +4991,9 @@ function NewsSection({ settings, newsList }) {
                 letterSpacing:'-0.015em',
                 textShadow: '0 2px 20px rgba(0,0,0,0.2)',
               }}>
-                {news.title}
+                {(getI18nField(news, 'title', lang) || news.title)}
               </h3>
-              {news.body && (
+              {(getI18nField(news, 'body', lang) || news.body) && (
                 <p style={{
                   margin: 0,
                   fontFamily:'var(--jp)',
@@ -4997,7 +5004,7 @@ function NewsSection({ settings, newsList }) {
                   whiteSpace:'pre-wrap',
                   letterSpacing:'0.02em',
                 }}>
-                  {news.body.length > 80 ? news.body.slice(0, 80) + '…' : news.body}
+                  {(getI18nField(news, 'body', lang) || news.body).length > 80 ? (getI18nField(news, 'body', lang) || news.body).slice(0, 80) + '…' : (getI18nField(news, 'body', lang) || news.body)}
                 </p>
               )}
               {/* 詳細を見る (常に表示、CTA優先 → 無ければ詳細ページへ) */}
@@ -5124,7 +5131,7 @@ function NewsSection({ settings, newsList }) {
                         textTransform: 'uppercase',
                         color: 'rgba(255, 255, 255, 0.6)',
                         marginBottom: 4,
-                      }}>{news.category}</div>
+                      }}>{localizeNewsCategory(news.category, lang)}</div>
                     )}
                     <div style={{
                       fontFamily: 'var(--jp)',
@@ -5136,7 +5143,7 @@ function NewsSection({ settings, newsList }) {
                       overflow: 'hidden',
                       textOverflow: 'ellipsis',
                     }}>
-                      {news.title}
+                      {(getI18nField(news, 'title', lang) || news.title)}
                     </div>
                   </button>
                 );
@@ -5418,7 +5425,7 @@ function UpcomingEventsSection({ settings, events }) {
                     display: 'inline-block', height: 1, background: 'rgba(255,255,255,0.5)',
                     animation: i === idx ? 'seibanLineGrow 1s ease-out 0.2s both' : 'none',
                   }}/>
-                  {ev.category}
+                  {getI18nField(ev, 'category', lang) || ev.category}
                 </div>
               )}
               <h3 style={{
@@ -6018,7 +6025,7 @@ function PageNewsList({ lang, t, frontNews, loading, siteSettings }) {
               fontSize:11, fontWeight:500,
               color:'rgba(255, 255, 255, 0.7)',
               letterSpacing:'0.08em',
-            }}>お知らせ</span>
+            }}>{lang === 'en' ? 'Announcements' : lang === 'easy' ? 'おしらせ' : 'お知らせ'}</span>
           </div>
         </Reveal>
 
@@ -6047,7 +6054,7 @@ function PageNewsList({ lang, t, frontNews, loading, siteSettings }) {
             color: 'rgba(255, 255, 255, 0.92)',
             letterSpacing: '0.04em',
           }}>
-            すべてのお知らせ
+            {lang === 'en' ? 'All Announcements' : lang === 'easy' ? 'ぜんぶの おしらせ' : 'すべてのお知らせ'}
           </div>
         </Reveal>
       </div>
@@ -6132,7 +6139,7 @@ function PageNewsList({ lang, t, frontNews, loading, siteSettings }) {
             textAlign: 'center', padding: 80,
             fontFamily: 'var(--jp)', fontSize: 14,
             color: 'rgba(255, 255, 255, 0.5)',
-          }}>お知らせはまだありません。</div>
+          }}>{lang === 'en' ? 'No announcements yet.' : lang === 'easy' ? 'おしらせは まだ ありません。' : 'お知らせはまだありません。'}</div>
         ) : (
           <div style={{
             display: 'flex',
@@ -6179,7 +6186,7 @@ function PageNewsList({ lang, t, frontNews, loading, siteSettings }) {
                           color: '#7cb9f0',
                           textTransform: 'uppercase',
                           whiteSpace: 'nowrap',
-                        }}>{news.category}</span>
+                        }}>{localizeNewsCategory(news.category, lang)}</span>
                       </React.Fragment>
                     )}
                   </div>
@@ -6194,7 +6201,7 @@ function PageNewsList({ lang, t, frontNews, loading, siteSettings }) {
                     color: '#ffffff',
                     letterSpacing: '0.01em',
                   }}>
-                    {news.title}
+                    {(getI18nField(news, 'title', lang) || news.title)}
                   </h2>
 
                   {/* 矢印 */}
@@ -6506,7 +6513,7 @@ function PageNewsDetail({ lang, t, newsId, frontNews, loading }) {
                   <span style={{
                     color: '#2c89e8',
                     textTransform: 'uppercase',
-                  }}>{news.category}</span>
+                  }}>{localizeNewsCategory(news.category, lang)}</span>
                 </React.Fragment>
               )}
             </div>
@@ -6524,7 +6531,7 @@ function PageNewsDetail({ lang, t, newsId, frontNews, loading }) {
               letterSpacing: '-0.02em',
               color: '#0a2960',
             }}>
-              {news.title}
+              {(getI18nField(news, 'title', lang) || news.title)}
             </h1>
           </Reveal>
 
@@ -6539,7 +6546,7 @@ function PageNewsDetail({ lang, t, newsId, frontNews, loading }) {
             marginTop: 8,
             animation: 'fadeInUp 0.6s ease-out 0.4s both',
           }}>
-            {news.body || news.content || news.description || news.shortDescription || '(本文なし)'}
+            {(getI18nField(news, 'body', lang) || news.body) || news.content || news.description || news.shortDescription || '(本文なし)'}
           </div>
         </div>
       </div>
@@ -7476,7 +7483,7 @@ function PageEventDetail({ lang, t, eventId }) {
         markerRight={t.detail.eventLog}
         category={ev.category || 'EVENT'}
         title={ev.title}
-        subtitle={ev.summary ? ev.summary.split('\n')[0] : ''}
+        subtitle={(getI18nField(ev, 'summary', lang) || ev.summary) ? (getI18nField(ev, 'summary', lang) || ev.summary).split('\n')[0] : ''}
         metaLine={`${yyyy}.${mm}.${dd} · ${dayOfWeek}${ev.time ? ` · ${fmtTime(ev.time)}` : ''}`}
       />
 
@@ -7630,7 +7637,7 @@ function PageEventDetail({ lang, t, eventId }) {
         )}
 
         {/* 概要 (本文) */}
-        {ev.summary && (
+        {(getI18nField(ev, 'summary', lang) || ev.summary) && (
           <Reveal delay={150}>
             <SectionLabel>{t.detail.about}</SectionLabel>
             <div style={{
@@ -7641,7 +7648,7 @@ function PageEventDetail({ lang, t, eventId }) {
               whiteSpace: 'pre-wrap',
               marginBottom: 64,
               letterSpacing: '0.01em',
-            }}>{ev.summary}</div>
+            }}>{(getI18nField(ev, 'summary', lang) || ev.summary)}</div>
           </Reveal>
         )}
 
@@ -7875,10 +7882,10 @@ function PageEventDetail({ lang, t, eventId }) {
         )}
 
         {/* 参加要件 */}
-        {ev.requirements && (
+        {(getI18nField(ev, 'requirements', lang) || ev.requirements) && (
           <Reveal delay={150}>
             <SectionLabel>{t.detail.requirements}</SectionLabel>
-            <p style={editorialBodyStyle}>{ev.requirements}</p>
+            <p style={editorialBodyStyle}>{(getI18nField(ev, 'requirements', lang) || ev.requirements)}</p>
           </Reveal>
         )}
 
@@ -7891,10 +7898,10 @@ function PageEventDetail({ lang, t, eventId }) {
         )}
 
         {/* キャンセルポリシー */}
-        {ev.cancelPolicy && (
+        {(getI18nField(ev, 'cancelPolicy', lang) || ev.cancelPolicy) && (
           <Reveal delay={150}>
             <SectionLabel muted>{t.detail.cancelPolicy}</SectionLabel>
-            <p style={{ ...editorialBodyStyle, fontSize: 15, color: 'var(--ink-mute)' }}>{ev.cancelPolicy}</p>
+            <p style={{ ...editorialBodyStyle, fontSize: 15, color: 'var(--ink-mute)' }}>{(getI18nField(ev, 'cancelPolicy', lang) || ev.cancelPolicy)}</p>
           </Reveal>
         )}
 
@@ -8583,6 +8590,30 @@ function PageStub({ lang, t, title }) {
 
 // (Phase 7.7) 認証関連 i18n 辞書 (ja/easy/en)
 // 各ページから AUTH_T[lang] で参照する
+// (Phase 7.8) 多言語フィールドのフォールバック取得
+// 例: getI18nField(event, 'title', 'en') → event.title_en || event.title
+function getI18nField(obj, fieldName, lang) {
+  if (!obj) return '';
+  const langKey = (lang === 'easy' || lang === 'en') ? lang : '';
+  if (langKey) {
+    const localized = obj[fieldName + '_' + langKey];
+    if (localized && String(localized).trim()) return localized;
+  }
+  return obj[fieldName] || '';
+}
+
+// (Phase 7.8) ニュースカテゴリの言語別表示
+const NEWS_CATEGORY_LABELS = {
+  ja: { 'お知らせ': 'お知らせ', '特集': '特集', '募集': '募集', '報告': '報告' },
+  easy: { 'お知らせ': 'おしらせ', '特集': 'とくしゅう', '募集': 'ぼしゅう', '報告': 'ほうこく' },
+  en: { 'お知らせ': 'News', '特集': 'Feature', '募集': 'Recruit', '報告': 'Report' },
+};
+function localizeNewsCategory(category, lang) {
+  if (!category) return '';
+  const map = NEWS_CATEGORY_LABELS[lang] || NEWS_CATEGORY_LABELS.ja;
+  return map[category] || category;
+}
+
 const AUTH_T = {
   ja: {
     // 共通
