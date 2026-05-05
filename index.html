@@ -10948,8 +10948,7 @@ function MyEventCard({ registration, past, onCancel, lang }) {
       style={{
         position: 'relative',
         display: 'flex',
-        alignItems: 'stretch',
-        gap: 12,
+        flexDirection: 'column',
         padding: 14,
         background: '#fff',
         border: hover && !isCancelled ? '1px solid #2c89e8' : '1px solid #e5e7eb',
@@ -10970,111 +10969,136 @@ function MyEventCard({ registration, past, onCancel, lang }) {
         }}>{daysRemaining.label}</div>
       )}
 
-      {/* ポスター or アイコン (Step C: aではなくdivに、外側onClickで遷移) */}
-      <div style={{
-        flexShrink: 0,
-        width: 60, height: 80,
-        background: event.posterUrl
-          ? `#f5f7fa url(${event.posterUrl}) center/cover no-repeat`
-          : '#f5f7fa',
-        display: 'flex', alignItems: 'center', justifyContent: 'center',
-        fontSize: 22, color: '#0a2960',
-        filter: isCancelled ? 'grayscale(100%)' : 'none',
-      }}>{!event.posterUrl && '📅'}</div>
-
-      {/* メイン情報 */}
-      <div style={{ flex: 1, minWidth: 0, display: 'flex', flexDirection: 'column', gap: 4 }}>
+      {/* (A2) 上段: ポスター + メイン情報 + キャンセル/再申込ボタン */}
+      <div style={{ display: 'flex', alignItems: 'stretch', gap: 12 }}>
+        {/* ポスター or アイコン */}
         <div style={{
-          fontFamily: 'var(--jp)', fontSize: 14, fontWeight: 600,
-          color: '#0a2960', textDecoration: isCancelled ? 'line-through' : 'none',
-          overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap',
-          paddingRight: daysRemaining ? 70 : 0,  // バッジと重ならないように
-        }}>{event.title}</div>
-        <div style={{
-          fontSize: 11, color: '#6b7280', fontFamily: 'var(--jp)',
-        }}>{event.date}{event.time && ` ${event.time}`}{event.venue && ` · ${event.venue}`}</div>
+          flexShrink: 0,
+          width: 60, height: 80,
+          background: event.posterUrl
+            ? `#f5f7fa url(${event.posterUrl}) center/cover no-repeat`
+            : '#f5f7fa',
+          display: 'flex', alignItems: 'center', justifyContent: 'center',
+          fontSize: 22, color: '#0a2960',
+          filter: isCancelled ? 'grayscale(100%)' : 'none',
+        }}>{!event.posterUrl && '📅'}</div>
 
-        {/* ステータス + 金額バッジ + 詳細→ */}
-        <div style={{ display: 'flex', gap: 6, marginTop: 2, flexWrap: 'wrap', alignItems: 'center' }}>
-          <span style={{
-            fontSize: 10, padding: '2px 8px',
-            background: statusColor.bg, color: statusColor.fg,
-            fontFamily: 'var(--jp)', fontWeight: 600, letterSpacing: '0.04em',
-          }}>{statusColor.label}</span>
-          {!isCancelled && registration.amount > 0 && (
+        {/* メイン情報 */}
+        <div style={{ flex: 1, minWidth: 0, display: 'flex', flexDirection: 'column', gap: 4 }}>
+          <div style={{
+            fontFamily: 'var(--jp)', fontSize: 14, fontWeight: 600,
+            color: '#0a2960', textDecoration: isCancelled ? 'line-through' : 'none',
+            overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap',
+            paddingRight: daysRemaining ? 70 : 0,
+          }}>{event.title}</div>
+          <div style={{
+            fontSize: 11, color: '#6b7280', fontFamily: 'var(--jp)',
+          }}>{event.date}{event.time && ` ${event.time}`}{event.venue && ` · ${event.venue}`}</div>
+
+          {/* ステータス + 金額バッジ */}
+          <div style={{ display: 'flex', gap: 6, marginTop: 2, flexWrap: 'wrap', alignItems: 'center' }}>
             <span style={{
               fontSize: 10, padding: '2px 8px',
-              background: '#f3f4f6', color: '#374151',
-              fontFamily: 'var(--jp)',
-            }}>¥{registration.amount.toLocaleString()}</span>
-          )}
-
-          {/* (Step D) QRチケットリンク (Confirmed系のみ、過去・キャンセルは非表示) */}
-          {!past && !isCancelled && (
-            <a href={`#/ticket/${registration.regId}`}
-               onClick={(e) => e.stopPropagation()}
-               style={{
-                 fontSize: 10, padding: '2px 8px',
-                 background: '#eff6ff', color: '#2c89e8',
-                 fontFamily: 'var(--jp)', fontWeight: 600, letterSpacing: '0.04em',
-                 textDecoration: 'none',
-               }}>📱 QRチケット</a>
-          )}
-
-          {/* (Step C) 詳細を見る → (右寄せ、ホバーで色とアニメーション) */}
-          {!isCancelled && (
-            <span style={{
-              marginLeft: 'auto',
-              fontSize: 11,
-              color: hover ? '#2c89e8' : '#9ca3af',
-              fontFamily: 'var(--jp)',
-              fontWeight: 500,
-              transition: 'all .18s ease',
-              transform: hover ? 'translateX(3px)' : 'translateX(0)',
-              letterSpacing: '0.02em',
-            }}>詳細 →</span>
-          )}
+              background: statusColor.bg, color: statusColor.fg,
+              fontFamily: 'var(--jp)', fontWeight: 600, letterSpacing: '0.04em',
+            }}>{statusColor.label}</span>
+            {!isCancelled && registration.amount > 0 && (
+              <span style={{
+                fontSize: 10, padding: '2px 8px',
+                background: '#f3f4f6', color: '#374151',
+                fontFamily: 'var(--jp)',
+              }}>¥{registration.amount.toLocaleString()}</span>
+            )}
+          </div>
         </div>
+
+        {/* キャンセル可能な場合のみ */}
+        {!past && !isCancelled && onCancel && registration.status !== 'チェックイン済' && (
+          <button onClick={(e) => { e.stopPropagation(); onCancel(registration); }} style={{
+            flexShrink: 0,
+            padding: '6px 12px',
+            fontSize: 11,
+            fontFamily: 'var(--jp)',
+            color: '#dc2626',
+            background: 'transparent',
+            border: '1px solid #fecaca',
+            borderRadius: 0,
+            cursor: 'pointer',
+            alignSelf: 'center',
+            letterSpacing: '0.04em',
+          }}
+          onMouseEnter={(e) => { e.currentTarget.style.background = '#fef2f2'; }}
+          onMouseLeave={(e) => { e.currentTarget.style.background = 'transparent'; }}>
+            {at.cancelBtn}
+          </button>
+        )}
+
+        {/* キャンセル済みなら「再申込」リンク */}
+        {!past && isCancelled && (
+          <a href={`#/events/${event.id}`}
+             onClick={(e) => e.stopPropagation()}
+             style={{
+            flexShrink: 0,
+            padding: '6px 12px',
+            fontSize: 11,
+            fontFamily: 'var(--jp)',
+            color: '#2c89e8',
+            background: 'transparent',
+            border: '1px solid #bfdbfe',
+            borderRadius: 0,
+            alignSelf: 'center',
+            letterSpacing: '0.04em',
+            textDecoration: 'none',
+          }}>{at.rebookBtn}</a>
+        )}
       </div>
 
-      {/* アクション: キャンセル可能な場合のみ */}
-      {!past && !isCancelled && onCancel && registration.status !== 'チェックイン済' && (
-        <button onClick={(e) => { e.stopPropagation(); onCancel(registration); }} style={{
-          flexShrink: 0,
-          padding: '6px 12px',
-          fontSize: 11,
-          fontFamily: 'var(--jp)',
-          color: '#dc2626',
-          background: 'transparent',
-          border: '1px solid #fecaca',
-          borderRadius: 0,
-          cursor: 'pointer',
-          alignSelf: 'center',
-          letterSpacing: '0.04em',
-        }}
-        onMouseEnter={(e) => { e.currentTarget.style.background = '#fef2f2'; }}
-        onMouseLeave={(e) => { e.currentTarget.style.background = 'transparent'; }}>
-          {at.cancelBtn}
-        </button>
-      )}
+      {/* (A2 改) 下段: 一体感のあるアクション行 (Cancelled以外で表示) */}
+      {!isCancelled && (
+        <div style={{
+          marginTop: 10,
+          paddingLeft: 72,  // ポスター幅 60 + gap 12 = メイン情報の左端と揃える
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'space-between',
+          gap: 12,
+        }}>
+          {/* QRチケットボタン (Confirmed系のみ、Pastでは非表示) */}
+          {!past ? (
+            <a href={`#/ticket/${registration.regId}`}
+               onClick={(e) => e.stopPropagation()}
+               onMouseEnter={(e) => { e.currentTarget.style.background = '#1d6bb8'; }}
+               onMouseLeave={(e) => { e.currentTarget.style.background = '#2c89e8'; }}
+               style={{
+                 display: 'inline-flex', alignItems: 'center', gap: 8,
+                 padding: '9px 16px',
+                 background: '#2c89e8', color: '#fff',
+                 fontSize: 13, fontFamily: 'var(--jp)', fontWeight: 600,
+                 letterSpacing: '0.04em',
+                 textDecoration: 'none',
+                 transition: 'background .15s',
+               }}>
+              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                <rect width="5" height="5" x="3" y="3" rx="1"/>
+                <rect width="5" height="5" x="16" y="3" rx="1"/>
+                <rect width="5" height="5" x="3" y="16" rx="1"/>
+                <path d="M21 16h-3a2 2 0 0 0-2 2v3M21 21v.01M12 7v3a2 2 0 0 1-2 2H7M3 12h.01M12 3h.01M12 16v.01M16 12h1M21 12v.01M12 21v-1"/>
+              </svg>
+              QRチケットを表示
+            </a>
+          ) : <span/>}
 
-      {/* キャンセル済みなら「再申込」リンク */}
-      {!past && isCancelled && (
-        <a href={`#/events/${event.id}`}
-           onClick={(e) => e.stopPropagation()}
-           style={{
-          flexShrink: 0,
-          padding: '6px 12px',
-          fontSize: 11,
-          fontFamily: 'var(--jp)',
-          color: '#2c89e8',
-          background: 'transparent',
-          border: '1px solid #bfdbfe',
-          borderRadius: 0,
-          alignSelf: 'center',
-          letterSpacing: '0.04em',
-          textDecoration: 'none',
-        }}>{at.rebookBtn}</a>
+          {/* 詳細を見る → */}
+          <span style={{
+            fontSize: 12,
+            color: hover ? '#2c89e8' : '#9ca3af',
+            fontFamily: 'var(--jp)',
+            fontWeight: 500,
+            transition: 'all .18s ease',
+            transform: hover ? 'translateX(3px)' : 'translateX(0)',
+            letterSpacing: '0.02em',
+          }}>詳細 →</span>
+        </div>
       )}
     </div>
   );
@@ -11208,51 +11232,83 @@ function PageTicket({ regId, lang }) {
         }}>
           {/* 装飾線 */}
           <div style={{
-            width: 60, height: 1,
+            width: 80, height: 2,
             background: isCheckedIn ? '#9ca3af' : '#0a2960',
-            opacity: 0.35, marginBottom: 20,
+            marginBottom: 24,
           }}/>
 
           {/* イベント情報 */}
-          <div style={{ marginBottom: 28 }}>
+          <div style={{ marginBottom: 32 }}>
             <div style={{
-              fontSize: 10, color: '#6b7280', fontFamily: 'var(--jp)',
-              letterSpacing: '0.12em', marginBottom: 8,
-              textTransform: 'uppercase', fontWeight: 500,
+              fontSize: 11, color: '#6b7280', fontFamily: 'var(--jp)',
+              letterSpacing: '0.14em', marginBottom: 10,
+              textTransform: 'uppercase', fontWeight: 600,
             }}>{isCheckedIn ? 'CHECKED IN' : 'YOUR TICKET'}</div>
             <h1 style={{
               margin: 0, fontFamily: 'var(--jp)',
-              fontSize: 'clamp(20px, 3vw, 26px)', fontWeight: 600,
+              fontSize: 'clamp(24px, 3.4vw, 32px)', fontWeight: 600,
               color: '#0a2960', letterSpacing: '0.02em',
-              lineHeight: 1.4,
+              lineHeight: 1.35,
             }}>{event.title}</h1>
             <div style={{
-              marginTop: 12, fontSize: 13, color: '#374151',
-              fontFamily: 'var(--jp)', lineHeight: 1.7,
+              marginTop: 14, fontSize: 14, color: '#374151',
+              fontFamily: 'var(--jp)', lineHeight: 1.8,
             }}>
               <div>📅 {event.date}{event.time && ` ${event.time}`}</div>
               {event.venue && <div>📍 {event.venue}</div>}
             </div>
           </div>
 
-          {/* QRコード */}
+          {/* QRコード (4隅アクセント装飾、サイズ拡大) */}
           <div style={{
             display: 'flex', justifyContent: 'center',
-            padding: '24px 0', marginBottom: 20,
+            padding: '32px 0', marginBottom: 24,
             borderTop: '1px dashed #e5e7eb',
             borderBottom: '1px dashed #e5e7eb',
           }}>
             {qrSvg ? (
-              <div
-                style={{
-                  width: 'min(260px, 70vw)', height: 'min(260px, 70vw)',
-                  filter: isCheckedIn ? 'grayscale(100%) opacity(0.5)' : 'none',
-                }}
-                dangerouslySetInnerHTML={{ __html: qrSvg }}
-              />
+              <div style={{
+                position: 'relative',
+                width: 'min(320px, 80vw)', height: 'min(320px, 80vw)',
+                padding: 16,
+              }}>
+                {/* 4隅アクセント (Admin側スキャナー枠と同じテイスト) */}
+                <span style={{
+                  position: 'absolute', top: 0, left: 0,
+                  width: 24, height: 24,
+                  borderTop: `3px solid ${isCheckedIn ? '#9ca3af' : '#2c89e8'}`,
+                  borderLeft: `3px solid ${isCheckedIn ? '#9ca3af' : '#2c89e8'}`,
+                }}/>
+                <span style={{
+                  position: 'absolute', top: 0, right: 0,
+                  width: 24, height: 24,
+                  borderTop: `3px solid ${isCheckedIn ? '#9ca3af' : '#2c89e8'}`,
+                  borderRight: `3px solid ${isCheckedIn ? '#9ca3af' : '#2c89e8'}`,
+                }}/>
+                <span style={{
+                  position: 'absolute', bottom: 0, left: 0,
+                  width: 24, height: 24,
+                  borderBottom: `3px solid ${isCheckedIn ? '#9ca3af' : '#2c89e8'}`,
+                  borderLeft: `3px solid ${isCheckedIn ? '#9ca3af' : '#2c89e8'}`,
+                }}/>
+                <span style={{
+                  position: 'absolute', bottom: 0, right: 0,
+                  width: 24, height: 24,
+                  borderBottom: `3px solid ${isCheckedIn ? '#9ca3af' : '#2c89e8'}`,
+                  borderRight: `3px solid ${isCheckedIn ? '#9ca3af' : '#2c89e8'}`,
+                }}/>
+                {/* QR本体 */}
+                <div
+                  style={{
+                    width: '100%', height: '100%',
+                    filter: isCheckedIn ? 'grayscale(100%) opacity(0.5)' : 'none',
+                  }}
+                  dangerouslySetInnerHTML={{ __html: qrSvg }}
+                />
+              </div>
             ) : (
               <div style={{
-                width: 260, height: 260,
+                width: 320, height: 320,
                 background: '#f3f4f6',
                 display: 'flex', alignItems: 'center', justifyContent: 'center',
                 fontSize: 13, color: '#9ca3af', fontFamily: 'var(--jp)',
