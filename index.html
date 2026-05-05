@@ -4827,7 +4827,7 @@ function EventsEntrySection({ settings }) {
   );
 }
 
-function NewsSection({ settings, newsList }) {
+function NewsSection({ settings, newsList, lang, t }) {
   const bgImage = settings.news_section_bg_image || '';
   const labelEn = settings.news_section_label_en || 'News';
   const labelJa = settings.news_section_label_ja || '最新のお知らせ';
@@ -5189,7 +5189,7 @@ function NewsSection({ settings, newsList }) {
   );
 }
 
-function UpcomingEventsSection({ settings, events }) {
+function UpcomingEventsSection({ settings, events, lang, t }) {
   const labelEn = settings.upcoming_events_label_en || 'Events';
   const labelJa = settings.upcoming_events_label_ja || '近日開催';
 
@@ -5681,10 +5681,10 @@ function PageHome({ lang, t, events, ads, heroSlides, loading, siteSettings, fro
       <EventsEntrySection settings={siteSettings || {}} />
 
       {/* (Phase 6.9) News セクション (左タイトル / 右本文 / 自動切替) */}
-      <NewsSection settings={siteSettings || {}} newsList={frontNews || []} />
+      <NewsSection settings={siteSettings || {}} newsList={frontNews || []} lang={lang} t={t} />
 
       {/* (Phase 7.1) Upcoming Events セクション (Newsと同構成、イベントごとに背景切替) */}
-      <UpcomingEventsSection settings={siteSettings || {}} events={upcomingEvents} />
+      <UpcomingEventsSection settings={siteSettings || {}} events={upcomingEvents} lang={lang} t={t} />
 
       {/* PILL STATS PANEL */}
       <section style={{ padding: '100px 24px 60px', position: 'relative' }}>
