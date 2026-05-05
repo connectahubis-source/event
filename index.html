@@ -724,6 +724,158 @@ const authStore = {
   },
 };
 
+// (Phase 9.4) お気に入りストア (Code.gs API 版、メモリキャッシュ付き)
+// (Phase 10.1) BroadcastChannel で別タブ同期
+const favoritesStore = {
+  // メモリキャッシュ (Set)
+  _cache: null,
+  _loading: false,
+  _loaded: false,
+  // (Phase 10.1) 別タブ通信用チャンネル
+  _channel: (typeof BroadcastChannel !== 'undefined') ? new BroadcastChannel('connecta_favorites') : null,
+  _channelInitialized: false,
+
+  // 内部: キャッシュ初期化
+  _initCache() {
+    if (!this._cache) this._cache = new Set();
+    // (Phase 10.1) BroadcastChannel リスナー初期化 (1回だけ)
+    if (this._channel && !this._channelInitialized) {
+      this._channelInitialized = true;
+      this._channel.addEventListener('message', (e) => {
+        if (!e.data || e.data.type !== 'favorites-updated') return;
+        // 別タブから受信したリストを反映 (再API呼ばない)
+        const list = Array.isArray(e.data.list) ? e.data.list : [];
+        this._cache = new Set(list.map(String));
+        // 自タブの React にも通知 (CustomEvent、ただしBC由来である事を _fromBroadcast で示す)
+        window.dispatchEvent(new CustomEvent('favorites-changed', {
+          detail: { list: Array.from(this._cache), _fromBroadcast: true }
+        }));
+      });
+    }
+  },
+
+  // 同期取得 (キャッシュから)
+  getAll() {
+    this._initCache();
+    return Array.from(this._cache);
+  },
+
+  // 同期判定
+  has(eventId) {
+    if (!eventId) return false;
+    this._initCache();
+    return this._cache.has(String(eventId));
+  },
+
+  // サーバから読み込み
+  async load() {
+    if (this._loading) return Array.from(this._cache || []);
+    this._initCache();
+    const token = authStore.getToken();
+    if (!token) {
+      this._cache = new Set();
+      this._loaded = true;
+      this._notify();
+      return [];
+    }
+    this._loading = true;
+    try {
+      const result = await authApi.getFavorites(token);
+      const list = (result && result.favorites) || [];
+      this._cache = new Set(list.map(String));
+      this._loaded = true;
+      this._notify();
+      return Array.from(this._cache);
+    } catch (e) {
+      console.error('[favoritesStore] load failed:', e);
+      this._cache = new Set();
+      return [];
+    } finally {
+      this._loading = false;
+    }
+  },
+
+  // 楽観的UI更新 + API呼び出し
+  async toggle(eventId) {
+    if (!eventId) return false;
+    const id = String(eventId);
+    this._initCache();
+    const token = authStore.getToken();
+    if (!token) {
+      // 未ログイン時は呼び出し側がリダイレクトする想定
+      return false;
+    }
+    // 楽観的更新
+    const wasInList = this._cache.has(id);
+    if (wasInList) {
+      this._cache.delete(id);
+    } else {
+      this._cache.add(id);
+    }
+    this._notify();
+    // API 呼び出し
+    try {
+      await authApi.toggleFavorite(token, id);
+      return !wasInList;  // 追加された場合 true
+    } catch (e) {
+      console.error('[favoritesStore] toggle failed, rolling back:', e);
+      // ロールバック
+      if (wasInList) {
+        this._cache.add(id);
+      } else {
+        this._cache.delete(id);
+      }
+      this._notify();
+      throw e;
+    }
+  },
+
+  // 通知 (自タブの React に + 別タブにも)
+  _notify(skipBroadcast) {
+    const list = Array.from(this._cache);
+    window.dispatchEvent(new CustomEvent('favorites-changed', {
+      detail: { list }
+    }));
+    // (Phase 10.1) 別タブへブロードキャスト (BC 受信時の再送防止のため skipBroadcast)
+    if (this._channel && !skipBroadcast) {
+      try {
+        this._channel.postMessage({ type: 'favorites-updated', list });
+      } catch (e) {
+        console.warn('[favoritesStore] broadcast failed:', e);
+      }
+    }
+  },
+
+  // ログアウト時のクリア
+  clear() {
+    this._cache = new Set();
+    this._loaded = false;
+    this._notify();
+  },
+
+  // (Phase 10.3) 並び替え (eventIds 配列で順序を確定)
+  async reorder(eventIds) {
+    if (!Array.isArray(eventIds)) return false;
+    const token = authStore.getToken();
+    if (!token) return false;
+    // 楽観的更新: cache を新しい順序の Set に置換 (Set は挿入順を保持)
+    this._initCache();
+    const prevCache = new Set(this._cache);
+    this._cache = new Set(eventIds.map(String));
+    // notify (BCも飛ばす)
+    this._notify();
+    try {
+      await authApi.reorderFavorites(token, eventIds);
+      return true;
+    } catch (e) {
+      console.error('[favoritesStore] reorder failed, rolling back:', e);
+      this._cache = prevCache;
+      this._notify();
+      throw e;
+    }
+  },
+};
+
 /**
  * 認証API: 7つのエンドポイントをラップ
  */
@@ -775,6 +927,17 @@ const authApi = {
   async resetPassword(token, newPassword) {
     return postToGAS('auth.resetPassword', { token, newPassword });
   },
+  // (Phase 9.4) お気に入り
+  async getFavorites(sessionToken) {
+    return postToGAS('auth.getFavorites', { sessionToken });
+  },
+  async toggleFavorite(sessionToken, eventId) {
+    return postToGAS('auth.toggleFavorite', { sessionToken, eventId });
+  },
+  // (Phase 10.3) お気に入り並び替え
+  async reorderFavorites(sessionToken, eventIds) {
+    return postToGAS('auth.reorderFavorites', { sessionToken, eventIds });
+  },
 };
 
 /**
@@ -805,7 +968,12 @@ function AuthProvider({ children }) {
         const result = await authApi.me(token);
         if (!cancelled) {
           setUser(result.user || null);
-          if (!result.user) authStore.clear();  // 期限切れトークン
+          if (!result.user) {
+            authStore.clear();  // 期限切れトークン
+          } else {
+            // (Phase 9.4) 認証復元時にお気に入りをロード
+            favoritesStore.load().catch(e => console.error('[restore] favorites load failed:', e));
+          }
         }
       } catch (err) {
         console.error('[AuthProvider] me failed:', err);
@@ -822,6 +990,8 @@ function AuthProvider({ children }) {
     const result = await authApi.login(email, password);
     authStore.setToken(result.sessionToken, result.sessionExpires);
     setUser(result.user);
+    // (Phase 9.4) ログイン後にお気に入りをロード
+    favoritesStore.load().catch(e => console.error('[login] favorites load failed:', e));
     return result.user;
   }, []);
 
@@ -831,6 +1001,7 @@ function AuthProvider({ children }) {
       try { await authApi.logout(token); } catch (e) {}
     }
     authStore.clear();
+    favoritesStore.clear();  // (Phase 9.4) お気に入りキャッシュもクリア
     setUser(null);
   }, []);
 
@@ -7283,6 +7454,12 @@ function PageEventDetail({ lang, t, eventId }) {
   const [registerModalOpen, setRegisterModalOpen] = useState(false);
   const [registerStatus, setRegisterStatus] = useState(''); // '' | 'submitting' | 'done' | 'error'
   const [registerMessage, setRegisterMessage] = useState('');
+  // (Phase 9.3) お気に入り
+  const fav = useFavorites();
+  // (Phase 12.1) ビューポート
+  const detailVp = useViewport();
+  const at = authT(lang);
+  const isFav = ev ? fav.has(ev.id) : false;
 
   useEffect(() => {
     let cancelled = false;
@@ -7515,24 +7692,44 @@ function PageEventDetail({ lang, t, eventId }) {
         margin: '0 auto',
         padding: 'clamp(80px, 12vh, 140px) clamp(24px, 6vw, 40px) 160px',
       }}>
-        {/* 戻るリンク (上品に) */}
+        {/* 戻るリンク (上品に) + (Phase 9.3) お気に入りボタン */}
         <Reveal>
-          <a href="#/events" style={{
-            display: 'inline-block',
-            fontFamily: 'var(--mono)',
-            fontSize: 12,
-            color: 'var(--ink-mute)',
-            letterSpacing: '0.15em',
-            marginBottom: 80,
-            textDecoration: 'none',
-            transition: 'color .2s, transform .2s',
-          }}
-          onMouseEnter={(e) => { e.target.style.color = 'var(--ink)'; e.target.style.transform = 'translateX(-4px)'; }}
-          onMouseLeave={(e) => { e.target.style.color = 'var(--ink-mute)'; e.target.style.transform = 'none'; }}>
-            ← {t.detail.back.replace('← ', '')}
-          </a>
+          <div style={{
+            display: 'flex', alignItems: 'center', justifyContent: 'space-between',
+            marginBottom: 8,
+            gap: 8,
+            flexWrap: 'wrap',
+          }}>
+            <a href="#/events" style={{
+              display: 'inline-block',
+              fontFamily: 'var(--mono)',
+              fontSize: 12,
+              color: 'var(--ink-mute)',
+              letterSpacing: '0.15em',
+              textDecoration: 'none',
+            }}>{t.detail.back}</a>
+
+            <button onClick={() => fav.toggle(ev.id)}
+                    aria-label={isFav ? at.favoriteRemove : at.favoriteAdd}
+                    style={{
+                      display: 'inline-flex', alignItems: 'center', gap: 6,
+                      padding: detailVp.isMobile ? '8px 10px' : '8px 14px',
+                      background: isFav ? '#fef2f2' : '#fff',
+                      color: isFav ? '#dc2626' : '#6b7280',
+                      border: isFav ? '1px solid #fecaca' : '1px solid #e5e7eb',
+                      fontSize: 12, fontFamily: 'var(--jp)', fontWeight: 600,
+                      letterSpacing: '0.04em',
+                      cursor: 'pointer',
+                      transition: 'all .15s',
+                      flexShrink: 0,
+                    }}>
+              <PIcon.Heart size={14} color={isFav ? '#dc2626' : '#6b7280'} filled={isFav}/>
+              {!detailVp.isMobile && (isFav ? at.favoriteRemove : at.favoriteAdd)}
+            </button>
+          </div>
         </Reveal>
 
+        {/* 戻るリンク (旧、Reveal内) */}
         {/* ポスター画像 (Phase 6.1: 縦長ポスターを大きく掲示) */}
         {ev.posterUrl && (() => {
           const normalizeImageUrl = (url) => {
@@ -8826,6 +9023,20 @@ const AUTH_T = {
     cardAriaLabel: '%title% の詳細を見る',
     gcalDetailText: 'connec+a イベント',
     shareText: '%title% に参加します',
+    monthLabel: '%y%年%m%月',
+    monthEventsCount: '%n%件',
+    favoritesSection: 'お気に入り',
+    favoriteAdd: 'お気に入りに追加',
+    favoriteRemove: 'お気に入りから削除',
+    noFavorites: 'お気に入りはまだありません',
+    alertNearCapacity: '%title% は定員間近です (%pct%%)',
+    alertSoonStart: '%title% は%days%日後に開始します',
+    alertViewEvent: 'イベントを確認',
+    alertDismiss: '閉じる',
+    moveUp: '上へ移動',
+    moveDown: '下へ移動',
+    dragToReorder: 'ドラッグで並び替え',
+    registerEvent: 'このイベントに申込む',
   },
   easy: {
     required: 'ぜんぶ いれて ください',
@@ -8990,9 +9201,9 @@ const AUTH_T = {
     nextEventTomorrow: 'あしたが つぎのイベント',
     nextEventInDays: 'つぎまで あと%n%にち',
     ticketBackToMyPage: '← マイページに もどる',
-    ticketYourTicket: 'YOUR TICKET',
-    ticketCheckedIn: 'CHECKED IN',
-    ticketStartsIn: 'STARTS IN',
+    ticketYourTicket: 'あなたの チケット',
+    ticketCheckedIn: 'うけつけ ずみ',
+    ticketStartsIn: 'はじまるまで',
     ticketDays: 'にち',
     ticketHrs: 'じかん',
     ticketMin: 'ふん',
@@ -9011,6 +9222,20 @@ const AUTH_T = {
     cardAriaLabel: '%title% の くわしく',
     gcalDetailText: 'connec+a イベント',
     shareText: '%title% に さんかします',
+    monthLabel: '%y%ねん %m%がつ',
+    monthEventsCount: '%n%けん',
+    favoritesSection: 'おきにいり',
+    favoriteAdd: 'おきにいりに いれる',
+    favoriteRemove: 'おきにいりから だす',
+    noFavorites: 'おきにいりは まだ ありません',
+    alertNearCapacity: '%title% は ていいんに ちかいです (%pct%%)',
+    alertSoonStart: '%title% は %days%にち あとに はじまります',
+    alertViewEvent: 'イベントを みる',
+    alertDismiss: 'とじる',
+    moveUp: 'うえに うごかす',
+    moveDown: 'したに うごかす',
+    dragToReorder: 'ドラッグで ならびかえ',
+    registerEvent: 'このイベントに もうしこむ',
   },
   en: {
     required: 'Please fill in all required fields',
@@ -9196,6 +9421,20 @@ const AUTH_T = {
     cardAriaLabel: 'View details of %title%',
     gcalDetailText: 'connec+a event',
     shareText: "I'm joining %title%",
+    monthLabel: '%m% %y%',
+    monthEventsCount: '%n% events',
+    favoritesSection: 'Favorites',
+    favoriteAdd: 'Add to favorites',
+    favoriteRemove: 'Remove from favorites',
+    noFavorites: 'No favorites yet',
+    alertNearCapacity: '%title% is near capacity (%pct%%)',
+    alertSoonStart: '%title% starts in %days% days',
+    alertViewEvent: 'View event',
+    alertDismiss: 'Dismiss',
+    moveUp: 'Move up',
+    moveDown: 'Move down',
+    dragToReorder: 'Drag to reorder',
+    registerEvent: 'Register for this event',
   },
 };
 
@@ -10554,7 +10793,136 @@ const PIcon = {
       <path d="M3 10h18M16 19h6M19 16v6"/>
     </svg>
   ),
+  Heart: ({size = 14, color = 'currentColor', filled = false}) => (
+    <svg width={size} height={size} viewBox="0 0 24 24" fill={filled ? color : 'none'} stroke={color} strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" style={{flexShrink:0}}>
+      <path d="M19 14c1.49-1.46 3-3.21 3-5.5A5.5 5.5 0 0 0 16.5 3c-1.76 0-3 .5-4.5 2-1.5-1.5-2.74-2-4.5-2A5.5 5.5 0 0 0 2 8.5c0 2.29 1.51 4.04 3 5.5l7 7Z"/>
+    </svg>
+  ),
+  AlertCircle: ({size = 14, color = 'currentColor'}) => (
+    <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke={color} strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" style={{flexShrink:0}}>
+      <circle cx="12" cy="12" r="10"/>
+      <line x1="12" x2="12" y1="8" y2="12"/>
+      <line x1="12" x2="12.01" y1="16" y2="16"/>
+    </svg>
+  ),
+  X: ({size = 14, color = 'currentColor'}) => (
+    <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke={color} strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" style={{flexShrink:0}}>
+      <path d="M18 6 6 18M6 6l12 12"/>
+    </svg>
+  ),
+  GripVertical: ({size = 14, color = 'currentColor'}) => (
+    <svg width={size} height={size} viewBox="0 0 24 24" fill={color} stroke="none" style={{flexShrink:0}}>
+      <circle cx="9" cy="5" r="1.5"/>
+      <circle cx="9" cy="12" r="1.5"/>
+      <circle cx="9" cy="19" r="1.5"/>
+      <circle cx="15" cy="5" r="1.5"/>
+      <circle cx="15" cy="12" r="1.5"/>
+      <circle cx="15" cy="19" r="1.5"/>
+    </svg>
+  ),
+  ChevronUp: ({size = 14, color = 'currentColor'}) => (
+    <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke={color} strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" style={{flexShrink:0}}>
+      <path d="m18 15-6-6-6 6"/>
+    </svg>
+  ),
+  ChevronDown: ({size = 14, color = 'currentColor'}) => (
+    <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke={color} strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" style={{flexShrink:0}}>
+      <path d="m6 9 6 6 6-6"/>
+    </svg>
+  ),
+  Plus: ({size = 14, color = 'currentColor'}) => (
+    <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke={color} strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" style={{flexShrink:0}}>
+      <path d="M5 12h14M12 5v14"/>
+    </svg>
+  ),
 };
+
+// (Phase 12.1) ブレークポイント定数
+const BP = {
+  mobile: 640,    // <= 640px はスマホ
+  tablet: 880,    // 641-880 はタブレット (既存hero-grid と整合)
+};
+
+// (Phase 12.1) ビューポート監視フック (resize に追従)
+function useViewport() {
+  const get = () => ({
+    width: typeof window !== 'undefined' ? window.innerWidth : 1280,
+    height: typeof window !== 'undefined' ? window.innerHeight : 800,
+  });
+  const [vp, setVp] = React.useState(get);
+  React.useEffect(() => {
+    let timer = null;
+    const onResize = () => {
+      // デバウンス (連続発火対策)
+      if (timer) clearTimeout(timer);
+      timer = setTimeout(() => setVp(get()), 100);
+    };
+    window.addEventListener('resize', onResize);
+    return () => {
+      window.removeEventListener('resize', onResize);
+      if (timer) clearTimeout(timer);
+    };
+  }, []);
+  return {
+    width: vp.width,
+    height: vp.height,
+    isMobile: vp.width <= BP.mobile,
+    isTablet: vp.width > BP.mobile && vp.width <= BP.tablet,
+    isDesktop: vp.width > BP.tablet,
+  };
+}
+
+// (Phase 9.3 / 9.4) お気に入りフック
+function useFavorites() {
+  const [favorites, setFavorites] = React.useState(() => favoritesStore.getAll());
+
+  // favorites-changed イベントで同期
+  React.useEffect(() => {
+    const handler = (e) => setFavorites(e.detail?.list || favoritesStore.getAll());
+    window.addEventListener('favorites-changed', handler);
+    return () => window.removeEventListener('favorites-changed', handler);
+  }, []);
+
+  // (Phase 9.4) 初回ロード (認証済みのときだけ)
+  React.useEffect(() => {
+    const token = authStore.getToken();
+    if (!token) return;
+    if (favoritesStore._loaded) return;
+    favoritesStore.load().catch(e => console.error('[useFavorites] initial load failed:', e));
+  }, []);
+
+  // (Phase 9.4) toggle: 未ログイン時は /login に遷移
+  const toggle = React.useCallback(async (id) => {
+    const token = authStore.getToken();
+    if (!token) {
+      window.location.hash = '/login';
+      return false;
+    }
+    try {
+      return await favoritesStore.toggle(id);
+    } catch (e) {
+      console.error('[useFavorites] toggle failed:', e);
+      return false;
+    }
+  }, []);
+
+  // (Phase 10.3) reorder
+  const reorder = React.useCallback(async (eventIds) => {
+    try {
+      return await favoritesStore.reorder(eventIds);
+    } catch (e) {
+      console.error('[useFavorites] reorder failed:', e);
+      return false;
+    }
+  }, []);
+
+  return {
+    favorites,
+    has: (id) => favorites.includes(String(id)),
+    toggle,
+    reorder,
+  };
+}
 
 function PageMyPage({ lang, t, events }) {
   const auth = useAuth();
@@ -10567,6 +10935,10 @@ function PageMyPage({ lang, t, events }) {
   const [regsLoading, setRegsLoading] = React.useState(true);
   // (Phase 8 A3) 統計カード hover 状態
   const [hoveredStat, setHoveredStat] = React.useState(null);
+  // (Phase 9.3) お気に入り
+  const fav = useFavorites();
+  // (Phase 12.1) ビューポート
+  const vp = useViewport();
 
   // 認証ガード: 未ログインなら /login にリダイレクト
   React.useEffect(() => {
@@ -10702,6 +11074,73 @@ function PageMyPage({ lang, t, events }) {
     return Math.round((eventDate - todayStart) / (1000 * 60 * 60 * 24));
   })();
 
+  // (Phase 9.3 / 10.3) お気に入りイベント (events から favorites の順序で抽出、未来日のみ)
+  const favoriteEvents = (() => {
+    const eventMap = new Map((events || []).map(ev => [String(ev.id), ev]));
+    return fav.favorites
+      .map(id => eventMap.get(String(id)))
+      .filter(ev => ev && fav.has(ev.id))
+      .filter(ev => {
+        if (!ev.date) return true;
+        const endStr = ev.endDate || ev.date;
+        const endDate = new Date(String(endStr) + 'T23:59:59');
+        return !isNaN(endDate.getTime()) && endDate >= todayStart;
+      });
+  })();
+
+  // (Phase 10.2 / 11.1) 通知バナー: dismissed alerts を localStorage で保持 (ブラウザ全体)
+  const [dismissedAlerts, setDismissedAlerts] = React.useState(() => {
+    try {
+      const raw = localStorage.getItem('connecta_dismissed_alerts_v1');
+      return new Set(raw ? JSON.parse(raw) : []);
+    } catch (e) { return new Set(); }
+  });
+  const dismissAlert = React.useCallback((alertKey) => {
+    setDismissedAlerts(prev => {
+      const next = new Set(prev);
+      next.add(alertKey);
+      try {
+        localStorage.setItem('connecta_dismissed_alerts_v1', JSON.stringify(Array.from(next)));
+      } catch (e) {}
+      return next;
+    });
+  }, []);
+
+  // (Phase 10.2) 通知判定: お気に入り × 未申込 で、定員間近 or 開始直前
+  const alerts = (() => {
+    const result = [];
+    const myEventIds = new Set(myRegistrations.map(r => String(r.eventId)));
+    favoriteEvents.forEach(ev => {
+      // 既に申込み済みのイベントはスキップ
+      if (myEventIds.has(String(ev.id))) return;
+      // 定員間近 (80%以上)
+      const cap = ev.capacity || 0;
+      const reg = ev.registered || 0;
+      if (cap > 0 && reg / cap >= 0.8) {
+        const pct = Math.round((reg / cap) * 100);
+        const key = `near-${ev.id}-${pct}`;
+        if (!dismissedAlerts.has(key)) {
+          result.push({ key, type: 'capacity', event: ev, pct });
+        }
+      }
+      // 3日以内に開始
+      if (ev.date) {
+        const eventDate = new Date(ev.date + 'T00:00:00');
+        if (!isNaN(eventDate.getTime())) {
+          const days = Math.round((eventDate - todayStart) / (1000 * 60 * 60 * 24));
+          if (days >= 0 && days <= 3) {
+            const key = `soon-${ev.id}-${days}`;
+            if (!dismissedAlerts.has(key)) {
+              result.push({ key, type: 'soon', event: ev, days });
+            }
+          }
+        }
+      }
+    });
+    // 多くなりすぎないよう最大3件まで
+    return result.slice(0, 3);
+  })();
+
   return (
     <section style={{
       minHeight: 'calc(100vh - 130px)',
@@ -10713,17 +11152,17 @@ function PageMyPage({ lang, t, events }) {
         maxWidth: 1100,
         margin: '0 auto',
         display: 'grid',
-        gridTemplateColumns: 'minmax(280px, 360px) 1fr',
-        gap: 40,
+        gridTemplateColumns: vp.isMobile ? '1fr' : 'minmax(280px, 360px) 1fr',
+        gap: vp.isMobile ? 24 : 40,
       }}>
         {/* 左: プロフィールカード */}
         <aside style={{
           background: '#fff',
-          padding: 32,
+          padding: vp.isMobile ? 20 : 32,
           border: '1px solid #e5e7eb',
           height: 'fit-content',
-          position: 'sticky',
-          top: 150,
+          position: vp.isMobile ? 'static' : 'sticky',
+          top: vp.isMobile ? 'auto' : 150,
         }}>
           {/* 装飾線 */}
           <div style={{
@@ -10876,12 +11315,71 @@ function PageMyPage({ lang, t, events }) {
             }}>{at.yourActivity}</p>
           </header>
 
+          {/* (Phase 10.2) 通知バナー */}
+          {alerts.length > 0 && (
+            <div style={{ display: 'grid', gap: 8 }}>
+              {alerts.map(alert => {
+                const isCapacity = alert.type === 'capacity';
+                const isSoon = alert.type === 'soon';
+                const bg = isCapacity ? '#fef3c7' : '#dbeafe';
+                const fg = isCapacity ? '#92400e' : '#1e40af';
+                const borderColor = isCapacity ? '#fcd34d' : '#93c5fd';
+                const message = isCapacity
+                  ? at.alertNearCapacity.replace('%title%', alert.event.title || '').replace('%pct%', alert.pct)
+                  : at.alertSoonStart.replace('%title%', alert.event.title || '').replace('%days%', alert.days);
+                return (
+                  <div key={alert.key} style={{
+                    background: bg,
+                    border: `1px solid ${borderColor}`,
+                    padding: vp.isMobile ? '10px 12px' : '12px 14px',
+                    display: 'flex',
+                    alignItems: vp.isMobile ? 'flex-start' : 'center',
+                    flexWrap: vp.isMobile ? 'wrap' : 'nowrap',
+                    gap: vp.isMobile ? 8 : 12,
+                    fontFamily: 'var(--jp)',
+                  }}>
+                    <PIcon.AlertCircle size={18} color={fg}/>
+                    <div style={{
+                      flex: vp.isMobile ? '1 1 100%' : 1,
+                      minWidth: 0,
+                      fontSize: vp.isMobile ? 12 : 13,
+                      color: fg,
+                      letterSpacing: '0.02em',
+                      order: vp.isMobile ? 3 : 0,
+                    }}>{message}</div>
+                    <a href={`#/events/${alert.event.id}`} style={{
+                      flexShrink: 0,
+                      fontSize: 12, color: fg, fontWeight: 600,
+                      textDecoration: 'underline',
+                      letterSpacing: '0.04em',
+                    }}>{at.alertViewEvent}</a>
+                    <button onClick={() => dismissAlert(alert.key)}
+                            aria-label={at.alertDismiss}
+                            style={{
+                              flexShrink: 0,
+                              padding: 4,
+                              background: 'transparent',
+                              border: 'none',
+                              cursor: 'pointer',
+                              color: fg,
+                              display: 'inline-flex',
+                            }}>
+                      <PIcon.X size={14} color={fg}/>
+                    </button>
+                  </div>
+                );
+              })}
+            </div>
+          )}
+
           {/* (Step B / Phase 8) アクティビティ統計サマリー */}
           {!regsLoading && (
             <div style={{
               display: 'grid',
-              gridTemplateColumns: cancelledEvents.length > 0 ? 'repeat(3, 1fr)' : 'repeat(2, 1fr)',
-              gap: 16,
+              gridTemplateColumns: vp.isMobile
+                ? (cancelledEvents.length > 0 ? 'repeat(3, 1fr)' : 'repeat(2, 1fr)')
+                : (cancelledEvents.length > 0 ? 'repeat(3, 1fr)' : 'repeat(2, 1fr)'),
+              gap: vp.isMobile ? 8 : 16,
             }}>
               {/* 参加予定 */}
               <div
@@ -10891,7 +11389,7 @@ function PageMyPage({ lang, t, events }) {
                   background: '#fff',
                   border: '1px solid #e5e7eb',
                   borderTop: '3px solid #2c89e8',
-                  padding: '20px 18px',
+                  padding: vp.isMobile ? '14px 10px' : '20px 18px',
                   transform: hoveredStat === 'upcoming' ? 'translateY(-2px)' : 'translateY(0)',
                   boxShadow: hoveredStat === 'upcoming' ? '0 6px 18px rgba(44, 137, 232, 0.10)' : 'none',
                   transition: 'all .22s ease',
@@ -10902,7 +11400,7 @@ function PageMyPage({ lang, t, events }) {
                   textTransform: 'uppercase', fontWeight: 500,
                 }}>Upcoming</div>
                 <div style={{
-                  fontSize: 32, fontWeight: 600,
+                  fontSize: vp.isMobile ? 24 : 32, fontWeight: 600,
                   color: hoveredStat === 'upcoming' ? '#2c89e8' : '#0a2960',
                   fontFamily: 'var(--jp)', lineHeight: 1,
                   letterSpacing: '-0.02em',
@@ -10936,7 +11434,7 @@ function PageMyPage({ lang, t, events }) {
                   background: '#fff',
                   border: '1px solid #e5e7eb',
                   borderTop: '3px solid #0a2960',
-                  padding: '20px 18px',
+                  padding: vp.isMobile ? '14px 10px' : '20px 18px',
                   transform: hoveredStat === 'attended' ? 'translateY(-2px)' : 'translateY(0)',
                   boxShadow: hoveredStat === 'attended' ? '0 6px 18px rgba(10, 41, 96, 0.10)' : 'none',
                   transition: 'all .22s ease',
@@ -10947,7 +11445,7 @@ function PageMyPage({ lang, t, events }) {
                   textTransform: 'uppercase', fontWeight: 500,
                 }}>Attended</div>
                 <div style={{
-                  fontSize: 32, fontWeight: 600,
+                  fontSize: vp.isMobile ? 24 : 32, fontWeight: 600,
                   color: '#0a2960',
                   fontFamily: 'var(--jp)', lineHeight: 1,
                   letterSpacing: '-0.02em',
@@ -10967,7 +11465,7 @@ function PageMyPage({ lang, t, events }) {
                     background: '#fff',
                     border: '1px solid #e5e7eb',
                     borderTop: '3px solid #9ca3af',
-                    padding: '20px 18px',
+                    padding: vp.isMobile ? '14px 10px' : '20px 18px',
                     transform: hoveredStat === 'cancelled' ? 'translateY(-2px)' : 'translateY(0)',
                     boxShadow: hoveredStat === 'cancelled' ? '0 6px 18px rgba(0, 0, 0, 0.06)' : 'none',
                     transition: 'all .22s ease',
@@ -10978,7 +11476,7 @@ function PageMyPage({ lang, t, events }) {
                     textTransform: 'uppercase', fontWeight: 500,
                   }}>Cancelled</div>
                   <div style={{
-                    fontSize: 32, fontWeight: 600, color: '#9ca3af',
+                    fontSize: vp.isMobile ? 24 : 32, fontWeight: 600, color: '#9ca3af',
                     fontFamily: 'var(--jp)', lineHeight: 1,
                     letterSpacing: '-0.02em',
                   }}>{cancelledEvents.length}</div>
@@ -11038,7 +11536,18 @@ function PageMyPage({ lang, t, events }) {
             )}
           </section>
 
-          {/* 参加履歴 */}
+          {/* (Phase 9.3 / 10.3 / 11.3) お気に入りイベント (件数 > 0 のときのみ表示、Drag&Drop対応 + 申込ボタン) */}
+          {favoriteEvents.length > 0 && (
+            <FavoritesSection
+              favoriteEvents={favoriteEvents}
+              lang={lang}
+              fav={fav}
+              at={at}
+              myRegistrations={myRegistrations}
+            />
+          )}
+
+          {/* (Phase 9.2) 参加履歴: 月別タイムラインビュー */}
           <section>
             <h2 style={{
               margin: '0 0 12px',
@@ -11057,9 +11566,58 @@ function PageMyPage({ lang, t, events }) {
               )}
             </h2>
             {regsLoading ? null : pastEvents.length > 0 ? (
-              <div style={{ display: 'grid', gap: 12 }}>
-                {pastEvents.map(reg => (
-                  <MyEventCard key={reg.regId} registration={reg} past lang={lang} />
+              <div style={{ position: 'relative' }}>
+                {/* 縦タイムライン線 */}
+                <div style={{
+                  position: 'absolute',
+                  left: 8, top: 8, bottom: 8,
+                  width: 1,
+                  background: '#e5e7eb',
+                }}/>
+                {/* 月グループ */}
+                {groupByMonth(pastEvents).map(group => (
+                  <div key={group.key} style={{ marginBottom: 24 }}>
+                    {/* 月ヘッダー */}
+                    <div style={{
+                      position: 'relative',
+                      paddingLeft: vp.isMobile ? 24 : 32,
+                      marginBottom: 12,
+                      display: 'flex',
+                      alignItems: 'center',
+                      gap: 10,
+                    }}>
+                      {/* タイムライン上のドット */}
+                      <span style={{
+                        position: 'absolute',
+                        left: 4,
+                        top: '50%',
+                        transform: 'translateY(-50%)',
+                        width: 9, height: 9,
+                        borderRadius: '50%',
+                        background: '#0a2960',
+                        border: '2px solid #fff',
+                        boxShadow: '0 0 0 1px #e5e7eb',
+                      }}/>
+                      <span style={{
+                        fontSize: 13, fontWeight: 600,
+                        color: '#0a2960',
+                        fontFamily: 'var(--jp)',
+                        letterSpacing: '0.04em',
+                      }}>{formatMonthLabel(group, lang, at)}</span>
+                      <span style={{
+                        fontSize: 10,
+                        color: '#9ca3af',
+                        fontFamily: 'var(--jp)',
+                        letterSpacing: '0.04em',
+                      }}>{at.monthEventsCount.replace('%n%', group.items.length)}</span>
+                    </div>
+                    {/* 月内のカード */}
+                    <div style={{ paddingLeft: vp.isMobile ? 24 : 32, display: 'grid', gap: 12 }}>
+                      {group.items.map(reg => (
+                        <MyEventCard key={reg.regId} registration={reg} past lang={lang} />
+                      ))}
+                    </div>
+                  </div>
                 ))}
               </div>
             ) : (
@@ -11115,9 +11673,41 @@ function PageMyPage({ lang, t, events }) {
   );
 }
 
+// (Phase 9.2) 月別グループ化ヘルパー
+function groupByMonth(events) {
+  const groups = {};
+  events.forEach(reg => {
+    if (!reg.event.date) return;
+    const d = new Date(reg.event.date + 'T00:00:00');
+    if (isNaN(d.getTime())) return;
+    const key = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}`;
+    if (!groups[key]) {
+      groups[key] = {
+        key,
+        year: d.getFullYear(),
+        month: d.getMonth() + 1,
+        items: [],
+      };
+    }
+    groups[key].items.push(reg);
+  });
+  // 月キーの新しい順に並べる
+  return Object.values(groups).sort((a, b) => b.key.localeCompare(a.key));
+}
+
+// (Phase 9.2) 月ラベル生成 (lang対応)
+function formatMonthLabel(group, lang, at) {
+  if (lang === 'en') {
+    const monthNames = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
+    return at.monthLabel.replace('%y%', group.year).replace('%m%', monthNames[group.month - 1]);
+  }
+  return at.monthLabel.replace('%y%', group.year).replace('%m%', group.month);
+}
+
 // 参加イベントカード (Step C 改修版)
 function MyEventCard({ registration, past, onCancel, lang }) {
   const at = authT(lang);
+  const vp = useViewport();
   const event = registration.event;
   if (!event) return null;
 
@@ -11223,7 +11813,7 @@ function MyEventCard({ registration, past, onCancel, lang }) {
             fontFamily: 'var(--jp)', fontSize: 14, fontWeight: 600,
             color: '#0a2960', textDecoration: isCancelled ? 'line-through' : 'none',
             overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap',
-            paddingRight: daysRemaining ? 70 : 0,
+            paddingRight: daysRemaining ? (vp.isMobile ? 60 : 70) : 0,
           }}>{event.title}</div>
           <div style={{
             fontSize: 11, color: '#6b7280', fontFamily: 'var(--jp)',
@@ -11291,11 +11881,12 @@ function MyEventCard({ registration, past, onCancel, lang }) {
       {!isCancelled && (
         <div style={{
           marginTop: 10,
-          paddingLeft: 72,  // ポスター幅 60 + gap 12 = メイン情報の左端と揃える
+          paddingLeft: vp.isMobile ? 0 : 72,
           display: 'flex',
           alignItems: 'center',
           justifyContent: 'space-between',
           gap: 12,
+          flexWrap: vp.isMobile ? 'wrap' : 'nowrap',
         }}>
           {/* QRチケットボタン (Confirmed系のみ、Pastでは非表示) */}
           {!past ? (
@@ -11334,10 +11925,357 @@ function MyEventCard({ registration, past, onCancel, lang }) {
   );
 }
 
+// (Phase 10.3 / 11.2) お気に入りセクション (Drag & Drop + 矢印ボタン + キーボード対応)
+function FavoritesSection({ favoriteEvents, lang, fav, at, myRegistrations }) {
+  // ドラッグ中の eventId
+  const [draggingId, setDraggingId] = React.useState(null);
+  // ドロップ先候補の eventId
+  const [overId, setOverId] = React.useState(null);
+
+  // (Phase 11.2) 順序変更の共通ロジック
+  const moveItem = React.useCallback(async (sourceId, targetIdx) => {
+    const ids = favoriteEvents.map(ev => String(ev.id));
+    const fromIdx = ids.indexOf(String(sourceId));
+    if (fromIdx < 0) return;
+    const clamped = Math.max(0, Math.min(ids.length - 1, targetIdx));
+    if (fromIdx === clamped) return;
+    const reordered = [...ids];
+    reordered.splice(fromIdx, 1);
+    reordered.splice(clamped, 0, String(sourceId));
+    try {
+      await fav.reorder(reordered);
+    } catch (err) {
+      console.error('[FavoritesSection] move failed:', err);
+    }
+  }, [favoriteEvents, fav]);
+
+  const handleDragStart = (e, evId) => {
+    setDraggingId(String(evId));
+    try {
+      e.dataTransfer.effectAllowed = 'move';
+      e.dataTransfer.setData('text/plain', String(evId));
+    } catch (err) {}
+  };
+
+  const handleDragOver = (e, evId) => {
+    e.preventDefault();
+    if (draggingId && String(evId) !== draggingId) {
+      setOverId(String(evId));
+    }
+    try { e.dataTransfer.dropEffect = 'move'; } catch (err) {}
+  };
+
+  const handleDragLeave = () => {};
+
+  const handleDrop = async (e, targetId) => {
+    e.preventDefault();
+    const sourceId = draggingId;
+    setDraggingId(null);
+    setOverId(null);
+    if (!sourceId || sourceId === String(targetId)) return;
+    const ids = favoriteEvents.map(ev => String(ev.id));
+    const toIdx = ids.indexOf(String(targetId));
+    if (toIdx < 0) return;
+    moveItem(sourceId, toIdx);
+  };
+
+  const handleDragEnd = () => {
+    setDraggingId(null);
+    setOverId(null);
+  };
+
+  return (
+    <section>
+      <h2 style={{
+        margin: '0 0 12px',
+        fontFamily: 'var(--jp)',
+        fontSize: 16, fontWeight: 600,
+        color: '#0a2960',
+        letterSpacing: '0.04em',
+        display: 'flex', alignItems: 'center', gap: 8,
+      }}>
+        <span style={{ display: 'inline-block', width: 4, height: 16, background: '#dc2626' }}/>
+        {at.favoritesSection}
+        <span style={{
+          fontSize: 11, color: '#6b7280', fontWeight: 400, marginLeft: 6,
+        }}>({favoriteEvents.length})</span>
+      </h2>
+      <div style={{ display: 'grid', gap: 12 }}>
+        {favoriteEvents.map((ev, idx) => {
+          const isDragging = draggingId === String(ev.id);
+          const isOver = overId === String(ev.id);
+          const isFirst = idx === 0;
+          const isLast = idx === favoriteEvents.length - 1;
+          return (
+            <div key={ev.id}
+                 draggable
+                 onDragStart={(e) => handleDragStart(e, ev.id)}
+                 onDragOver={(e) => handleDragOver(e, ev.id)}
+                 onDragLeave={handleDragLeave}
+                 onDrop={(e) => handleDrop(e, ev.id)}
+                 onDragEnd={handleDragEnd}
+                 style={{
+                   opacity: isDragging ? 0.4 : 1,
+                   transform: isOver ? 'translateY(2px)' : 'translateY(0)',
+                   transition: 'opacity .15s, transform .15s',
+                   borderTop: isOver ? '2px solid #dc2626' : '2px solid transparent',
+                 }}>
+              <FavoriteEventCard
+                event={ev}
+                lang={lang}
+                fav={fav}
+                at={at}
+                isFirst={isFirst}
+                isLast={isLast}
+                onMoveUp={() => moveItem(ev.id, idx - 1)}
+                onMoveDown={() => moveItem(ev.id, idx + 1)}
+                myRegistrations={myRegistrations}
+              />
+            </div>
+          );
+        })}
+      </div>
+    </section>
+  );
+}
+
+// (Phase 9.3 / 11.2 / 11.3) お気に入りイベントカード (申込前のイベント)
+function FavoriteEventCard({ event, lang, fav, at: atProp, isFirst, isLast, onMoveUp, onMoveDown, myRegistrations }) {
+  const at = atProp || authT(lang);
+  const vp = useViewport();
+  const [hover, setHover] = React.useState(false);
+
+  // (Phase 11.3) 既に申込済か判定
+  const isAlreadyRegistered = React.useMemo(() => {
+    if (!Array.isArray(myRegistrations)) return false;
+    return myRegistrations.some(r =>
+      String(r.eventId) === String(event.id) &&
+      r.status !== 'キャンセル'
+    );
+  }, [myRegistrations, event.id]);
+
+  // 残り日数
+  const daysRemaining = (() => {
+    if (!event.date) return null;
+    const eventDate = new Date(event.date + 'T00:00:00');
+    if (isNaN(eventDate.getTime())) return null;
+    const today = new Date();
+    today.setHours(0, 0, 0, 0);
+    const diff = Math.round((eventDate - today) / (1000 * 60 * 60 * 24));
+    if (diff === 0) return { label: at.daysToday, color: '#dc2626', bg: '#fef2f2', isToday: true };
+    if (diff === 1) return { label: at.daysTomorrow, color: '#f59e0b', bg: '#fffbeb' };
+    if (diff > 0 && diff <= 7) return { label: at.daysLeft.replace('%n%', diff), color: '#2c89e8', bg: '#eff6ff' };
+    if (diff > 0) return { label: at.daysLeft.replace('%n%', diff), color: '#6b7280', bg: '#f9fafb' };
+    return null;
+  })();
+
+  const handleCardClick = (e) => {
+    if (e.target.closest('button')) return;
+    if (e.target.closest('a')) return;
+    window.location.hash = `#/events/${event.id}`;
+  };
+
+  const handleFavToggle = (e) => {
+    e.stopPropagation();
+    fav.toggle(event.id);
+  };
+
+  return (
+    <div
+      onClick={handleCardClick}
+      onMouseEnter={() => setHover(true)}
+      onMouseLeave={() => setHover(false)}
+      role="button"
+      tabIndex={0}
+      aria-label={at.cardAriaLabel.replace('%title%', event.title || '')}
+      onKeyDown={(e) => {
+        if (e.key === 'Enter' || e.key === ' ') {
+          e.preventDefault();
+          window.location.hash = `#/events/${event.id}`;
+        }
+      }}
+      style={{
+        position: 'relative',
+        display: 'flex',
+        flexDirection: 'column',
+        padding: 14,
+        background: '#fff',
+        border: hover ? '1px solid #2c89e8' : '1px solid #e5e7eb',
+        boxShadow: hover ? '0 8px 24px rgba(44, 137, 232, 0.10)' : 'none',
+        cursor: 'pointer',
+        transition: 'all .22s ease',
+      }}>
+      {/* 残り日数バッジ */}
+      {daysRemaining && (
+        <div style={{
+          position: 'absolute', top: 10, right: 12,
+          fontSize: 10, padding: '3px 8px',
+          background: daysRemaining.bg, color: daysRemaining.color,
+          fontFamily: 'var(--jp)', fontWeight: 600, letterSpacing: '0.04em',
+          zIndex: 1,
+          display: 'inline-flex', alignItems: 'center', gap: 4,
+          animation: daysRemaining.isToday ? 'cca-pulse-soft 1.6s ease-in-out infinite' : 'none',
+        }}>
+          <PIcon.Clock size={11} color={daysRemaining.color}/>
+          {daysRemaining.label}
+        </div>
+      )}
+
+      <div style={{ display: 'flex', alignItems: 'stretch', gap: 12 }}>
+        {/* (Phase 10.3 / 11.2) ドラッグハンドル + ↑↓ボタン (モバイル/キーボード対応) */}
+        <div style={{
+          flexShrink: 0,
+          width: 22,
+          display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center',
+          gap: 2,
+        }}>
+          {/* ↑ボタン */}
+          <button
+            onClick={(e) => { e.stopPropagation(); if (onMoveUp) onMoveUp(); }}
+            disabled={isFirst}
+            aria-label={at.moveUp}
+            style={{
+              padding: 2,
+              background: 'transparent',
+              border: 'none',
+              cursor: isFirst ? 'not-allowed' : 'pointer',
+              color: isFirst ? '#e5e7eb' : '#94a3b8',
+              display: 'inline-flex', alignItems: 'center', justifyContent: 'center',
+              width: 22, height: 18,
+              transition: 'color .15s',
+            }}
+            onMouseEnter={(e) => { if (!isFirst) e.currentTarget.style.color = '#475569'; }}
+            onMouseLeave={(e) => { e.currentTarget.style.color = isFirst ? '#e5e7eb' : '#94a3b8'; }}>
+            <PIcon.ChevronUp size={14} color="currentColor"/>
+          </button>
+          {/* グリップ (D&D ヒント) */}
+          <div title={at.dragToReorder} style={{
+            color: '#cbd5e1',
+            cursor: 'grab',
+            display: 'inline-flex',
+            padding: 1,
+          }} aria-hidden="true">
+            <PIcon.GripVertical size={12} color="#cbd5e1"/>
+          </div>
+          {/* ↓ボタン */}
+          <button
+            onClick={(e) => { e.stopPropagation(); if (onMoveDown) onMoveDown(); }}
+            disabled={isLast}
+            aria-label={at.moveDown}
+            style={{
+              padding: 2,
+              background: 'transparent',
+              border: 'none',
+              cursor: isLast ? 'not-allowed' : 'pointer',
+              color: isLast ? '#e5e7eb' : '#94a3b8',
+              display: 'inline-flex', alignItems: 'center', justifyContent: 'center',
+              width: 22, height: 18,
+              transition: 'color .15s',
+            }}
+            onMouseEnter={(e) => { if (!isLast) e.currentTarget.style.color = '#475569'; }}
+            onMouseLeave={(e) => { e.currentTarget.style.color = isLast ? '#e5e7eb' : '#94a3b8'; }}>
+            <PIcon.ChevronDown size={14} color="currentColor"/>
+          </button>
+        </div>
+
+        {/* ポスター */}
+        <div style={{
+          flexShrink: 0,
+          width: 60, height: 80,
+          background: event.posterUrl
+            ? `#f5f7fa url(${event.posterUrl}) center/cover no-repeat`
+            : '#f5f7fa',
+          display: 'flex', alignItems: 'center', justifyContent: 'center',
+          color: '#0a2960',
+        }}>{!event.posterUrl && <PIcon.Calendar size={26} color="#0a2960"/>}</div>
+
+        {/* メイン情報 */}
+        <div style={{ flex: 1, minWidth: 0, display: 'flex', flexDirection: 'column', gap: 4 }}>
+          <div style={{
+            fontFamily: 'var(--jp)', fontSize: 14, fontWeight: 600,
+            color: '#0a2960',
+            overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap',
+            paddingRight: daysRemaining ? 70 : 0,
+          }}>{event.title}</div>
+          <div style={{
+            fontSize: 11, color: '#6b7280', fontFamily: 'var(--jp)',
+          }}>{event.date}{event.time && ` ${event.time}`}{event.venue && ` · ${event.venue}`}</div>
+        </div>
+
+        {/* お気に入り解除ボタン */}
+        <button onClick={handleFavToggle}
+                aria-label={at.favoriteRemove}
+                style={{
+                  flexShrink: 0,
+                  padding: '6px 10px',
+                  background: 'transparent',
+                  border: '1px solid #fecaca',
+                  cursor: 'pointer',
+                  alignSelf: 'center',
+                  display: 'inline-flex', alignItems: 'center',
+                }}
+                onMouseEnter={(e) => { e.currentTarget.style.background = '#fef2f2'; }}
+                onMouseLeave={(e) => { e.currentTarget.style.background = 'transparent'; }}>
+          <PIcon.Heart size={14} color="#dc2626" filled/>
+        </button>
+      </div>
+
+      {/* (Phase 11.3 / 12.3) 下段: 申込ボタン (未申込時) + 詳細→ */}
+      <div style={{
+        marginTop: 10,
+        paddingLeft: vp.isMobile ? 0 : 106,  // グリップ22 + gap12 + ポスター60 + gap12
+        display: 'flex',
+        alignItems: 'center',
+        justifyContent: 'space-between',
+        gap: 12,
+        flexWrap: vp.isMobile ? 'wrap' : 'nowrap',
+      }}>
+        {/* 申込ボタン (未申込のときのみ) */}
+        {!isAlreadyRegistered ? (
+          <a href={`#/events/${event.id}`}
+             onClick={(e) => e.stopPropagation()}
+             aria-label={at.registerEvent}
+             onMouseEnter={(e) => { e.currentTarget.style.background = '#1d6bb8'; }}
+             onMouseLeave={(e) => { e.currentTarget.style.background = '#2c89e8'; }}
+             style={{
+               display: 'inline-flex', alignItems: 'center', gap: 6,
+               padding: '8px 14px',
+               background: '#2c89e8', color: '#fff',
+               fontSize: 12, fontFamily: 'var(--jp)', fontWeight: 600,
+               letterSpacing: '0.04em',
+               textDecoration: 'none',
+               transition: 'background .15s',
+             }}>
+            <PIcon.Plus size={13} color="#fff"/>
+            {at.registerEvent}
+          </a>
+        ) : (
+          <span style={{
+            fontSize: 11, padding: '4px 10px',
+            background: '#ecfdf5', color: '#065f46',
+            fontFamily: 'var(--jp)', fontWeight: 600, letterSpacing: '0.04em',
+          }}>{at.badgeConfirmed || '申込済'}</span>
+        )}
+
+        <span style={{
+          fontSize: 12,
+          color: hover ? '#2c89e8' : '#9ca3af',
+          fontFamily: 'var(--jp)',
+          fontWeight: 500,
+          transition: 'all .18s ease',
+          transform: hover ? 'translateX(3px)' : 'translateX(0)',
+          letterSpacing: '0.02em',
+        }}>{at.detailLink}</span>
+      </div>
+    </div>
+  );
+}
+
 // (Step D) QRチケット表示ページ
 function PageTicket({ regId, lang }) {
   const auth = useAuth();
   const at = authT(lang);
+  const vp = useViewport();
   const [reg, setReg] = React.useState(null);
   const [loading, setLoading] = React.useState(true);
   const [error, setError] = React.useState('');
@@ -11708,7 +12646,7 @@ function PageTicket({ regId, lang }) {
           <div style={{
             marginTop: 20,
             display: 'grid',
-            gridTemplateColumns: gcalUrl ? 'repeat(auto-fit, minmax(140px, 1fr))' : 'repeat(auto-fit, minmax(140px, 1fr))',
+            gridTemplateColumns: vp.isMobile ? '1fr' : 'repeat(auto-fit, minmax(140px, 1fr))',
             gap: 10,
           }}>
             {/* Google Calendar に追加 */}
