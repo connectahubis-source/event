@@ -22,6 +22,7 @@
 <script src="https://unpkg.com/react@18.3.1/umd/react.development.js" crossorigin></script>
 <script src="https://unpkg.com/react-dom@18.3.1/umd/react-dom.development.js" crossorigin></script>
 <script src="https://unpkg.com/@babel/standalone@7.29.0/babel.min.js" crossorigin></script>
+<script src="https://cdn.jsdelivr.net/npm/qrcode-generator@1.4.4/qrcode.js"></script>
 
 <style>
 :root {
@@ -10477,8 +10478,10 @@ function PageMyPage({ lang, t, events }) {
     return r.event;
   });
 
+  // (Step A) 参加予定: キャンセル除外 + 未来日のみ
   const upcomingEvents = allRegsWithEvent
     .filter(function(r) {
+      if (r.status === 'キャンセル') return false;  // (Step A) キャンセル除外
       const endStr = r.event.endDate || r.event.date;
       if (!endStr) return true;  // 日付不明なら予定扱い
       const endDate = new Date(String(endStr) + 'T23:59:59');
@@ -10490,13 +10493,24 @@ function PageMyPage({ lang, t, events }) {
       return ad - bd;  // 昇順 (近い順)
     });
 
+  // (Step A) 参加履歴: キャンセル除外 + 過去日のみ
   const pastEvents = allRegsWithEvent
     .filter(function(r) {
+      if (r.status === 'キャンセル') return false;  // (Step A) キャンセル除外
       const endStr = r.event.endDate || r.event.date;
       if (!endStr) return false;
       const endDate = new Date(String(endStr) + 'T23:59:59');
       return !isNaN(endDate.getTime()) && endDate < todayStart;
     })
+    .sort(function(a, b) {
+      const ad = new Date(a.event.date || '0000-01-01');
+      const bd = new Date(b.event.date || '0000-01-01');
+      return bd - ad;  // 降順 (新しい順)
+    });
+
+  // (Step A) キャンセル済み: 全期間
+  const cancelledEvents = allRegsWithEvent
+    .filter(function(r) { return r.status === 'キャンセル'; })
     .sort(function(a, b) {
       const ad = new Date(a.event.date || '0000-01-01');
       const bd = new Date(b.event.date || '0000-01-01');
@@ -10677,6 +10691,86 @@ function PageMyPage({ lang, t, events }) {
             }}>{at.yourActivity}</p>
           </header>
 
+          {/* (Step B) アクティビティ統計サマリー */}
+          {!regsLoading && (
+            <div style={{
+              display: 'grid',
+              gridTemplateColumns: cancelledEvents.length > 0 ? 'repeat(3, 1fr)' : 'repeat(2, 1fr)',
+              gap: 16,
+            }}>
+              {/* 参加予定 */}
+              <div style={{
+                background: '#fff',
+                border: '1px solid #e5e7eb',
+                borderTop: '3px solid #2c89e8',
+                padding: '20px 18px',
+              }}>
+                <div style={{
+                  fontSize: 10, color: '#6b7280', fontFamily: 'var(--jp)',
+                  letterSpacing: '0.12em', marginBottom: 8,
+                  textTransform: 'uppercase', fontWeight: 500,
+                }}>Upcoming</div>
+                <div style={{
+                  fontSize: 32, fontWeight: 600, color: '#0a2960',
+                  fontFamily: 'var(--jp)', lineHeight: 1,
+                  letterSpacing: '-0.02em',
+                }}>{upcomingEvents.length}</div>
+                <div style={{
+                  fontSize: 11, color: '#6b7280', fontFamily: 'var(--jp)',
+                  marginTop: 6,
+                }}>参加予定</div>
+              </div>
+
+              {/* 参加実績 */}
+              <div style={{
+                background: '#fff',
+                border: '1px solid #e5e7eb',
+                borderTop: '3px solid #0a2960',
+                padding: '20px 18px',
+              }}>
+                <div style={{
+                  fontSize: 10, color: '#6b7280', fontFamily: 'var(--jp)',
+                  letterSpacing: '0.12em', marginBottom: 8,
+                  textTransform: 'uppercase', fontWeight: 500,
+                }}>Attended</div>
+                <div style={{
+                  fontSize: 32, fontWeight: 600, color: '#0a2960',
+                  fontFamily: 'var(--jp)', lineHeight: 1,
+                  letterSpacing: '-0.02em',
+                }}>{pastEvents.length}</div>
+                <div style={{
+                  fontSize: 11, color: '#6b7280', fontFamily: 'var(--jp)',
+                  marginTop: 6,
+                }}>参加実績</div>
+              </div>
+
+              {/* キャンセル (件数 > 0 のみ) */}
+              {cancelledEvents.length > 0 && (
+                <div style={{
+                  background: '#fff',
+                  border: '1px solid #e5e7eb',
+                  borderTop: '3px solid #9ca3af',
+                  padding: '20px 18px',
+                }}>
+                  <div style={{
+                    fontSize: 10, color: '#6b7280', fontFamily: 'var(--jp)',
+                    letterSpacing: '0.12em', marginBottom: 8,
+                    textTransform: 'uppercase', fontWeight: 500,
+                  }}>Cancelled</div>
+                  <div style={{
+                    fontSize: 32, fontWeight: 600, color: '#9ca3af',
+                    fontFamily: 'var(--jp)', lineHeight: 1,
+                    letterSpacing: '-0.02em',
+                  }}>{cancelledEvents.length}</div>
+                  <div style={{
+                    fontSize: 11, color: '#6b7280', fontFamily: 'var(--jp)',
+                    marginTop: 6,
+                  }}>キャンセル</div>
+                </div>
+              )}
+            </div>
+          )}
+
           {/* 参加予定 */}
           <section>
             <h2 style={{
@@ -10758,6 +10852,31 @@ function PageMyPage({ lang, t, events }) {
               </div>
             )}
           </section>
+
+          {/* (Step A) キャンセル済みイベント (件数 > 0 のときのみ表示) */}
+          {cancelledEvents.length > 0 && (
+            <section>
+              <h2 style={{
+                margin: '0 0 12px',
+                fontFamily: 'var(--jp)',
+                fontSize: 16, fontWeight: 600,
+                color: '#6b7280',
+                letterSpacing: '0.04em',
+                display: 'flex', alignItems: 'center', gap: 8,
+              }}>
+                <span style={{ display: 'inline-block', width: 4, height: 16, background: '#9ca3af' }}/>
+                キャンセル済み
+                <span style={{
+                  fontSize: 11, color: '#9ca3af', fontWeight: 400, marginLeft: 6,
+                }}>({cancelledEvents.length})</span>
+              </h2>
+              <div style={{ display: 'grid', gap: 12 }}>
+                {cancelledEvents.map(reg => (
+                  <MyEventCard key={reg.regId} registration={reg} lang={lang} />
+                ))}
+              </div>
+            </section>
+          )}
         </main>
       </div>
 
@@ -10776,13 +10895,32 @@ function PageMyPage({ lang, t, events }) {
   );
 }
 
-// 参加イベントカード
+// 参加イベントカード (Step C 改修版)
 function MyEventCard({ registration, past, onCancel, lang }) {
   const at = authT(lang);
   const event = registration.event;
   if (!event) return null;
 
   const isCancelled = registration.status === 'キャンセル';
+
+  // (Step C) ホバー状態
+  const [hover, setHover] = React.useState(false);
+
+  // (Step C) 残り日数計算
+  const daysRemaining = (() => {
+    if (past || isCancelled) return null;
+    if (!event.date) return null;
+    const eventDate = new Date(event.date + 'T00:00:00');
+    if (isNaN(eventDate.getTime())) return null;
+    const today = new Date();
+    today.setHours(0, 0, 0, 0);
+    const diff = Math.round((eventDate - today) / (1000 * 60 * 60 * 24));
+    if (diff === 0) return { label: '本日', color: '#dc2626', bg: '#fef2f2' };
+    if (diff === 1) return { label: '明日', color: '#f59e0b', bg: '#fffbeb' };
+    if (diff > 0 && diff <= 7) return { label: `あと${diff}日`, color: '#2c89e8', bg: '#eff6ff' };
+    if (diff > 0) return { label: `あと${diff}日`, color: '#6b7280', bg: '#f9fafb' };
+    return null;
+  })();
 
   // ステータスバッジの色
   const statusColor = (() => {
@@ -10795,19 +10933,45 @@ function MyEventCard({ registration, past, onCancel, lang }) {
     }
   })();
 
+  // (Step C) カード全体クリック → 詳細遷移 (内側のbutton/aはキャンセル)
+  const handleCardClick = (e) => {
+    if (e.target.closest('button')) return;
+    if (e.target.closest('a')) return;
+    window.location.hash = `#/events/${event.id}`;
+  };
+
   return (
-    <div style={{
-      display: 'flex',
-      alignItems: 'stretch',
-      gap: 12,
-      padding: 14,
-      background: '#fff',
-      border: '1px solid #e5e7eb',
-      transition: 'border-color .15s',
-      opacity: (past || isCancelled) ? 0.6 : 1,
-    }}>
-      {/* ポスター or アイコン */}
-      <a href={`#/events/${event.id}`} style={{
+    <div
+      onClick={handleCardClick}
+      onMouseEnter={() => setHover(true)}
+      onMouseLeave={() => setHover(false)}
+      style={{
+        position: 'relative',
+        display: 'flex',
+        alignItems: 'stretch',
+        gap: 12,
+        padding: 14,
+        background: '#fff',
+        border: hover && !isCancelled ? '1px solid #2c89e8' : '1px solid #e5e7eb',
+        boxShadow: hover && !isCancelled ? '0 4px 12px rgba(44, 137, 232, 0.12)' : 'none',
+        cursor: 'pointer',
+        transition: 'all .18s ease',
+        opacity: (past || isCancelled) ? 0.65 : 1,
+      }}>
+
+      {/* (Step C) 残り日数バッジ (右上) */}
+      {daysRemaining && (
+        <div style={{
+          position: 'absolute', top: 10, right: 12,
+          fontSize: 10, padding: '3px 8px',
+          background: daysRemaining.bg, color: daysRemaining.color,
+          fontFamily: 'var(--jp)', fontWeight: 600, letterSpacing: '0.04em',
+          zIndex: 1,
+        }}>{daysRemaining.label}</div>
+      )}
+
+      {/* ポスター or アイコン (Step C: aではなくdivに、外側onClickで遷移) */}
+      <div style={{
         flexShrink: 0,
         width: 60, height: 80,
         background: event.posterUrl
@@ -10815,23 +10979,23 @@ function MyEventCard({ registration, past, onCancel, lang }) {
           : '#f5f7fa',
         display: 'flex', alignItems: 'center', justifyContent: 'center',
         fontSize: 22, color: '#0a2960',
-        textDecoration: 'none',
         filter: isCancelled ? 'grayscale(100%)' : 'none',
-      }}>{!event.posterUrl && '📅'}</a>
+      }}>{!event.posterUrl && '📅'}</div>
 
       {/* メイン情報 */}
       <div style={{ flex: 1, minWidth: 0, display: 'flex', flexDirection: 'column', gap: 4 }}>
-        <a href={`#/events/${event.id}`} style={{
+        <div style={{
           fontFamily: 'var(--jp)', fontSize: 14, fontWeight: 600,
           color: '#0a2960', textDecoration: isCancelled ? 'line-through' : 'none',
           overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap',
-        }}>{event.title}</a>
+          paddingRight: daysRemaining ? 70 : 0,  // バッジと重ならないように
+        }}>{event.title}</div>
         <div style={{
           fontSize: 11, color: '#6b7280', fontFamily: 'var(--jp)',
         }}>{event.date}{event.time && ` ${event.time}`}{event.venue && ` · ${event.venue}`}</div>
 
-        {/* ステータス + 金額バッジ */}
-        <div style={{ display: 'flex', gap: 6, marginTop: 2, flexWrap: 'wrap' }}>
+        {/* ステータス + 金額バッジ + 詳細→ */}
+        <div style={{ display: 'flex', gap: 6, marginTop: 2, flexWrap: 'wrap', alignItems: 'center' }}>
           <span style={{
             fontSize: 10, padding: '2px 8px',
             background: statusColor.bg, color: statusColor.fg,
@@ -10844,12 +11008,38 @@ function MyEventCard({ registration, past, onCancel, lang }) {
               fontFamily: 'var(--jp)',
             }}>¥{registration.amount.toLocaleString()}</span>
           )}
+
+          {/* (Step D) QRチケットリンク (Confirmed系のみ、過去・キャンセルは非表示) */}
+          {!past && !isCancelled && (
+            <a href={`#/ticket/${registration.regId}`}
+               onClick={(e) => e.stopPropagation()}
+               style={{
+                 fontSize: 10, padding: '2px 8px',
+                 background: '#eff6ff', color: '#2c89e8',
+                 fontFamily: 'var(--jp)', fontWeight: 600, letterSpacing: '0.04em',
+                 textDecoration: 'none',
+               }}>📱 QRチケット</a>
+          )}
+
+          {/* (Step C) 詳細を見る → (右寄せ、ホバーで色とアニメーション) */}
+          {!isCancelled && (
+            <span style={{
+              marginLeft: 'auto',
+              fontSize: 11,
+              color: hover ? '#2c89e8' : '#9ca3af',
+              fontFamily: 'var(--jp)',
+              fontWeight: 500,
+              transition: 'all .18s ease',
+              transform: hover ? 'translateX(3px)' : 'translateX(0)',
+              letterSpacing: '0.02em',
+            }}>詳細 →</span>
+          )}
         </div>
       </div>
 
       {/* アクション: キャンセル可能な場合のみ */}
       {!past && !isCancelled && onCancel && registration.status !== 'チェックイン済' && (
-        <button onClick={() => onCancel(registration)} style={{
+        <button onClick={(e) => { e.stopPropagation(); onCancel(registration); }} style={{
           flexShrink: 0,
           padding: '6px 12px',
           fontSize: 11,
@@ -10870,7 +11060,9 @@ function MyEventCard({ registration, past, onCancel, lang }) {
 
       {/* キャンセル済みなら「再申込」リンク */}
       {!past && isCancelled && (
-        <a href={`#/events/${event.id}`} style={{
+        <a href={`#/events/${event.id}`}
+           onClick={(e) => e.stopPropagation()}
+           style={{
           flexShrink: 0,
           padding: '6px 12px',
           fontSize: 11,
@@ -10885,6 +11077,222 @@ function MyEventCard({ registration, past, onCancel, lang }) {
         }}>{at.rebookBtn}</a>
       )}
     </div>
+  );
+}
+
+// (Step D) QRチケット表示ページ
+function PageTicket({ regId, lang }) {
+  const auth = useAuth();
+  const at = authT(lang);
+  const [reg, setReg] = React.useState(null);
+  const [loading, setLoading] = React.useState(true);
+  const [error, setError] = React.useState('');
+
+  // 認証ガード
+  React.useEffect(() => {
+    if (!auth.loading && !auth.user) {
+      window.location.hash = '/login';
+    }
+  }, [auth.loading, auth.user]);
+
+  // 自分の登録一覧から該当regIdを取得
+  React.useEffect(() => {
+    if (!auth.user || !regId) return;
+    let cancelled = false;
+    (async () => {
+      try {
+        const token = authStore.getToken();
+        if (!token) {
+          if (!cancelled) setLoading(false);
+          return;
+        }
+        const result = await authApi.getMyRegistrations(token);
+        const found = (result.registrations || []).find(r => r.regId === regId);
+        if (!cancelled) {
+          if (!found) {
+            setError('該当する申込が見つかりません');
+          } else if (found.status === 'キャンセル') {
+            setError('このイベントはキャンセル済みです');
+          } else {
+            setReg(found);
+          }
+          setLoading(false);
+        }
+      } catch (err) {
+        console.error('PageTicket fetch failed:', err);
+        if (!cancelled) {
+          setError('読み込みに失敗しました');
+          setLoading(false);
+        }
+      }
+    })();
+    return () => { cancelled = true; };
+  }, [auth.user, regId]);
+
+  // QR SVG生成
+  const qrSvg = React.useMemo(() => {
+    if (!reg || !window.qrcode) return '';
+    try {
+      const qr = window.qrcode(0, 'M');
+      qr.addData(reg.regId);
+      qr.make();
+      return qr.createSvgTag({ scalable: true, margin: 0 });
+    } catch (err) {
+      console.error('QR generation failed:', err);
+      return '';
+    }
+  }, [reg]);
+
+  if (auth.loading || loading) {
+    return (
+      <div style={{
+        minHeight: '100vh', paddingTop: 200, textAlign: 'center',
+        fontFamily: 'var(--jp)', color: '#6b7280',
+      }}>
+        <div className="spinner" style={{ marginBottom: 16 }}/>
+        <div>{at.loading}</div>
+      </div>
+    );
+  }
+
+  if (error || !reg) {
+    return (
+      <section style={{
+        minHeight: 'calc(100vh - 130px)', marginTop: 130,
+        padding: 'clamp(40px, 6vh, 80px) clamp(24px, 4vw, 80px)',
+        textAlign: 'center',
+      }}>
+        <div style={{ maxWidth: 480, margin: '0 auto' }}>
+          <div style={{
+            fontSize: 48, marginBottom: 16, color: '#9ca3af',
+          }}>📭</div>
+          <h2 style={{
+            margin: '0 0 12px', fontFamily: 'var(--jp)',
+            fontSize: 20, fontWeight: 600, color: '#0a2960',
+          }}>{error || '該当する申込が見つかりません'}</h2>
+          <a href="#/mypage" style={{
+            display: 'inline-block', marginTop: 24,
+            padding: '10px 24px', fontSize: 13, fontFamily: 'var(--jp)',
+            color: '#2c89e8', border: '1px solid #2c89e8',
+            textDecoration: 'none', letterSpacing: '0.04em',
+          }}>← マイページに戻る</a>
+        </div>
+      </section>
+    );
+  }
+
+  const event = reg.event;
+  const isCheckedIn = reg.status === 'チェックイン済';
+
+  return (
+    <section style={{
+      minHeight: 'calc(100vh - 130px)', marginTop: 130,
+      background: '#fafbfc',
+      padding: 'clamp(40px, 6vh, 80px) clamp(24px, 4vw, 80px)',
+    }}>
+      <div style={{
+        maxWidth: 540, margin: '0 auto',
+      }}>
+        {/* 戻るリンク */}
+        <a href="#/mypage" style={{
+          display: 'inline-block', marginBottom: 24,
+          fontSize: 13, color: '#6b7280', fontFamily: 'var(--jp)',
+          textDecoration: 'none',
+        }}>← マイページに戻る</a>
+
+        {/* チケットカード */}
+        <div style={{
+          background: '#fff',
+          border: '1px solid #e5e7eb',
+          padding: 'clamp(24px, 5vw, 40px)',
+        }}>
+          {/* 装飾線 */}
+          <div style={{
+            width: 60, height: 1,
+            background: isCheckedIn ? '#9ca3af' : '#0a2960',
+            opacity: 0.35, marginBottom: 20,
+          }}/>
+
+          {/* イベント情報 */}
+          <div style={{ marginBottom: 28 }}>
+            <div style={{
+              fontSize: 10, color: '#6b7280', fontFamily: 'var(--jp)',
+              letterSpacing: '0.12em', marginBottom: 8,
+              textTransform: 'uppercase', fontWeight: 500,
+            }}>{isCheckedIn ? 'CHECKED IN' : 'YOUR TICKET'}</div>
+            <h1 style={{
+              margin: 0, fontFamily: 'var(--jp)',
+              fontSize: 'clamp(20px, 3vw, 26px)', fontWeight: 600,
+              color: '#0a2960', letterSpacing: '0.02em',
+              lineHeight: 1.4,
+            }}>{event.title}</h1>
+            <div style={{
+              marginTop: 12, fontSize: 13, color: '#374151',
+              fontFamily: 'var(--jp)', lineHeight: 1.7,
+            }}>
+              <div>📅 {event.date}{event.time && ` ${event.time}`}</div>
+              {event.venue && <div>📍 {event.venue}</div>}
+            </div>
+          </div>
+
+          {/* QRコード */}
+          <div style={{
+            display: 'flex', justifyContent: 'center',
+            padding: '24px 0', marginBottom: 20,
+            borderTop: '1px dashed #e5e7eb',
+            borderBottom: '1px dashed #e5e7eb',
+          }}>
+            {qrSvg ? (
+              <div
+                style={{
+                  width: 'min(260px, 70vw)', height: 'min(260px, 70vw)',
+                  filter: isCheckedIn ? 'grayscale(100%) opacity(0.5)' : 'none',
+                }}
+                dangerouslySetInnerHTML={{ __html: qrSvg }}
+              />
+            ) : (
+              <div style={{
+                width: 260, height: 260,
+                background: '#f3f4f6',
+                display: 'flex', alignItems: 'center', justifyContent: 'center',
+                fontSize: 13, color: '#9ca3af', fontFamily: 'var(--jp)',
+              }}>QR生成中...</div>
+            )}
+          </div>
+
+          {/* 案内文 */}
+          <div style={{
+            textAlign: 'center', fontSize: 12,
+            color: isCheckedIn ? '#6b7280' : '#374151',
+            fontFamily: 'var(--jp)', lineHeight: 1.7,
+          }}>
+            {isCheckedIn ? (
+              <span style={{ color: '#1e40af', fontWeight: 600 }}>
+                ✓ 受付済み (チェックイン完了)
+              </span>
+            ) : (
+              <>
+                このQRコードを当日受付で提示してください<br/>
+                <span style={{ fontSize: 10, color: '#9ca3af' }}>
+                  Please show this QR code at the reception
+                </span>
+              </>
+            )}
+          </div>
+
+          {/* Registration ID 表示 */}
+          <div style={{
+            marginTop: 24, paddingTop: 16,
+            borderTop: '1px solid #f3f4f6',
+            textAlign: 'center',
+            fontSize: 10, color: '#9ca3af', fontFamily: 'var(--jp)',
+            letterSpacing: '0.08em',
+          }}>
+            ID: {reg.regId}
+          </div>
+        </div>
+      </div>
+    </section>
   );
 }
 
@@ -12225,6 +12633,7 @@ function App() {
   const isHome = route === '/';
   const matchEvent = route.match(/^\/events\/(.+)/);
   const matchNews = route.match(/^\/news\/(.+)/);
+  const matchTicket = route.match(/^\/ticket\/(.+)/);  // (Step D)
 
   if (isHome) {
     Page = <PageHome lang={lang} t={t} events={events} ads={ads} heroSlides={heroSlides} loading={loading} siteSettings={siteSettings} frontNews={frontNews} />;
@@ -12255,6 +12664,8 @@ function App() {
     Page = <PageResetPassword lang={lang} t={t} />;
   } else if (route === '/mypage') {
     Page = <PageMyPage lang={lang} t={t} events={events} />;
+  } else if (matchTicket) {
+    Page = <PageTicket lang={lang} regId={matchTicket[1]} />;  // (Step D) QRチケット
   } else {
     pageTitle = '404';
     Page = <PageStub lang={lang} t={t} title="Not Found" />;
