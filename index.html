@@ -243,6 +243,59 @@ button { font-family: inherit; cursor: pointer; }
   50% { transform: scale(1.06); box-shadow: 0 0 0 6px rgba(220, 38, 38, 0); }
 }
 
+/* (Phase 15.S5) Hero 強化アニメーション群 */
+/* 文字ごとフェードイン (タイトル) */
+@keyframes cca-char-rise {
+  0%   { opacity: 0; transform: translateY(20px); filter: blur(4px); }
+  60%  { opacity: 1; filter: blur(0); }
+  100% { opacity: 1; transform: translateY(0); filter: blur(0); }
+}
+/* スクロール促進矢印 (下に揺れる) */
+@keyframes cca-scroll-hint {
+  0%   { transform: translateY(0);   opacity: 0.6; }
+  50%  { transform: translateY(8px); opacity: 1; }
+  100% { transform: translateY(0);   opacity: 0.6; }
+}
+/* Hero 写真の zoom-out (起動時に大きく → 元のサイズに) */
+@keyframes cca-hero-zoom-out {
+  0%   { transform: scale(1.15); }
+  100% { transform: scale(1); }
+}
+/* 横スライドイン (左から) */
+@keyframes cca-slide-in-left {
+  0%   { opacity: 0; transform: translateX(-30px); }
+  100% { opacity: 1; transform: translateX(0); }
+}
+/* 横スライドイン (右から) */
+@keyframes cca-slide-in-right {
+  0%   { opacity: 0; transform: translateX(30px); }
+  100% { opacity: 1; transform: translateX(0); }
+}
+/* スケールイン (跳ねる) */
+@keyframes cca-bounce-in {
+  0%   { opacity: 0; transform: scale(0.8); }
+  50%  { transform: scale(1.05); }
+  100% { opacity: 1; transform: scale(1); }
+}
+/* 細い線が中央から伸びる */
+@keyframes cca-line-grow {
+  0%   { width: 0; }
+  100% { width: var(--line-w, 24px); }
+}
+/* 縦に流れる装飾 (下から上に) */
+@keyframes cca-flow-up {
+  0%   { transform: translateY(40px); opacity: 0; }
+  100% { transform: translateY(0); opacity: 1; }
+}
+
+/* (Phase 15.S6) Hero モバイル: dvh サポート時はアドレスバー考慮の動的高さに */
+@supports (height: 100dvh) {
+  section[data-mobile-hero="true"] {
+    height: 100dvh !important;
+    max-height: min(820px, 100dvh) !important;
+  }
+}
+
 /* (Phase 8) カウントダウン用フリップ */
 @keyframes cca-tick {
   0% { transform: translateY(-2px); opacity: 0.5; }
@@ -2248,9 +2301,9 @@ function Nav({ lang, setLang, t, transparent }) {
     <React.Fragment>
       <nav style={{
         position: 'fixed', top: 0, left: 0, right: 0, zIndex: 100,
-        background: '#ffffff',
+        background: (transparent && !scrolled) ? 'transparent' : '#ffffff',
         borderBottom: scrolled ? '1px solid #e5e7eb' : '1px solid transparent',
-        transition: 'all .3s',
+        transition: 'all .4s cubic-bezier(0.2, 0.8, 0.2, 1)',
       }}>
         <div style={{
           maxWidth: 1600, margin: '0 auto',
@@ -2261,9 +2314,10 @@ function Nav({ lang, setLang, t, transparent }) {
           <div style={{display:'flex', alignItems:'center', gap:24, flex:1, minWidth:0}}>
             <a href="#/" style={{
               display: 'flex', flexDirection: 'column', gap: 4,
-              color: '#0a2960',
+              color: (transparent && !scrolled) ? '#ffffff' : '#0a2960',
               textDecoration: 'none',
               flexShrink: 0,
+              transition: 'color .4s cubic-bezier(0.2, 0.8, 0.2, 1)',
             }}>
               <span style={{
                 fontFamily: 'var(--sans)',
@@ -2271,15 +2325,17 @@ function Nav({ lang, setLang, t, transparent }) {
                 fontWeight: 800,
                 letterSpacing: '0.08em',
                 lineHeight: 1,
-                color: '#0a2960',
+                color: (transparent && !scrolled) ? '#ffffff' : '#0a2960',
+                transition: 'color .4s cubic-bezier(0.2, 0.8, 0.2, 1)',
               }}>connec+a</span>
               <span style={{
                 fontFamily: 'var(--jp)',
                 fontSize: 11,
                 fontWeight: 400,
-                color: '#6b7280',
+                color: (transparent && !scrolled) ? 'rgba(255,255,255,0.75)' : '#6b7280',
                 letterSpacing: '0.04em',
                 lineHeight: 1.4,
+                transition: 'color .4s cubic-bezier(0.2, 0.8, 0.2, 1)',
               }}>connec+a hub</span>
             </a>
 
@@ -2356,8 +2412,14 @@ function Nav({ lang, setLang, t, transparent }) {
 
           {/* Mobile menu button */}
           <button className="mobile-only" onClick={() => setMenuOpen(true)} style={{
-            background: 'transparent', border: 0, color: 'var(--sky-800)',
-            width: 40, height: 40, display: 'flex', alignItems: 'center', justifyContent: 'center',
+            background: (transparent && !scrolled) ? 'rgba(0,0,0,0.25)' : 'transparent',
+            border: 0,
+            color: (transparent && !scrolled) ? '#ffffff' : 'var(--sky-800)',
+            width: 40, height: 40,
+            borderRadius: (transparent && !scrolled) ? 8 : 0,
+            backdropFilter: (transparent && !scrolled) ? 'blur(8px)' : 'none',
+            display: 'flex', alignItems: 'center', justifyContent: 'center',
+            transition: 'all .4s cubic-bezier(0.2, 0.8, 0.2, 1)',
           }}>
             <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round">
               <path d="M4 6h16M4 12h16M4 18h16"/>
@@ -4075,15 +4137,19 @@ function HeroSlideshow({ lang, t, events, heroSlides, loading, frontNews, siteSe
                       animation, animationDelay: (item.animationDelay || 0) + 's',
                     };
                     if (item.type === 'text') {
+                      // (Phase 15.S6) PC キャンバス基準で見た目を揃える: fontSize × (100vw / 1193)
+                      // 例: fontSize=36 のとき → 約 3vw → モバイル(380px)では 11.4px、PC(1193px)では36px
+                      const fsPx = item.fontSize || 14;
+                      const fsVw = (fsPx * 100 / 1193).toFixed(2);
+                      const fsMin = Math.max(10, Math.round(fsPx * 0.3));
+                      const fsMax = fsPx;
                       return (
                         <div key={`${idx}-${item.id}`} style={{
                           ...baseStyle,
                           display:'flex',
                           alignItems:'center',
                           justifyContent: item.textAlign === 'left' ? 'flex-start' : item.textAlign === 'right' ? 'flex-end' : 'center',
-                          fontSize: item.fontSize
-                            ? `clamp(${Math.max(12, Math.round(item.fontSize*0.35))}px, ${(item.fontSize/14)}vw, ${Math.min(40, Math.round(item.fontSize*0.6))}px)`
-                            : 'clamp(14px, 4vw, 22px)',
+                          fontSize: `clamp(${fsMin}px, ${fsVw}vw, ${fsMax}px)`,
                           color: item.color || '#fff',
                           fontFamily: item.fontFamily,
                           fontWeight: item.fontWeight || 400,
@@ -4096,9 +4162,14 @@ function HeroSlideshow({ lang, t, events, heroSlides, loading, frontNews, siteSe
                         }}>{item.text || ''}</div>
                       );
                     } else if (item.type === 'circle') {
-                      return <div key={`${idx}-${item.id}`} style={{...baseStyle, borderRadius: '50%', background: item.color || 'transparent', border: `${item.borderWidth || 0}px solid ${item.borderColor || 'transparent'}`}}/>;
+                      // (Phase 15.S6) borderWidth も PC 基準で換算
+                      const bw = item.borderWidth || 0;
+                      const bwVw = (bw * 100 / 1193).toFixed(2);
+                      return <div key={`${idx}-${item.id}`} style={{...baseStyle, borderRadius: '50%', background: item.color || 'transparent', border: `clamp(${Math.round(bw*0.3)}px, ${bwVw}vw, ${bw}px) solid ${item.borderColor || 'transparent'}`}}/>;
                     } else if (item.type === 'rect') {
-                      return <div key={`${idx}-${item.id}`} style={{...baseStyle, background: item.color || 'transparent', border: `${item.borderWidth || 0}px solid ${item.borderColor || 'transparent'}`}}/>;
+                      const bw = item.borderWidth || 0;
+                      const bwVw = (bw * 100 / 1193).toFixed(2);
+                      return <div key={`${idx}-${item.id}`} style={{...baseStyle, background: item.color || 'transparent', border: `clamp(${Math.round(bw*0.3)}px, ${bwVw}vw, ${bw}px) solid ${item.borderColor || 'transparent'}`}}/>;
                     } else if (item.type === 'triangle') {
                       return (
                         <div key={`${idx}-${item.id}`} style={baseStyle}>
@@ -7106,11 +7177,23 @@ function UpcomingEventsSection({ settings, events, lang, t }) {
 //   7. Contact (語りかけ口調 + 単一CTA)
 //
 // 原則: すべてのテキスト・画像・リンクは siteSettings から取得。フォールバック有り
+// ============================================================================
+// (Phase 15.S5) PageHomeMobile — 写真先行・ビジュアル重視・アニメ強化
+// ============================================================================
+// 構造:
+//   1. Hero (フルブリード写真) + 写真上にタイトルオーバーレイ (Aman 風)
+//   2. Hero 直下: Eyebrow + Lead + 2 CTA
+//   3. Nav 4分割 (画像 + 深いオーバーレイ)
+//   4. Featured (1イベント大きく)
+//   5. Concept (詩的、3行)
+//   6. News (1記事大きく)
+//   7. Contact (語りかけ + CTA)
+//
+// 原則: すべてのテキスト・画像・リンクは siteSettings から取得 (tx/sx ヘルパ経由)
 function PageHomeMobile({ lang, t, events, ads, heroSlides, loading, siteSettings, frontNews, upcomingEvents }) {
   const auth = useAuth();
   const s = siteSettings || {};
-  // 言語付きキー取得ヘルパ (mobile → 共通 → fallback)
-  // 優先順: baseKey_mobile_<lang> → baseKey_<lang> → baseKey_mobile → baseKey → fallback
+  // 言語付きキー取得 (mobile → 共通 → fallback)
   const tx = (baseKey, fallback) => {
     const suffix = lang === 'en' ? '_en' : lang === 'easy' ? '_easy' : '_ja';
     return s[baseKey + suffix + '_mobile']
@@ -7119,14 +7202,12 @@ function PageHomeMobile({ lang, t, events, ads, heroSlides, loading, siteSetting
         || s[baseKey]
         || (fallback || '');
   };
-  // 非言語キー取得ヘルパ (画像URL、リンク等)
-  // 優先順: baseKey_mobile → baseKey → fallback
+  // 非言語キー取得 (画像URL、リンク等)
   const sx = (baseKey, fallback) => {
     return s[baseKey + '_mobile'] || s[baseKey] || (fallback || '');
   };
 
-  // === Hero スライドショー用 ===
-  // (Phase 15) モバイル Hero: device='desktop' は除外、空 or 'mobile' のみ表示
+  // === Hero スライドショー: device='desktop' を除外 ===
   const slides = React.useMemo(() => {
     const base = (heroSlides || [])
       .filter(x => x && x.imageUrl && (x.enabled !== false))
@@ -7138,6 +7219,7 @@ function PageHomeMobile({ lang, t, events, ads, heroSlides, loading, siteSetting
         caption: x.titleEm || x.titleEn || x.sub || '',
       }));
     if (base.length > 0) return base;
+    // フォールバック: イベント画像
     const evs = (events || []).slice(0, 3).filter(e => e.heroImageUrl || e.posterUrl);
     return evs.map(e => ({
       img: normalizeHomeImg(e.heroImageUrl || e.posterUrl),
@@ -7152,7 +7234,7 @@ function PageHomeMobile({ lang, t, events, ads, heroSlides, loading, siteSetting
     return () => clearInterval(id);
   }, [slides.length]);
 
-  // === Featured イベント (Admin で eventId を指定。 未指定なら最初のイベント) ===
+  // === Featured イベント ===
   const featuredEventId = sx('home_featured_eventId');
   const featuredEvent = React.useMemo(() => {
     const list = filterPublicEvents(events || []);
@@ -7166,99 +7248,211 @@ function PageHomeMobile({ lang, t, events, ads, heroSlides, loading, siteSetting
   // === Top news ===
   const topNews = (frontNews || [])[0];
 
-  // === Nav Section の 4 グリッド設定 ===
+  // === Nav 4 グリッド ===
   const navItems = [
-    {
-      n: 1, defaultEyebrow: 'EVENTS', defaultTitle: 'イベントを探す', defaultLink: '#/events',
-      defaultTitleEn: 'Find events', defaultTitleEasy: 'イベントを みる',
-    },
-    {
-      n: 2, defaultEyebrow: 'ABOUT', defaultTitle: '私たちのこと', defaultLink: '#/about',
-      defaultTitleEn: 'About us', defaultTitleEasy: 'わたしたちのこと',
-    },
-    {
-      n: 3, defaultEyebrow: 'NEWS', defaultTitle: '最近の動き', defaultLink: '#/news',
-      defaultTitleEn: 'Latest news', defaultTitleEasy: 'さいきんの ニュース',
-    },
-    {
-      n: 4, defaultEyebrow: 'CONTACT', defaultTitle: '質問する', defaultLink: '#/contact',
-      defaultTitleEn: 'Get in touch', defaultTitleEasy: 'しつもんする',
-    },
+    { n: 1, defaultEyebrow: 'EVENTS', defaultTitle: 'イベントを探す', defaultLink: '#/events',
+      defaultTitleEn: 'Find events', defaultTitleEasy: 'イベントを みる' },
+    { n: 2, defaultEyebrow: 'ABOUT', defaultTitle: '私たちのこと', defaultLink: '#/about',
+      defaultTitleEn: 'About us', defaultTitleEasy: 'わたしたちのこと' },
+    { n: 3, defaultEyebrow: 'NEWS', defaultTitle: '最近の動き', defaultLink: '#/news',
+      defaultTitleEn: 'Latest news', defaultTitleEasy: 'さいきんの ニュース' },
+    { n: 4, defaultEyebrow: 'CONTACT', defaultTitle: '質問する', defaultLink: '#/contact',
+      defaultTitleEn: 'Get in touch', defaultTitleEasy: 'しつもんする' },
   ];
+
+  // === タイトルテキストを文字配列に分解 (アニメ用) ===
+  const heroMainText = tx('home_hero_main',
+    lang === 'en' ? 'Where strangers\nbecome friends' :
+    lang === 'easy' ? 'であいから\nはじまるとうきょう' :
+    '出会いから\nはじまる東京');
 
   return (
     <div style={{ background: 'var(--paper-1)', overflow: 'hidden' }}>
 
       {/* ============================================================ */}
-      {/* SECTION 1: HEADER (Site Tagline) */}
+      {/* SECTION 1: HERO — フルブリード写真 (画面の主役) */}
       {/* ============================================================ */}
-      <header style={{
-        padding: 'clamp(100px, 14vh, 140px) var(--space-6) var(--space-7)',
+      <section data-mobile-hero="true" style={{
+        position: 'relative',
+        width: '100%',
+        // (#4) iOS Safari のアドレスバー考慮: dvh (動的) → vh (フォールバック)
+        height: '100vh',
+        minHeight: 540,
+        maxHeight: 'min(820px, 100dvh)',
+        marginTop: 0,
+        // (#1) ロード時は深いグラデ + シマースケルトン (真っ白回避)
+        background: 'linear-gradient(135deg, #0a1628 0%, #1a3a7a 50%, #0a2960 100%)',
+        overflow: 'hidden',
+      }}>
+        {/* (#1) ロード中スケルトン (写真未取得時の白回避) */}
+        {slides.length === 0 && loading && (
+          <>
+            <div style={{
+              position: 'absolute', inset: 0,
+              background: 'linear-gradient(110deg, rgba(255,255,255,0.04) 30%, rgba(255,255,255,0.12) 50%, rgba(255,255,255,0.04) 70%)',
+              backgroundSize: '200% 100%',
+              animation: 'cca-skeleton 1.8s ease-in-out infinite',
+            }}/>
+            <div style={{
+              position: 'absolute',
+              left: '50%', top: '50%',
+              transform: 'translate(-50%, -50%)',
+              fontFamily: 'var(--mono)',
+              fontSize: 'var(--font-micro)',
+              letterSpacing: 'var(--ls-mono-xxl)',
+              color: 'rgba(255,255,255,0.5)',
+              fontWeight: 500,
+            }}>LOADING...</div>
+          </>
+        )}
+        {/* スライドショー (フルブリード) */}
+        {slides.length > 0 ? (
+          slides.map((sl, i) => (
+            <div key={i} style={{
+              position: 'absolute', inset: 0,
+              opacity: i === slideIdx ? 1 : 0,
+              transition: 'opacity 1.4s cubic-bezier(0.2, 0.8, 0.2, 1)',
+            }}>
+              {sl.img && (
+                <img src={sl.img} alt="" loading={i === 0 ? 'eager' : 'lazy'} style={{
+                  position: 'absolute', inset: 0,
+                  width: '100%', height: '100%',
+                  objectFit: 'cover',
+                  display: 'block',
+                  animation: i === slideIdx ? 'cca-hero-zoom-out 8s cubic-bezier(0.25, 0.1, 0.25, 1) forwards, cca-ken-burns 18s ease-out 8s forwards' : 'none',
+                }}/>
+              )}
+            </div>
+          ))
+        ) : (
+          // フォールバック背景
+          <div style={{
+            position: 'absolute', inset: 0,
+            background: 'linear-gradient(180deg, #0a1628 0%, #1a3a7a 100%)',
+          }}/>
+        )}
+
+        {/* 暗いグラデオーバーレイ (テキスト視認性確保) */}
+        <div style={{
+          position: 'absolute', inset: 0,
+          background: 'linear-gradient(180deg, rgba(10,22,40,0.2) 0%, rgba(10,22,40,0.3) 50%, rgba(10,22,40,0.85) 100%)',
+        }}/>
+
+        {/* === Hero 内テキスト (写真の上、 ブランド・ハンバーガー上部 + メインタイトル下部) === */}
+        <div style={{
+          position: 'absolute', inset: 0,
+          display: 'flex',
+          flexDirection: 'column',
+          justifyContent: 'space-between',
+          padding: 'env(safe-area-inset-top, 80px) var(--space-6) var(--space-9)',
+          paddingTop: 'max(env(safe-area-inset-top), 80px)',
+          color: '#fff',
+        }}>
+          {/* 上部: ブランド (極小) + EST. ラベル */}
+          <div style={{
+            opacity: 0,
+            animation: 'cca-flow-up 1.0s cubic-bezier(0.2,0.8,0.2,1) 0.4s forwards',
+          }}>
+            <div style={{
+              fontSize: 'var(--font-micro)',
+              letterSpacing: 'var(--ls-mono-xxl)',
+              fontFamily: 'var(--mono)',
+              color: 'rgba(255,255,255,0.85)',
+              fontWeight: 500,
+              marginBottom: 'var(--space-2)',
+            }}>{tx('home_header_tagline', 'EST. 2018 · TOKYO · JP')}</div>
+            <div style={{
+              width: 24, height: 1,
+              background: 'var(--brand-blue)',
+              animation: 'cca-line-grow 1.0s cubic-bezier(0.2,0.8,0.2,1) 1.0s both',
+              ['--line-w']: '24px',
+            }}/>
+          </div>
+
+          {/* 下部: タイトル + サブ + スクロール促進 */}
+          <div>
+            {/* Eyebrow (上) */}
+            <div style={{
+              fontSize: 'var(--font-micro)',
+              letterSpacing: 'var(--ls-mono-xl)',
+              fontFamily: 'var(--mono)',
+              color: 'var(--brand-blue)',
+              fontWeight: 600,
+              marginBottom: 'var(--space-4)',
+              opacity: 0,
+              animation: 'cca-flow-up 1.0s cubic-bezier(0.2,0.8,0.2,1) 1.4s forwards',
+            }}>{tx('home_hero_eyebrow', 'WELCOME TO TOKYO')}</div>
+
+            {/* メインタイトル (Aman 風大セリフ) */}
+            <h1 style={{
+              fontFamily: 'var(--serif)',
+              fontSize: 'clamp(40px, 11vw, 64px)',
+              lineHeight: 0.96,
+              fontWeight: 300,
+              letterSpacing: 'var(--ls-tightest)',
+              color: '#fff',
+              margin: '0 0 var(--space-5)',
+              whiteSpace: 'pre-line',
+              textShadow: '0 2px 16px rgba(0,0,0,0.3)',
+              opacity: 0,
+              animation: 'cca-char-rise 1.2s cubic-bezier(0.2,0.8,0.2,1) 1.6s forwards',
+            }}>{heroMainText}</h1>
+
+            {/* スクロール促進 (下に揺れる矢印 + テキスト) */}
+            <div style={{
+              display: 'flex', alignItems: 'center', gap: 8,
+              fontSize: 'var(--font-micro)',
+              letterSpacing: 'var(--ls-mono-l)',
+              fontFamily: 'var(--mono)',
+              color: 'rgba(255,255,255,0.7)',
+              fontWeight: 500,
+              animation: 'cca-flow-up 1.0s cubic-bezier(0.2,0.8,0.2,1) 2.4s both',
+            }}>
+              <span>SCROLL</span>
+              <span style={{
+                display: 'inline-block',
+                animation: 'cca-scroll-hint 2s ease-in-out infinite',
+              }}>↓</span>
+            </div>
+          </div>
+        </div>
+
+        {/* スライドインジケータ (右下、控えめ) */}
+        {slides.length > 1 && (
+          <div style={{
+            position: 'absolute', right: 16, bottom: 16,
+            display: 'flex', gap: 6,
+            fontFamily: 'var(--mono)',
+            fontSize: 'var(--font-micro)',
+            color: '#fff',
+            letterSpacing: 'var(--ls-mono-l)',
+            padding: '6px 10px',
+            background: 'rgba(0,0,0,0.4)',
+            backdropFilter: 'blur(8px)',
+            opacity: 0,
+            animation: 'cca-flow-up 1.0s ease-out 2.8s forwards',
+          }}>
+            <span>{String(slideIdx + 1).padStart(2, '0')}</span>
+            <span style={{ opacity: 0.6 }}>/ {String(slides.length).padStart(2, '0')}</span>
+          </div>
+        )}
+      </section>
+
+      {/* ============================================================ */}
+      {/* SECTION 2: HERO テキスト (Hero 写真直下、 短く凝縮) */}
+      {/* ============================================================ */}
+      <section style={{
+        padding: 'var(--space-9) var(--space-6) var(--space-8)',
         textAlign: 'center',
         background: 'var(--paper-1)',
       }}>
         <Reveal y={20} blur={false}>
-          <div style={{
-            fontSize: 'var(--font-micro)',
-            letterSpacing: 'var(--ls-mono-xxl)',
-            fontFamily: 'var(--mono)',
-            color: 'var(--ink-4)',
-            fontWeight: 500,
-            marginBottom: 'var(--space-3)',
-          }}>{tx('home_header_tagline', lang === 'en' ? 'EST. 2018 · TOKYO · JP' : 'EST. 2018 · TOKYO · JP')}</div>
-          <div style={{
-            width: 24, height: 1,
-            background: 'var(--brand-blue)',
-            margin: '0 auto',
-          }}/>
-        </Reveal>
-      </header>
-
-      {/* ============================================================ */}
-      {/* SECTION 2: HERO (Eyebrow + Main Copy + Lead + 2 CTA + Slideshow) */}
-      {/* ============================================================ */}
-      <section style={{
-        padding: 'var(--space-7) var(--space-6) var(--space-9)',
-        textAlign: 'center',
-        background: 'var(--paper-1)',
-      }}>
-        {/* Eyebrow */}
-        <Reveal y={20} blur={false} delay={100}>
-          <div style={{
-            fontSize: 'var(--font-micro)',
-            letterSpacing: 'var(--ls-mono-xl)',
-            fontFamily: 'var(--mono)',
-            color: 'var(--brand-blue)',
-            fontWeight: 600,
-            marginBottom: 'var(--space-5)',
-          }}>{tx('home_hero_eyebrow', lang === 'en' ? 'WELCOME TO TOKYO' : 'WELCOME TO TOKYO')}</div>
-        </Reveal>
-
-        {/* Main Copy (大セリフ、改行は \n で) */}
-        <Reveal y={30} blur={false} delay={200}>
-          <h1 style={{
-            fontFamily: 'var(--serif)',
-            fontSize: 'var(--font-mega)',
-            lineHeight: 0.95,
-            fontWeight: 300,
-            letterSpacing: 'var(--ls-tightest)',
-            color: 'var(--ink-1)',
-            margin: '0 0 var(--space-6)',
-            whiteSpace: 'pre-line',
-          }}>{tx('home_hero_main',
-            lang === 'en' ? 'Where strangers\nbecome friends' :
-            lang === 'easy' ? 'であいから\nはじまるとうきょう' :
-            '出会いから\nはじまる東京')}</h1>
-        </Reveal>
-
-        {/* Lead Text */}
-        <Reveal y={20} blur={false} delay={350}>
           <p style={{
             fontFamily: 'var(--jp)',
-            fontSize: 'var(--font-body-sm)',
+            fontSize: 'var(--font-body)',
             lineHeight: 'var(--lh-relaxed)',
-            color: 'var(--ink-3)',
-            margin: '0 auto var(--space-8)',
+            color: 'var(--ink-2)',
+            margin: '0 auto var(--space-7)',
             letterSpacing: 'var(--ls-relaxed)',
             maxWidth: 320,
             whiteSpace: 'pre-line',
@@ -7268,12 +7462,10 @@ function PageHomeMobile({ lang, t, events, ads, heroSlides, loading, siteSetting
             '在日留学生と東京に住む人が、\n自然に出会える場所。')}</p>
         </Reveal>
 
-        {/* CTA buttons */}
-        <Reveal y={15} blur={false} delay={500}>
+        <Reveal y={15} blur={false} delay={150}>
           <div style={{
             display: 'grid', gap: 'var(--space-3)',
-            maxWidth: 360,
-            margin: '0 auto',
+            maxWidth: 360, margin: '0 auto',
           }}>
             <a href={sx('home_hero_cta1_link', '#/events')} style={{
               display: 'flex', alignItems: 'center', justifyContent: 'space-between',
@@ -7310,87 +7502,24 @@ function PageHomeMobile({ lang, t, events, ads, heroSlides, loading, siteSetting
         </Reveal>
       </section>
 
-      {/* === Hero スライドショー (キャプション付き) === */}
-      {slides.length > 0 && (
-        <Reveal y={30} blur={false}>
-          <div style={{ position: 'relative', width: '100%', background: 'var(--paper-3)' }}>
-            <div style={{ position: 'relative', width: '100%', aspectRatio: '4 / 5', overflow: 'hidden' }}>
-              {slides.map((sl, i) => (
-                <div key={i} style={{
-                  position: 'absolute', inset: 0,
-                  opacity: i === slideIdx ? 1 : 0,
-                  transition: 'opacity 1.2s cubic-bezier(0.2, 0.8, 0.2, 1)',
-                }}>
-                  {sl.img && (
-                    <img src={sl.img} alt="" loading={i === 0 ? 'eager' : 'lazy'} style={{
-                      position: 'absolute', inset: 0,
-                      width: '100%', height: '100%', objectFit: 'cover', display: 'block',
-                      animation: i === slideIdx ? 'cca-ken-burns 14s ease-out forwards' : 'none',
-                    }}/>
-                  )}
-                </div>
-              ))}
-              {/* インジケータ */}
-              {slides.length > 1 && (
-                <div style={{
-                  position: 'absolute', right: 16, bottom: 16,
-                  display: 'flex', gap: 6,
-                  fontFamily: 'var(--mono)', fontSize: 'var(--font-micro)',
-                  color: '#fff', letterSpacing: 'var(--ls-mono-l)',
-                  padding: '6px 10px',
-                  background: 'rgba(0,0,0,0.4)', backdropFilter: 'blur(8px)',
-                }}>
-                  <span>{String(slideIdx + 1).padStart(2, '0')}</span>
-                  <span style={{ opacity: 0.6 }}>/ {String(slides.length).padStart(2, '0')}</span>
-                </div>
-              )}
-            </div>
-            {/* Caption */}
-            <div style={{
-              padding: 'var(--space-5) var(--space-6)',
-              textAlign: 'center',
-            }}>
-              {slides[slideIdx]?.eyebrow && (
-                <div style={{
-                  fontSize: 'var(--font-micro)',
-                  letterSpacing: 'var(--ls-mono-xl)',
-                  fontFamily: 'var(--mono)',
-                  color: 'var(--ink-4)',
-                  fontWeight: 500,
-                  marginBottom: 'var(--space-2)',
-                }}>{slides[slideIdx].eyebrow}</div>
-              )}
-              {slides[slideIdx]?.caption && (
-                <div style={{
-                  fontSize: 'var(--font-body-sm)',
-                  fontFamily: 'var(--jp)',
-                  color: 'var(--ink-2)',
-                  lineHeight: 'var(--lh-relaxed)',
-                  letterSpacing: 'var(--ls-relaxed)',
-                }}>{slides[slideIdx].caption}</div>
-              )}
-            </div>
-          </div>
-        </Reveal>
-      )}
-
       {/* ============================================================ */}
-      {/* SECTION 3: NAV (4分割: EVENTS / ABOUT / NEWS / CONTACT) */}
+      {/* SECTION 3: NAV (4分割) */}
       {/* ============================================================ */}
       <section style={{
-        padding: 'var(--space-12) var(--space-6) var(--space-9)',
-        background: 'var(--paper-1)',
+        padding: 'var(--space-9) var(--space-6) var(--space-8)',
+        background: 'var(--paper-2)',
+        borderTop: '1px solid var(--brand-line)',
       }}>
         <Reveal y={20} blur={false}>
-          <div style={{ textAlign: 'center', marginBottom: 'var(--space-9)' }}>
+          <div style={{ textAlign: 'center', marginBottom: 'var(--space-7)' }}>
             <div style={{
               fontSize: 'var(--font-micro)',
               letterSpacing: 'var(--ls-mono-xl)',
               fontFamily: 'var(--mono)',
               color: 'var(--brand-blue)',
               fontWeight: 600,
-              marginBottom: 'var(--space-3)',
-            }}>{tx('home_nav_label', lang === 'en' ? 'EXPLORE' : 'EXPLORE')}</div>
+              marginBottom: 'var(--space-2)',
+            }}>{tx('home_nav_label', 'EXPLORE')}</div>
             <h2 style={{
               fontFamily: 'var(--serif)',
               fontSize: 'var(--font-h1)',
@@ -7403,59 +7532,52 @@ function PageHomeMobile({ lang, t, events, ads, heroSlides, loading, siteSetting
           </div>
         </Reveal>
 
-        <Reveal y={20} blur={false} delay={150}>
-          <div style={{
-            display: 'grid',
-            gridTemplateColumns: '1fr 1fr',
-            gap: 1,
-            background: 'var(--brand-line)',
-            border: '1px solid var(--brand-line)',
-          }}>
-            {navItems.map(it => {
-              const eyebrow = tx('home_nav_' + it.n + '_eyebrow', it.defaultEyebrow);
-              const title = tx('home_nav_' + it.n + '_title',
-                lang === 'en' ? it.defaultTitleEn :
-                lang === 'easy' ? it.defaultTitleEasy :
-                it.defaultTitle);
-              const link = sx('home_nav_' + it.n + '_link', it.defaultLink);
-              const imageRaw = sx('home_nav_' + it.n + '_image');
-              const image = imageRaw ? normalizeHomeImg(imageRaw) : '';
-
-              return (
-                <a key={it.n} href={link} style={{
+        <div style={{
+          display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 1,
+          background: 'var(--brand-line)',
+          border: '1px solid var(--brand-line)',
+        }}>
+          {navItems.map((it, idx) => {
+            const eyebrow = tx('home_nav_' + it.n + '_eyebrow', it.defaultEyebrow);
+            const title = tx('home_nav_' + it.n + '_title',
+              lang === 'en' ? it.defaultTitleEn :
+              lang === 'easy' ? it.defaultTitleEasy : it.defaultTitle);
+            const link = sx('home_nav_' + it.n + '_link', it.defaultLink);
+            const imageRaw = sx('home_nav_' + it.n + '_image');
+            const image = imageRaw ? normalizeHomeImg(imageRaw) : '';
+            const animDelay = idx * 100;
+            return (
+              <Reveal key={it.n} y={20} blur={false} delay={animDelay}>
+                <a href={link} style={{
                   position: 'relative',
                   display: 'block',
                   aspectRatio: '1 / 1.1',
-                  background: image ? 'var(--brand-navy)' : 'var(--paper-2)',
+                  background: image ? 'var(--brand-navy)' : 'var(--paper-1)',
                   color: image ? '#fff' : 'var(--ink-1)',
                   overflow: 'hidden',
                   textDecoration: 'none',
                   transition: 'transform var(--t-base)',
                 }}
-                onTouchStart={(e) => { e.currentTarget.style.transform = 'scale(0.98)'; }}
+                onTouchStart={(e) => { e.currentTarget.style.transform = 'scale(0.97)'; }}
                 onTouchEnd={(e) => { e.currentTarget.style.transform = 'scale(1)'; }}>
-                  {/* 背景画像 */}
                   {image && (
                     <img src={image} alt="" loading="lazy" style={{
                       position: 'absolute', inset: 0,
                       width: '100%', height: '100%', objectFit: 'cover',
                       opacity: 0.7,
+                      transition: 'transform 0.6s cubic-bezier(0.2,0.8,0.2,1)',
                     }}/>
                   )}
-                  {/* 深いオーバーレイ (画像時) */}
                   {image && (
                     <div style={{
                       position: 'absolute', inset: 0,
                       background: 'linear-gradient(180deg, rgba(10,22,40,0.45) 0%, rgba(10,22,40,0.85) 100%)',
                     }}/>
                   )}
-                  {/* テキスト */}
                   <div style={{
                     position: 'absolute', inset: 0,
                     padding: 'var(--space-5)',
-                    display: 'flex',
-                    flexDirection: 'column',
-                    justifyContent: 'space-between',
+                    display: 'flex', flexDirection: 'column', justifyContent: 'space-between',
                   }}>
                     <div style={{
                       fontSize: 'var(--font-micro)',
@@ -7477,31 +7599,31 @@ function PageHomeMobile({ lang, t, events, ads, heroSlides, loading, siteSetting
                     </div>
                   </div>
                 </a>
-              );
-            })}
-          </div>
-        </Reveal>
+              </Reveal>
+            );
+          })}
+        </div>
       </section>
 
       {/* ============================================================ */}
-      {/* SECTION 4: FEATURED (1イベント大きく) */}
+      {/* SECTION 4: FEATURED */}
       {/* ============================================================ */}
       {featuredEvent && (
         <section style={{
-          padding: 'var(--space-12) var(--space-6) var(--space-9)',
-          background: 'var(--paper-2)',
+          padding: 'var(--space-9) var(--space-6) var(--space-8)',
+          background: 'var(--paper-1)',
           borderTop: '1px solid var(--brand-line)',
         }}>
           <Reveal y={20} blur={false}>
-            <div style={{ textAlign: 'center', marginBottom: 'var(--space-9)' }}>
+            <div style={{ textAlign: 'center', marginBottom: 'var(--space-7)' }}>
               <div style={{
                 fontSize: 'var(--font-micro)',
                 letterSpacing: 'var(--ls-mono-xl)',
                 fontFamily: 'var(--mono)',
                 color: 'var(--brand-blue)',
                 fontWeight: 600,
-                marginBottom: 'var(--space-3)',
-              }}>{tx('home_featured_label', lang === 'en' ? 'FEATURED' : 'FEATURED')}</div>
+                marginBottom: 'var(--space-2)',
+              }}>{tx('home_featured_label', 'FEATURED')}</div>
               <h2 style={{
                 fontFamily: 'var(--serif)',
                 fontSize: 'var(--font-h1)',
@@ -7517,16 +7639,15 @@ function PageHomeMobile({ lang, t, events, ads, heroSlides, loading, siteSetting
           <Reveal y={30} blur={false} delay={150}>
             <a href={`#/events/${featuredEvent.id}`} style={{
               display: 'block',
-              background: 'var(--paper-1)',
+              background: 'var(--paper-2)',
               border: '1px solid var(--brand-line)',
               textDecoration: 'none',
               color: 'var(--ink-1)',
               transition: 'all var(--t-base)',
-              marginBottom: 'var(--space-6)',
+              marginBottom: 'var(--space-5)',
             }}
             onTouchStart={(e) => { e.currentTarget.style.transform = 'scale(0.99)'; }}
             onTouchEnd={(e) => { e.currentTarget.style.transform = 'scale(1)'; }}>
-              {/* Visual */}
               <div style={{
                 aspectRatio: '4 / 3',
                 background: 'var(--paper-3)',
@@ -7541,24 +7662,21 @@ function PageHomeMobile({ lang, t, events, ads, heroSlides, loading, siteSetting
                     }}/>
                 )}
               </div>
-              {/* Body */}
-              <div style={{ padding: 'var(--space-6)' }}>
-                {/* Meta */}
+              <div style={{ padding: 'var(--space-5)' }}>
                 <div style={{
-                  display: 'flex', gap: 'var(--space-4)',
+                  display: 'flex', gap: 'var(--space-3)',
                   fontSize: 'var(--font-micro)',
                   letterSpacing: 'var(--ls-mono-l)',
                   fontFamily: 'var(--mono)',
                   color: 'var(--ink-4)',
                   fontWeight: 600,
-                  marginBottom: 'var(--space-4)',
+                  marginBottom: 'var(--space-3)',
                   flexWrap: 'wrap',
                 }}>
                   {featuredEvent.date && <span>{featuredEvent.date}</span>}
                   {featuredEvent.area && <span>· {featuredEvent.area}</span>}
                   {featuredEvent.feeType === 'free' && <span style={{ color: 'var(--brand-blue)' }}>· FREE</span>}
                 </div>
-                {/* Title */}
                 <div style={{
                   fontFamily: 'var(--serif)',
                   fontSize: 'var(--font-h2)',
@@ -7566,9 +7684,8 @@ function PageHomeMobile({ lang, t, events, ads, heroSlides, loading, siteSetting
                   fontWeight: 400,
                   letterSpacing: 'var(--ls-tight)',
                   color: 'var(--ink-1)',
-                  marginBottom: 'var(--space-4)',
+                  marginBottom: 'var(--space-3)',
                 }}>{featuredEvent.title}</div>
-                {/* Body Text */}
                 {featuredEvent.summary && (
                   <p style={{
                     fontSize: 'var(--font-body-sm)',
@@ -7587,7 +7704,6 @@ function PageHomeMobile({ lang, t, events, ads, heroSlides, loading, siteSetting
             </a>
           </Reveal>
 
-          {/* Featured CTA */}
           <Reveal y={15} blur={false} delay={300}>
             <a href={`#/events/${featuredEvent.id}`} style={{
               display: 'flex', alignItems: 'center', justifyContent: 'space-between',
@@ -7596,8 +7712,7 @@ function PageHomeMobile({ lang, t, events, ads, heroSlides, loading, siteSetting
               color: '#fff', textDecoration: 'none',
               fontSize: 'var(--font-body)', fontWeight: 500,
               fontFamily: 'var(--jp)', letterSpacing: 'var(--ls-wide)',
-              maxWidth: 360,
-              margin: '0 auto',
+              maxWidth: 360, margin: '0 auto',
               transition: 'all var(--t-base)',
             }}
             onTouchStart={(e) => { e.currentTarget.style.background = 'var(--brand-navy-deep)'; e.currentTarget.style.transform = 'scale(0.98)'; }}
@@ -7610,11 +7725,11 @@ function PageHomeMobile({ lang, t, events, ads, heroSlides, loading, siteSetting
       )}
 
       {/* ============================================================ */}
-      {/* SECTION 5: CONCEPT (詩的、3行構成) */}
+      {/* SECTION 5: CONCEPT (詩的) */}
       {/* ============================================================ */}
       <section style={{
-        padding: 'var(--space-12) var(--space-6)',
-        background: 'var(--paper-1)',
+        padding: 'var(--space-10) var(--space-6) var(--space-9)',
+        background: 'var(--paper-2)',
         borderTop: '1px solid var(--brand-line)',
         textAlign: 'center',
       }}>
@@ -7625,8 +7740,8 @@ function PageHomeMobile({ lang, t, events, ads, heroSlides, loading, siteSetting
             fontFamily: 'var(--mono)',
             color: 'var(--brand-blue)',
             fontWeight: 600,
-            marginBottom: 'var(--space-3)',
-          }}>{tx('concept_label', lang === 'en' ? 'CONCEPT' : 'CONCEPT')}</div>
+            marginBottom: 'var(--space-2)',
+          }}>{tx('concept_label', 'CONCEPT')}</div>
         </Reveal>
         <Reveal y={30} blur={false} delay={150}>
           <h2 style={{
@@ -7636,7 +7751,7 @@ function PageHomeMobile({ lang, t, events, ads, heroSlides, loading, siteSetting
             fontWeight: 300,
             letterSpacing: 'var(--ls-tight)',
             color: 'var(--ink-1)',
-            margin: '0 0 var(--space-9)',
+            margin: '0 0 var(--space-7)',
             whiteSpace: 'pre-line',
           }}>{tx('concept_main',
                 lang === 'en' ? 'Make Tokyo home.' : '東京を、もうひとつのふるさとに。')}</h2>
@@ -7659,24 +7774,24 @@ function PageHomeMobile({ lang, t, events, ads, heroSlides, loading, siteSetting
       </section>
 
       {/* ============================================================ */}
-      {/* SECTION 6: NEWS (1記事だけ大きく) */}
+      {/* SECTION 6: NEWS */}
       {/* ============================================================ */}
       {topNews && (
         <section style={{
-          padding: 'var(--space-12) var(--space-6) var(--space-9)',
-          background: 'var(--paper-2)',
+          padding: 'var(--space-9) var(--space-6) var(--space-8)',
+          background: 'var(--paper-1)',
           borderTop: '1px solid var(--brand-line)',
         }}>
           <Reveal y={20} blur={false}>
-            <div style={{ textAlign: 'center', marginBottom: 'var(--space-9)' }}>
+            <div style={{ textAlign: 'center', marginBottom: 'var(--space-7)' }}>
               <div style={{
                 fontSize: 'var(--font-micro)',
                 letterSpacing: 'var(--ls-mono-xl)',
                 fontFamily: 'var(--mono)',
                 color: 'var(--brand-blue)',
                 fontWeight: 600,
-                marginBottom: 'var(--space-3)',
-              }}>{tx('home_news_label', lang === 'en' ? 'NEWS' : 'NEWS')}</div>
+                marginBottom: 'var(--space-2)',
+              }}>{tx('home_news_label', 'NEWS')}</div>
               <h2 style={{
                 fontFamily: 'var(--serif)',
                 fontSize: 'var(--font-h1)',
@@ -7692,12 +7807,12 @@ function PageHomeMobile({ lang, t, events, ads, heroSlides, loading, siteSetting
           <Reveal y={20} blur={false} delay={150}>
             <a href={`#/news/${topNews.id}`} style={{
               display: 'block',
-              padding: 'var(--space-7) var(--space-6)',
-              background: 'var(--paper-1)',
+              padding: 'var(--space-6) var(--space-5)',
+              background: 'var(--paper-2)',
               border: '1px solid var(--brand-line)',
               textDecoration: 'none',
               color: 'var(--ink-1)',
-              marginBottom: 'var(--space-6)',
+              marginBottom: 'var(--space-5)',
             }}>
               <div style={{
                 fontSize: 'var(--font-micro)',
@@ -7727,8 +7842,7 @@ function PageHomeMobile({ lang, t, events, ads, heroSlides, loading, siteSetting
               fontSize: 'var(--font-body-sm)', fontWeight: 500,
               fontFamily: 'var(--jp)', letterSpacing: 'var(--ls-wide)',
               border: '1px solid var(--ink-6)',
-              maxWidth: 360,
-              margin: '0 auto',
+              maxWidth: 360, margin: '0 auto',
               transition: 'all var(--t-base)',
             }}>
               <span>{tx('home_news_cta_label', lang === 'en' ? 'Read all news' : 'すべてのニュースを見る')}</span>
@@ -7739,11 +7853,11 @@ function PageHomeMobile({ lang, t, events, ads, heroSlides, loading, siteSetting
       )}
 
       {/* ============================================================ */}
-      {/* SECTION 7: CONTACT (語りかけ口調 + 単一CTA) */}
+      {/* SECTION 7: CONTACT */}
       {/* ============================================================ */}
       <section style={{
-        padding: 'var(--space-12) var(--space-6)',
-        background: 'var(--paper-1)',
+        padding: 'var(--space-10) var(--space-6) var(--space-9)',
+        background: 'var(--paper-2)',
         borderTop: '1px solid var(--brand-line)',
         textAlign: 'center',
       }}>
@@ -7754,8 +7868,8 @@ function PageHomeMobile({ lang, t, events, ads, heroSlides, loading, siteSetting
             fontFamily: 'var(--mono)',
             color: 'var(--brand-blue)',
             fontWeight: 600,
-            marginBottom: 'var(--space-3)',
-          }}>{tx('home_contact_label', lang === 'en' ? 'CONTACT' : 'CONTACT')}</div>
+            marginBottom: 'var(--space-2)',
+          }}>{tx('home_contact_label', 'CONTACT')}</div>
         </Reveal>
         <Reveal y={30} blur={false} delay={150}>
           <h2 style={{
@@ -7765,7 +7879,7 @@ function PageHomeMobile({ lang, t, events, ads, heroSlides, loading, siteSetting
             fontWeight: 300,
             letterSpacing: 'var(--ls-tight)',
             color: 'var(--ink-1)',
-            margin: '0 0 var(--space-7)',
+            margin: '0 0 var(--space-5)',
             whiteSpace: 'pre-line',
           }}>{tx('home_contact_title',
             lang === 'en' ? 'Got questions\nbefore joining?' :
@@ -7778,7 +7892,7 @@ function PageHomeMobile({ lang, t, events, ads, heroSlides, loading, siteSetting
             fontSize: 'var(--font-body-sm)',
             lineHeight: 'var(--lh-loose)',
             color: 'var(--ink-3)',
-            margin: '0 auto var(--space-9)',
+            margin: '0 auto var(--space-7)',
             maxWidth: 360,
             letterSpacing: 'var(--ls-relaxed)',
             whiteSpace: 'pre-line',
@@ -7795,8 +7909,7 @@ function PageHomeMobile({ lang, t, events, ads, heroSlides, loading, siteSetting
             color: '#fff', textDecoration: 'none',
             fontSize: 'var(--font-body)', fontWeight: 500,
             fontFamily: 'var(--jp)', letterSpacing: 'var(--ls-wide)',
-            minWidth: 260,
-            gap: 'var(--space-4)',
+            minWidth: 260, gap: 'var(--space-4)',
             transition: 'all var(--t-base)',
           }}
           onTouchStart={(e) => { e.currentTarget.style.background = 'var(--brand-navy-deep)'; e.currentTarget.style.transform = 'scale(0.98)'; }}
@@ -7809,14 +7922,14 @@ function PageHomeMobile({ lang, t, events, ads, heroSlides, loading, siteSetting
 
       {/* === Footer 装飾 === */}
       <div style={{
-        padding: 'var(--space-9) var(--space-6) var(--space-7)',
+        padding: 'var(--space-7) var(--space-6)',
         textAlign: 'center',
         background: 'var(--paper-1)',
       }}>
         <div style={{
           width: 24, height: 1,
           background: 'var(--brand-blue)',
-          margin: '0 auto var(--space-4)',
+          margin: '0 auto var(--space-3)',
           opacity: 0.4,
         }}/>
         <div style={{
@@ -7831,7 +7944,6 @@ function PageHomeMobile({ lang, t, events, ads, heroSlides, loading, siteSetting
   );
 }
 
-// 画像URL正規化 (PageHomeMobile 用)
 function normalizeHomeImg(url) {
   if (!url || typeof url !== 'string') return url;
   let m = url.match(/drive\.google\.com\/file\/d\/([^/]+)/);
@@ -17138,18 +17250,18 @@ function FooterCol({ title, items }) {
 function OpeningCurtain({ phase, settings }) {
   const isSplitting = phase === 'splitting';
   const [innerPhase, setInnerPhase] = React.useState(0);
-  // (S2) 3段階演出
+  // (Phase 15.S6) 短縮版 4段階演出 — 全体 2.4s で完了
   // P0 (0.0s): 真っ白
-  // P1 (0.4s): 細い水平線が中央から伸びる
-  // P2 (1.0s): ロゴフェードイン (中央)
-  // P3 (1.8s): タグライン "WELCOME TO TOKYO" 下に小さく
-  // P4 (2.6s): "ENTER" 微小ボタン (装飾、自動進行)
+  // P1 (0.3s): 細い水平線が中央から伸びる
+  // P2 (0.7s): ロゴフェードイン (中央)
+  // P3 (1.3s): タグライン "WELCOME TO TOKYO" 下に小さく
+  // P4 (1.9s): "EST. 2018" 装飾完了
   React.useEffect(() => {
     const timers = [];
-    timers.push(setTimeout(() => setInnerPhase(1), 400));
-    timers.push(setTimeout(() => setInnerPhase(2), 1000));
-    timers.push(setTimeout(() => setInnerPhase(3), 1800));
-    timers.push(setTimeout(() => setInnerPhase(4), 2600));
+    timers.push(setTimeout(() => setInnerPhase(1), 300));
+    timers.push(setTimeout(() => setInnerPhase(2), 700));
+    timers.push(setTimeout(() => setInnerPhase(3), 1300));
+    timers.push(setTimeout(() => setInnerPhase(4), 1900));
     return () => timers.forEach(clearTimeout);
   }, []);
 
@@ -17252,26 +17364,30 @@ function App() {
   const [siteSettings, setSiteSettings] = useState({});  // (Phase 6.9) Concept/Events/News 設定
   const [frontNews, setFrontNews] = useState([]);        // (Phase 6.9) 参加者用ニュース最大3件
   const [loading, setLoading] = useState(true);
-  // (Phase 6.11) オープニング画面: 'showing' → 'splitting' → 'gone'
-  // ホーム ('/') 訪問時のみ。他ページは即 gone。
-  const [openingPhase, setOpeningPhase] = useState(route === '/' ? 'showing' : 'gone');
+  // (Phase 15.S6) オープニング画面: セッション中の初回訪問でのみ表示 (ホーム以外でも出す)
+  // sessionStorage キー 'cca_opening_seen' で管理: セッション内の以降は 'gone'
+  const [openingPhase, setOpeningPhase] = useState(() => {
+    if (typeof window === 'undefined') return 'gone';
+    try {
+      const seen = sessionStorage.getItem('cca_opening_seen');
+      return seen ? 'gone' : 'showing';
+    } catch (e) {
+      return 'showing';
+    }
+  });
   const t = I18N[lang] || I18N.ja;
 
-  // (Phase 7.0) オープニングタイマー: 2.5秒経過時にフェードアウト開始 → 1秒で完全終了 (合計3.5秒)
+  // (Phase 15.S6) オープニングタイマー: 2.4s でフェードアウト開始 → 1.0s で完全終了 (合計3.4s)
   // showing → splitting (フェードアウト中) → gone (unmount)
   useEffect(() => {
-    if (route !== '/') return;   // ホーム以外は即終了
-    const t1 = setTimeout(() => setOpeningPhase('splitting'), 3600);
-    const t2 = setTimeout(() => setOpeningPhase('gone'), 4800);
+    if (openingPhase === 'gone') return;   // 既に表示済みなら何もしない
+    const t1 = setTimeout(() => setOpeningPhase('splitting'), 2400);
+    const t2 = setTimeout(() => {
+      setOpeningPhase('gone');
+      try { sessionStorage.setItem('cca_opening_seen', '1'); } catch (e) {}
+    }, 3400);
     return () => { clearTimeout(t1); clearTimeout(t2); };
   }, []);
-
-  // ルート変更時、ホーム以外なら即 gone (再びオープニングは出ない)
-  useEffect(() => {
-    if (route !== '/' && openingPhase !== 'gone') {
-      setOpeningPhase('gone');
-    }
-  }, [route]);
 
   // オープニング表示中はスクロールを禁止
   useEffect(() => {
