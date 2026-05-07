@@ -1671,6 +1671,26 @@ async function fetchHeroSlides() {
   }
 }
 
+// (Phase 15.S7) モバイル Hero スライド (PC とは完全分離)
+async function fetchHeroSlidesMobile() {
+  const controller = new AbortController();
+  const timeoutId = setTimeout(() => controller.abort(), 15000);
+  try {
+    const url = `${CONFIG.GAS_URL}?action=listHeroSlidesMobile&_t=${Date.now()}`;
+    const res = await fetch(url, { signal: controller.signal });
+    clearTimeout(timeoutId);
+    if (!res.ok) return [];
+    const json = await res.json();
+    if (json && json.ok && Array.isArray(json.data)) return json.data;
+    if (Array.isArray(json)) return json;
+    return [];
+  } catch (err) {
+    clearTimeout(timeoutId);
+    console.error('[Participants] fetchHeroSlidesMobile error:', err);
+    return [];
+  }
+}
+
 // (Phase 6.9) サイト全体の設定 (Concept / Events入口 / News背景の文言・画像)
 async function fetchSiteSettings() {
   const controller = new AbortController();
@@ -7190,7 +7210,7 @@ function UpcomingEventsSection({ settings, events, lang, t }) {
 //   7. Contact (語りかけ + CTA)
 //
 // 原則: すべてのテキスト・画像・リンクは siteSettings から取得 (tx/sx ヘルパ経由)
-function PageHomeMobile({ lang, t, events, ads, heroSlides, loading, siteSettings, frontNews, upcomingEvents }) {
+function PageHomeMobile({ lang, t, events, ads, heroSlides, heroSlidesMobile, loading, siteSettings, frontNews, upcomingEvents }) {
   const auth = useAuth();
   const s = siteSettings || {};
   // 言語付きキー取得 (mobile → 共通 → fallback)
@@ -7207,32 +7227,34 @@ function PageHomeMobile({ lang, t, events, ads, heroSlides, loading, siteSetting
     return s[baseKey + '_mobile'] || s[baseKey] || (fallback || '');
   };
 
-  // === Hero スライドショー: device='desktop' を除外 ===
-  const slides = React.useMemo(() => {
-    const base = (heroSlides || [])
-      .filter(x => x && x.imageUrl && (x.enabled !== false))
-      .filter(x => !x.device || x.device === 'mobile' || x.device === 'all')
+  // === Hero スライド: heroSlidesMobile (PC とは完全分離) ===
+  // Admin で作ったスライド (画像 + オーバーレイ + アニメーション) を そのまま表示
+  const heroMobileSlides = React.useMemo(() => {
+    return (heroSlidesMobile || [])
+      .filter(s => s && (s.imageUrl || s.bgColor) && (s.enabled !== false))
       .sort((a, b) => (a.order || 0) - (b.order || 0))
-      .map(x => ({
-        img: normalizeHomeImg(x.imageUrl),
-        eyebrow: x.eyebrow || '',
-        caption: x.titleEm || x.titleEn || x.sub || '',
-      }));
-    if (base.length > 0) return base;
-    // フォールバック: イベント画像
-    const evs = (events || []).slice(0, 3).filter(e => e.heroImageUrl || e.posterUrl);
-    return evs.map(e => ({
-      img: normalizeHomeImg(e.heroImageUrl || e.posterUrl),
-      eyebrow: e.area || '',
-      caption: e.title || '',
-    }));
-  }, [heroSlides, events]);
+      .map(s => {
+        // overlay は JSON文字列 or 配列のいずれか
+        let overlay = [];
+        try {
+          if (Array.isArray(s.overlay)) overlay = s.overlay;
+          else if (typeof s.overlay === 'string' && s.overlay) overlay = JSON.parse(s.overlay);
+        } catch (err) { overlay = []; }
+        return {
+          id: s.id,
+          imageUrl: s.imageUrl ? normalizeHomeImg(s.imageUrl) : '',
+          bgColor: s.bgColor || '',
+          overlay,
+          tone: s.tone || 'warm',
+        };
+      });
+  }, [heroSlidesMobile]);
   const [slideIdx, setSlideIdx] = React.useState(0);
   React.useEffect(() => {
-    if (slides.length <= 1) return;
-    const id = setInterval(() => setSlideIdx(i => (i + 1) % slides.length), 5500);
+    if (heroMobileSlides.length <= 1) return;
+    const id = setInterval(() => setSlideIdx(i => (i + 1) % heroMobileSlides.length), 5500);
     return () => clearInterval(id);
-  }, [slides.length]);
+  }, [heroMobileSlides.length]);
 
   // === Featured イベント ===
   const featuredEventId = sx('home_featured_eventId');
@@ -7270,22 +7292,21 @@ function PageHomeMobile({ lang, t, events, ads, heroSlides, loading, siteSetting
     <div style={{ background: 'var(--paper-1)', overflow: 'hidden' }}>
 
       {/* ============================================================ */}
-      {/* SECTION 1: HERO — フルブリード写真 (画面の主役) */}
+      {/* SECTION 1: HERO — Admin で作ったスライドそのままを表示 (Phase 15.S7) */}
+      {/* スライド画像 + オーバーレイ (テキスト/図形/画像) + アニメーション すべてそのまま */}
       {/* ============================================================ */}
       <section data-mobile-hero="true" style={{
         position: 'relative',
         width: '100%',
-        // (#4) iOS Safari のアドレスバー考慮: dvh (動的) → vh (フォールバック)
         height: '100vh',
         minHeight: 540,
         maxHeight: 'min(820px, 100dvh)',
         marginTop: 0,
-        // (#1) ロード時は深いグラデ + シマースケルトン (真っ白回避)
         background: 'linear-gradient(135deg, #0a1628 0%, #1a3a7a 50%, #0a2960 100%)',
         overflow: 'hidden',
       }}>
-        {/* (#1) ロード中スケルトン (写真未取得時の白回避) */}
-        {slides.length === 0 && loading && (
+        {/* ロード中スケルトン */}
+        {heroMobileSlides.length === 0 && loading && (
           <>
             <div style={{
               position: 'absolute', inset: 0,
@@ -7305,120 +7326,118 @@ function PageHomeMobile({ lang, t, events, ads, heroSlides, loading, siteSetting
             }}>LOADING...</div>
           </>
         )}
-        {/* スライドショー (フルブリード) */}
-        {slides.length > 0 ? (
-          slides.map((sl, i) => (
-            <div key={i} style={{
+
+        {/* スライド一覧 (画像 or 背景色) */}
+        {heroMobileSlides.map((sl, i) => {
+          const isActive = i === slideIdx;
+          // 背景: 画像 or 背景色のフォールバックパレット
+          const bgValue = sl.imageUrl ? null
+            : sl.bgColor === 'navy' ? '#0a2960'
+            : sl.bgColor === 'white' ? '#ffffff'
+            : sl.bgColor === 'beige' ? '#f5f0e8'
+            : sl.bgColor === 'gradient-blue' ? 'linear-gradient(135deg, #1c89e8 0%, #0a2960 100%)'
+            : sl.bgColor === 'gradient-navy' ? 'linear-gradient(135deg, #1a3661 0%, #0a2960 100%)'
+            : sl.bgColor === 'gradient-sky' ? 'linear-gradient(180deg, #7cb9f0 0%, #ffffff 100%)'
+            : sl.bgColor === 'gradient-warm' ? 'linear-gradient(135deg, #f5f0e8 0%, #ffffff 100%)'
+            : '#0a2960';
+          return (
+            <div key={sl.id || i} style={{
               position: 'absolute', inset: 0,
-              opacity: i === slideIdx ? 1 : 0,
+              opacity: isActive ? 1 : 0,
               transition: 'opacity 1.4s cubic-bezier(0.2, 0.8, 0.2, 1)',
+              pointerEvents: isActive ? 'auto' : 'none',
+              ...(bgValue ? { background: bgValue } : {}),
             }}>
-              {sl.img && (
-                <img src={sl.img} alt="" loading={i === 0 ? 'eager' : 'lazy'} style={{
+              {/* 背景画像 */}
+              {sl.imageUrl && (
+                <img src={sl.imageUrl} alt="" loading={i === 0 ? 'eager' : 'lazy'} style={{
                   position: 'absolute', inset: 0,
                   width: '100%', height: '100%',
                   objectFit: 'cover',
                   display: 'block',
-                  animation: i === slideIdx ? 'cca-hero-zoom-out 8s cubic-bezier(0.25, 0.1, 0.25, 1) forwards, cca-ken-burns 18s ease-out 8s forwards' : 'none',
+                  animation: isActive ? 'cca-hero-zoom-out 8s cubic-bezier(0.25, 0.1, 0.25, 1) forwards, cca-ken-burns 18s ease-out 8s forwards' : 'none',
                 }}/>
               )}
+
+              {/* オーバーレイ (Admin で配置したテキスト/図形/画像をそのまま) */}
+              {(sl.overlay || []).slice().sort((a, b) => (a.zOrder || 0) - (b.zOrder || 0)).map((item, oi) => {
+                const animMap = {
+                  none: 'none',
+                  fadeIn: 'heroOvFadeIn 1.0s cubic-bezier(0.2,0.8,0.2,1) both',
+                  slideUp: 'heroOvSlideUp 1.0s cubic-bezier(0.2,0.8,0.2,1) both',
+                  slideDown: 'heroOvSlideDown 1.0s cubic-bezier(0.2,0.8,0.2,1) both',
+                  slideLeft: 'heroOvSlideLeft 1.0s cubic-bezier(0.2,0.8,0.2,1) both',
+                  slideRight: 'heroOvSlideRight 1.0s cubic-bezier(0.2,0.8,0.2,1) both',
+                  zoomIn: 'heroOvZoomIn 1.0s cubic-bezier(0.2,0.8,0.2,1) both',
+                };
+                const animValue = animMap[item.animation || 'none'] || 'none';
+                const animation = (isActive && animValue !== 'none') ? animValue : 'none';
+                const baseStyle = {
+                  position: 'absolute',
+                  left: item.x + '%', top: item.y + '%',
+                  width: item.w + '%', height: item.h + '%',
+                  transform: `rotate(${item.rotation || 0}deg)`,
+                  opacity: item.opacity ?? 1,
+                  boxSizing: 'border-box',
+                  animation, animationDelay: (item.animationDelay || 0) + 's',
+                };
+                if (item.type === 'text') {
+                  // フォントサイズ: モバイル基準 (キャンバス幅 380px 想定) で計算
+                  const fsPx = item.fontSize || 14;
+                  const fsVw = (fsPx * 100 / 380).toFixed(2);
+                  const fsMin = Math.max(10, Math.round(fsPx * 0.7));
+                  const fsMax = Math.round(fsPx * 1.3);
+                  return (
+                    <div key={`${i}-${item.id || oi}`} style={{
+                      ...baseStyle,
+                      display: 'flex',
+                      alignItems: 'center',
+                      justifyContent: item.textAlign === 'left' ? 'flex-start' : item.textAlign === 'right' ? 'flex-end' : 'center',
+                      fontSize: `clamp(${fsMin}px, ${fsVw}vw, ${fsMax}px)`,
+                      color: item.color || '#fff',
+                      fontFamily: item.fontFamily,
+                      fontWeight: item.fontWeight || 400,
+                      textAlign: item.textAlign || 'center',
+                      lineHeight: 1.15,
+                      whiteSpace: 'pre-wrap',
+                      wordBreak: 'break-word',
+                      padding: 2,
+                      textShadow: '0 2px 12px rgba(0,0,0,0.35)',
+                    }}>{item.text || ''}</div>
+                  );
+                } else if (item.type === 'circle') {
+                  const bw = item.borderWidth || 0;
+                  const bwVw = (bw * 100 / 380).toFixed(2);
+                  return <div key={`${i}-${item.id || oi}`} style={{...baseStyle, borderRadius: '50%', background: item.color || 'transparent', border: `clamp(${Math.round(bw*0.5)}px, ${bwVw}vw, ${Math.round(bw*1.3)}px) solid ${item.borderColor || 'transparent'}`}}/>;
+                } else if (item.type === 'rect') {
+                  const bw = item.borderWidth || 0;
+                  const bwVw = (bw * 100 / 380).toFixed(2);
+                  return <div key={`${i}-${item.id || oi}`} style={{...baseStyle, background: item.color || 'transparent', border: `clamp(${Math.round(bw*0.5)}px, ${bwVw}vw, ${Math.round(bw*1.3)}px) solid ${item.borderColor || 'transparent'}`}}/>;
+                } else if (item.type === 'triangle') {
+                  return (
+                    <div key={`${i}-${item.id || oi}`} style={baseStyle}>
+                      <svg width="100%" height="100%" viewBox="0 0 100 100" preserveAspectRatio="none" style={{display:'block'}}>
+                        <polygon points="50,5 95,95 5,95" fill={item.color || 'transparent'} stroke={item.borderColor || 'transparent'} strokeWidth={(item.borderWidth || 0) * 0.1}/>
+                      </svg>
+                    </div>
+                  );
+                } else if (item.type === 'image') {
+                  return (
+                    <div key={`${i}-${item.id || oi}`} style={baseStyle}>
+                      {item.imageUrl && (
+                        <img src={item.imageUrl} alt="" style={{width:'100%',height:'100%',objectFit:'contain',display:'block'}}/>
+                      )}
+                    </div>
+                  );
+                }
+                return null;
+              })}
             </div>
-          ))
-        ) : (
-          // フォールバック背景
-          <div style={{
-            position: 'absolute', inset: 0,
-            background: 'linear-gradient(180deg, #0a1628 0%, #1a3a7a 100%)',
-          }}/>
-        )}
-
-        {/* 暗いグラデオーバーレイ (テキスト視認性確保) */}
-        <div style={{
-          position: 'absolute', inset: 0,
-          background: 'linear-gradient(180deg, rgba(10,22,40,0.2) 0%, rgba(10,22,40,0.3) 50%, rgba(10,22,40,0.85) 100%)',
-        }}/>
-
-        {/* === Hero 内テキスト (写真の上、 ブランド・ハンバーガー上部 + メインタイトル下部) === */}
-        <div style={{
-          position: 'absolute', inset: 0,
-          display: 'flex',
-          flexDirection: 'column',
-          justifyContent: 'space-between',
-          padding: 'env(safe-area-inset-top, 80px) var(--space-6) var(--space-9)',
-          paddingTop: 'max(env(safe-area-inset-top), 80px)',
-          color: '#fff',
-        }}>
-          {/* 上部: ブランド (極小) + EST. ラベル */}
-          <div style={{
-            opacity: 0,
-            animation: 'cca-flow-up 1.0s cubic-bezier(0.2,0.8,0.2,1) 0.4s forwards',
-          }}>
-            <div style={{
-              fontSize: 'var(--font-micro)',
-              letterSpacing: 'var(--ls-mono-xxl)',
-              fontFamily: 'var(--mono)',
-              color: 'rgba(255,255,255,0.85)',
-              fontWeight: 500,
-              marginBottom: 'var(--space-2)',
-            }}>{tx('home_header_tagline', 'EST. 2018 · TOKYO · JP')}</div>
-            <div style={{
-              width: 24, height: 1,
-              background: 'var(--brand-blue)',
-              animation: 'cca-line-grow 1.0s cubic-bezier(0.2,0.8,0.2,1) 1.0s both',
-              ['--line-w']: '24px',
-            }}/>
-          </div>
-
-          {/* 下部: タイトル + サブ + スクロール促進 */}
-          <div>
-            {/* Eyebrow (上) */}
-            <div style={{
-              fontSize: 'var(--font-micro)',
-              letterSpacing: 'var(--ls-mono-xl)',
-              fontFamily: 'var(--mono)',
-              color: 'var(--brand-blue)',
-              fontWeight: 600,
-              marginBottom: 'var(--space-4)',
-              opacity: 0,
-              animation: 'cca-flow-up 1.0s cubic-bezier(0.2,0.8,0.2,1) 1.4s forwards',
-            }}>{tx('home_hero_eyebrow', 'WELCOME TO TOKYO')}</div>
-
-            {/* メインタイトル (Aman 風大セリフ) */}
-            <h1 style={{
-              fontFamily: 'var(--serif)',
-              fontSize: 'clamp(40px, 11vw, 64px)',
-              lineHeight: 0.96,
-              fontWeight: 300,
-              letterSpacing: 'var(--ls-tightest)',
-              color: '#fff',
-              margin: '0 0 var(--space-5)',
-              whiteSpace: 'pre-line',
-              textShadow: '0 2px 16px rgba(0,0,0,0.3)',
-              opacity: 0,
-              animation: 'cca-char-rise 1.2s cubic-bezier(0.2,0.8,0.2,1) 1.6s forwards',
-            }}>{heroMainText}</h1>
-
-            {/* スクロール促進 (下に揺れる矢印 + テキスト) */}
-            <div style={{
-              display: 'flex', alignItems: 'center', gap: 8,
-              fontSize: 'var(--font-micro)',
-              letterSpacing: 'var(--ls-mono-l)',
-              fontFamily: 'var(--mono)',
-              color: 'rgba(255,255,255,0.7)',
-              fontWeight: 500,
-              animation: 'cca-flow-up 1.0s cubic-bezier(0.2,0.8,0.2,1) 2.4s both',
-            }}>
-              <span>SCROLL</span>
-              <span style={{
-                display: 'inline-block',
-                animation: 'cca-scroll-hint 2s ease-in-out infinite',
-              }}>↓</span>
-            </div>
-          </div>
-        </div>
+          );
+        })}
 
         {/* スライドインジケータ (右下、控えめ) */}
-        {slides.length > 1 && (
+        {heroMobileSlides.length > 1 && (
           <div style={{
             position: 'absolute', right: 16, bottom: 16,
             display: 'flex', gap: 6,
@@ -7429,80 +7448,13 @@ function PageHomeMobile({ lang, t, events, ads, heroSlides, loading, siteSetting
             padding: '6px 10px',
             background: 'rgba(0,0,0,0.4)',
             backdropFilter: 'blur(8px)',
-            opacity: 0,
-            animation: 'cca-flow-up 1.0s ease-out 2.8s forwards',
           }}>
             <span>{String(slideIdx + 1).padStart(2, '0')}</span>
-            <span style={{ opacity: 0.6 }}>/ {String(slides.length).padStart(2, '0')}</span>
+            <span style={{ opacity: 0.6 }}>/ {String(heroMobileSlides.length).padStart(2, '0')}</span>
           </div>
         )}
       </section>
 
-      {/* ============================================================ */}
-      {/* SECTION 2: HERO テキスト (Hero 写真直下、 短く凝縮) */}
-      {/* ============================================================ */}
-      <section style={{
-        padding: 'var(--space-9) var(--space-6) var(--space-8)',
-        textAlign: 'center',
-        background: 'var(--paper-1)',
-      }}>
-        <Reveal y={20} blur={false}>
-          <p style={{
-            fontFamily: 'var(--jp)',
-            fontSize: 'var(--font-body)',
-            lineHeight: 'var(--lh-relaxed)',
-            color: 'var(--ink-2)',
-            margin: '0 auto var(--space-7)',
-            letterSpacing: 'var(--ls-relaxed)',
-            maxWidth: 320,
-            whiteSpace: 'pre-line',
-          }}>{tx('home_hero_lead',
-            lang === 'en' ? 'A space for international students\nand locals to discover each other.' :
-            lang === 'easy' ? 'りゅうがくせいと とうきょうのひとが\nであう ばしょ。' :
-            '在日留学生と東京に住む人が、\n自然に出会える場所。')}</p>
-        </Reveal>
-
-        <Reveal y={15} blur={false} delay={150}>
-          <div style={{
-            display: 'grid', gap: 'var(--space-3)',
-            maxWidth: 360, margin: '0 auto',
-          }}>
-            <a href={sx('home_hero_cta1_link', '#/events')} style={{
-              display: 'flex', alignItems: 'center', justifyContent: 'space-between',
-              padding: 'var(--space-5) var(--space-6)',
-              background: 'var(--brand-navy)',
-              color: '#fff', textDecoration: 'none',
-              fontSize: 'var(--font-body)', fontWeight: 500,
-              fontFamily: 'var(--jp)', letterSpacing: 'var(--ls-wide)',
-              transition: 'all var(--t-base)',
-            }}
-            onTouchStart={(e) => { e.currentTarget.style.background = 'var(--brand-navy-deep)'; e.currentTarget.style.transform = 'scale(0.98)'; }}
-            onTouchEnd={(e) => { e.currentTarget.style.background = 'var(--brand-navy)'; e.currentTarget.style.transform = 'scale(1)'; }}>
-              <span>{tx('home_hero_cta1_label', lang === 'en' ? 'Discover events' : 'イベントを見る')}</span>
-              <Icon name="arrow-right" size={16} />
-            </a>
-            <a href={sx('home_hero_cta2_link', auth.user ? '#/mypage' : '#/signup')} style={{
-              display: 'flex', alignItems: 'center', justifyContent: 'space-between',
-              padding: 'var(--space-5) var(--space-6)',
-              background: 'transparent',
-              color: 'var(--ink-1)', textDecoration: 'none',
-              fontSize: 'var(--font-body-sm)', fontWeight: 500,
-              fontFamily: 'var(--jp)', letterSpacing: 'var(--ls-wide)',
-              border: '1px solid var(--ink-6)',
-              transition: 'all var(--t-base)',
-            }}
-            onTouchStart={(e) => { e.currentTarget.style.borderColor = 'var(--brand-navy)'; }}
-            onTouchEnd={(e) => { e.currentTarget.style.borderColor = 'var(--ink-6)'; }}>
-              <span>{tx('home_hero_cta2_label',
-                auth.user ? (lang === 'en' ? 'My Page' : 'マイページ')
-                          : (lang === 'en' ? 'Become a member' : '会員登録'))}</span>
-              <Icon name="arrow-right" size={14} />
-            </a>
-          </div>
-        </Reveal>
-      </section>
-
-      {/* ============================================================ */}
       {/* SECTION 3: NAV (4分割) */}
       {/* ============================================================ */}
       <section style={{
@@ -7953,7 +7905,7 @@ function normalizeHomeImg(url) {
   return url;
 }
 
-function PageHome({ lang, t, events, ads, heroSlides, loading, siteSettings, frontNews }) {
+function PageHome({ lang, t, events, ads, heroSlides, heroSlidesMobile, loading, siteSettings, frontNews }) {
   const heroRef = useRef(null);
   const vp = useViewport();
 
@@ -7962,7 +7914,8 @@ function PageHome({ lang, t, events, ads, heroSlides, loading, siteSettings, fro
   // (Phase 15.S4) モバイル時は専用構成 (Hero → Nav 4分割 → Featured → Concept → News → Contact)
   if (vp.isMobile) {
     return <PageHomeMobile
-      lang={lang} t={t} events={events} ads={ads} heroSlides={heroSlides}
+      lang={lang} t={t} events={events} ads={ads}
+      heroSlides={heroSlides} heroSlidesMobile={heroSlidesMobile}
       loading={loading} siteSettings={siteSettings} frontNews={frontNews}
       upcomingEvents={upcomingEvents}
     />;
@@ -17360,7 +17313,8 @@ function App() {
   const route = useRoute();
   const [events, setEvents] = useState([]);
   const [ads, setAds] = useState([]);   // 広告 (Phase 6)
-  const [heroSlides, setHeroSlides] = useState([]);   // ヒーロースライド (Phase 6.3)
+  const [heroSlides, setHeroSlides] = useState([]);   // ヒーロースライド PC (Phase 6.3)
+  const [heroSlidesMobile, setHeroSlidesMobile] = useState([]); // (Phase 15.S7) モバイル Hero (PC とは完全分離)
   const [siteSettings, setSiteSettings] = useState({});  // (Phase 6.9) Concept/Events/News 設定
   const [frontNews, setFrontNews] = useState([]);        // (Phase 6.9) 参加者用ニュース最大3件
   const [loading, setLoading] = useState(true);
@@ -17409,10 +17363,11 @@ function App() {
     let cancelled = false;
     async function load() {
       setLoading(true);
-      const [eventData, adData, heroData, settingsData, newsData] = await Promise.all([
+      const [eventData, adData, heroData, heroMobileData, settingsData, newsData] = await Promise.all([
         fetchEvents(),
         fetchAds(),
         fetchHeroSlides(),
+        fetchHeroSlidesMobile(),  // (Phase 15.S7) モバイル Hero
         fetchSiteSettings(),
         fetchFrontNews(),
       ]);
@@ -17420,6 +17375,7 @@ function App() {
         setEvents(eventData);
         setAds(adData);
         setHeroSlides(heroData);
+        setHeroSlidesMobile(heroMobileData);
         setSiteSettings(settingsData);
         setFrontNews(newsData);
         setLoading(false);
@@ -17440,7 +17396,7 @@ function App() {
   const matchTicket = route.match(/^\/ticket\/(.+)/);  // (Step D)
 
   if (isHome) {
-    Page = <PageHome lang={lang} t={t} events={events} ads={ads} heroSlides={heroSlides} loading={loading} siteSettings={siteSettings} frontNews={frontNews} />;
+    Page = <PageHome lang={lang} t={t} events={events} ads={ads} heroSlides={heroSlides} heroSlidesMobile={heroSlidesMobile} loading={loading} siteSettings={siteSettings} frontNews={frontNews} />;
   } else if (route === '/events') {
     Page = <PageEvents lang={lang} t={t} events={events} loading={loading} siteSettings={siteSettings} />;
   } else if (matchEventRegisterComplete) {
