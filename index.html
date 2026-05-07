@@ -121,57 +121,87 @@
   --sky-grad-deep: linear-gradient(180deg, var(--sky-300) 0%, var(--sky-500) 50%, var(--sky-700) 100%);
   --sky-grad-soft: linear-gradient(180deg, #ffffff 0%, var(--sky-50) 100%);
 
-  /* (Phase 14: L1〜L3) デザインシステム — モバイル・大手企業基準 */
+  /* (Phase 14: L1〜L3 + Phase 15: Aman レベル白基調) デザインシステム */
+  /* === ベースカラー (白基調、Aman/Ritz-Carlton 風) === */
+  --paper-1:       #ffffff;            /* 純白 */
+  --paper-2:       #fafbfc;            /* ペーパー */
+  --paper-3:       #f5f7fa;            /* ホワイトスモーク */
+  --paper-4:       #eef2f7;            /* ライトグレー */
+
+  /* === テキスト階調 === */
+  --ink-1:         #0a1628;            /* 最濃 (大見出し) */
+  --ink-2:         #1f2937;            /* 本文濃 */
+  --ink-3:         #4b5563;            /* 本文 */
+  --ink-4:         #6b7280;            /* 副情報 */
+  --ink-5:         #9ca3af;            /* 控えめ・キャプション */
+  --ink-6:         #d1d5db;            /* 区切り線 */
+
   /* === ブランドカラー (Semantic) === */
-  --brand-navy:    #0a2960;
+  --brand-navy:    #0a2960;            /* ブランド紺 (タイトル、CTA、強調) */
   --brand-navy-deep: #06183f;
-  --brand-blue:    #2c89e8;
+  --brand-blue:    #2c89e8;            /* アクセントブルー (リンク、ホバー) */
   --brand-blue-dark: #1a73d4;
-  --brand-beige:   #f5f0e8;
-  --brand-paper:   #fafbfc;
-  --brand-line:    rgba(10, 41, 96, 0.15);
+  --brand-blue-soft: #e8f1fc;          /* 薄ブルー背景 */
+  --brand-beige:   #f5f0e8;            /* ベージュ (温かみ装飾) */
+  --brand-paper:   #fafbfc;            /* (互換) */
+  --brand-line:    rgba(10, 41, 96, 0.10);  /* 区切り線 (薄) */
+  --brand-line-mid: rgba(10, 41, 96, 0.25); /* 区切り線 (中) */
   --brand-line-light: rgba(255, 255, 255, 0.15);
-  --brand-line-mid: rgba(255, 255, 255, 0.4);
 
-  /* === タイポグラフィスケール === */
-  --font-display: 40px;       /* h2 大セリフ (Hero, Concept等) */
-  --font-h1:      36px;       /* h1 メインセクション見出し */
-  --font-h2:      32px;       /* h2 サブセクション */
-  --font-h3:      22px;       /* h3 カードタイトル */
-  --font-lead:    17px;       /* リード文 */
-  --font-body:    14px;       /* 本文 */
-  --font-body-sm: 13px;       /* 本文 (小) */
-  --font-caption: 11px;       /* キャプション、メタ情報 */
-  --font-label:   10px;       /* mono ラベル */
+  /* === タイポグラフィスケール (Aman: 大胆な見出し、小さな本文) === */
+  --font-mega:    56px;                /* 特大見出し (Hero) */
+  --font-display: 44px;                /* 大セリフ */
+  --font-h1:      36px;                /* h1 */
+  --font-h2:      30px;                /* h2 */
+  --font-h3:      22px;                /* h3 */
+  --font-lead:    17px;                /* リード */
+  --font-body:    14px;                /* 本文 */
+  --font-body-sm: 13px;                /* 本文小 */
+  --font-caption: 11px;                /* キャプション */
+  --font-label:   10px;                /* mono ラベル */
+  --font-micro:   9px;                 /* 極小 (装飾的) */
 
-  /* === 行間 === */
-  --lh-tight:    1.15;        /* 見出し */
-  --lh-snug:     1.3;         /* h3 */
-  --lh-normal:   1.55;        /* 本文 */
-  --lh-relaxed:  1.7;         /* 引用、読み物 */
-  --lh-loose:    1.9;         /* 大きな本文 */
+  /* === 書体 === */
+  --serif:        'Fraunces', 'Noto Serif JP', 'Cormorant Garamond', serif;
+  --serif-jp:     '"Noto Serif JP"', serif;
+  --jp:           'Zen Kaku Gothic New', 'Hiragino Sans', sans-serif;
+  --sans:         'Plus Jakarta Sans', system-ui, sans-serif;
+  --mono:         'JetBrains Mono', 'Courier New', monospace;
 
-  /* === レターススペース === */
-  --ls-tight:    -0.02em;     /* 大見出し */
-  --ls-normal:   0.01em;      /* 本文 */
-  --ls-wide:     0.04em;      /* 装飾的本文 */
-  --ls-mono:     0.1em;       /* mono ラベル (短) */
-  --ls-mono-l:   0.2em;       /* mono ラベル (長) */
-  --ls-mono-xl:  0.3em;       /* mono セクションラベル */
+  /* === 行間 (Aman: 広め) === */
+  --lh-tight:    1.1;                  /* 大見出し */
+  --lh-snug:     1.25;                 /* h3 */
+  --lh-normal:   1.6;                  /* 本文 */
+  --lh-relaxed:  1.85;                 /* 読み物 */
+  --lh-loose:    2.0;                  /* ゆったり本文 */
 
-  /* === スペーシング (8段階) === */
-  --space-1:  4px;
-  --space-2:  8px;
-  --space-3:  12px;
-  --space-4:  16px;
-  --space-5:  20px;
-  --space-6:  24px;
-  --space-7:  32px;
-  --space-8:  40px;
-  --space-9:  48px;
-  --space-10: 64px;
-  --space-11: 80px;
-  --space-12: 96px;
+  /* === レターススペース (Aman: 大胆 / 抑制 の対比) === */
+  --ls-tightest: -0.04em;              /* 超大見出し */
+  --ls-tight:    -0.02em;              /* 大見出し */
+  --ls-normal:   0;                    /* 本文 */
+  --ls-relaxed:  0.02em;               /* 装飾本文 */
+  --ls-wide:     0.04em;               /* 強調 */
+  --ls-mono:     0.1em;                /* ラベル短 */
+  --ls-mono-l:   0.2em;                /* ラベル中 */
+  --ls-mono-xl:  0.3em;                /* セクションラベル */
+  --ls-mono-xxl: 0.4em;                /* 最大、ブランドモノグラム */
+
+  /* === スペーシング (Aman: 大きな余白) === */
+  --space-0:   0;
+  --space-1:   4px;
+  --space-2:   8px;
+  --space-3:   12px;
+  --space-4:   16px;
+  --space-5:   20px;
+  --space-6:   24px;
+  --space-7:   32px;
+  --space-8:   40px;
+  --space-9:   48px;
+  --space-10:  64px;
+  --space-11:  80px;
+  --space-12:  96px;
+  --space-13:  120px;
+  --space-14:  160px;
 
   /* === セクション固有スペーシング === */
   --section-py: 88px;          /* セクション padding 上下 */
@@ -3877,373 +3907,351 @@ function HeroSlideshow({ lang, t, events, heroSlides, loading, frontNews, siteSe
   const subSlide = slides.length > 1 ? slides[(idx + 1) % slides.length] : null;
 
   // (Phase 13.2 / 13.7) モバイル時はシンプルなHero代替版 (アニメ・装飾あり)
+  // (Phase 15: Aman レベル白基調 Hero) モバイル時はシンプルなHero代替版
   if (heroVp.isMobile) {
-    // (L8) loading 状態: 骨格表示
+    // (L8) loading 状態: 骨格表示 (白基調)
     if (loading) {
       return (
-        <section data-section="hero" aria-label={lang === 'en' ? 'Loading hero' : 'ヒーロー読み込み中'} style={{
+        <section data-section="hero" aria-label={lang === 'en' ? 'Loading' : '読み込み中'} style={{
           position: 'relative',
           width: '100%',
           marginTop: 80,
-          background: 'var(--brand-navy)',
-          aspectRatio: '4 / 5',
+          background: 'var(--paper-1)',
+          minHeight: '100vh',
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'center',
         }}>
-          <div className="skeleton-dark" style={{ position: 'absolute', inset: 0 }}/>
-          <div style={{
-            position: 'absolute', left: 24, right: 24, bottom: 32,
-            display: 'grid', gap: 12,
-          }}>
-            <div className="skeleton-dark" style={{ height: 12, width: '40%' }}/>
-            <div className="skeleton-dark" style={{ height: 28, width: '80%' }}/>
-            <div className="skeleton-dark" style={{ height: 14, width: '60%' }}/>
-          </div>
+          <div className="skeleton" style={{ width: 32, height: 32, borderRadius: '50%' }}/>
         </section>
       );
     }
 
-    // (L8) スライドが0件: Empty State
+    // (L8) スライドが0件: Empty State (白基調)
     if (slides.length === 0) {
       return (
         <section data-section="hero" aria-label={lang === 'en' ? 'Welcome' : 'ようこそ'} style={{
           position: 'relative',
           width: '100%',
           marginTop: 80,
-          background: 'linear-gradient(180deg, var(--brand-navy) 0%, #1a3a7a 100%)',
-          aspectRatio: '4 / 5',
+          background: 'var(--paper-1)',
+          minHeight: '70vh',
           display: 'flex',
           alignItems: 'center',
           justifyContent: 'center',
-          color: '#fff',
-          padding: 'var(--space-6)',
+          padding: 'var(--space-8)',
           textAlign: 'center',
         }}>
           <div>
             <div style={{
-              fontSize: 'var(--font-label)', letterSpacing: 'var(--ls-mono-xl)',
+              fontSize: 'var(--font-micro)', letterSpacing: 'var(--ls-mono-xxl)',
               fontFamily: 'var(--mono)',
-              opacity: 0.6,
-              marginBottom: 'var(--space-4)',
+              color: 'var(--ink-4)',
+              marginBottom: 'var(--space-5)',
             }}>WELCOME</div>
             <div style={{
-              fontFamily: '"Noto Serif JP", serif',
+              fontFamily: 'var(--serif)',
               fontSize: 'var(--font-h2)',
-              fontWeight: 600,
+              fontWeight: 400,
               lineHeight: 'var(--lh-tight)',
               letterSpacing: 'var(--ls-tight)',
+              color: 'var(--ink-1)',
             }}>connec+a</div>
           </div>
         </section>
       );
     }
 
+    const currentSlide = slides[idx] || slides[0];
+    const slideImg = currentSlide ? currentSlide.img : '';
+
     return (
       <section data-section="hero"
         role="region"
-        aria-label={lang === 'en' ? 'Hero slideshow' : 'ヒーロースライドショー'}
-        aria-roledescription={lang === 'en' ? 'carousel' : 'カルーセル'}
+        aria-label={lang === 'en' ? 'Hero' : 'ヒーロー'}
         style={{
-        position: 'relative',
-        width: '100%',
-        marginTop: 80,
-        background: 'var(--brand-navy)',
-        overflow: 'hidden',
-      }}>
-        {/* (13.7) ベージュ縦帯 (左サイド、装飾) */}
-        <div style={{
-          position: 'absolute',
-          left: 0, top: 0, bottom: 0,
-          width: 28,
-          background: '#f5f0e8',
-          zIndex: 5,
-          pointerEvents: 'none',
-        }}/>
+          position: 'relative',
+          width: '100%',
+          background: 'var(--paper-1)',
+          marginTop: 80,
+          paddingBottom: 'var(--space-12)',
+        }}>
 
-        {/* メイン画像エリア (アスペクト比 4:5、スマホで縦長) */}
+        {/* === ヘッダー: ブランドモノグラム (極小、上品) === */}
+        <div style={{
+          padding: 'var(--space-7) var(--space-6) var(--space-9)',
+          display: 'flex',
+          flexDirection: 'column',
+          alignItems: 'center',
+          textAlign: 'center',
+        }}>
+          <div style={{
+            fontSize: 'var(--font-micro)',
+            letterSpacing: 'var(--ls-mono-xxl)',
+            fontFamily: 'var(--mono)',
+            color: 'var(--ink-4)',
+            fontWeight: 500,
+            marginBottom: 'var(--space-4)',
+          }}>EST. 2018 · TOKYO</div>
+          <div style={{
+            width: 24, height: 1,
+            background: 'var(--brand-blue)',
+            marginBottom: 'var(--space-4)',
+          }}/>
+          <h1 style={{
+            fontFamily: 'var(--serif)',
+            fontSize: 'var(--font-mega)',
+            lineHeight: 0.95,
+            fontWeight: 300,
+            letterSpacing: 'var(--ls-tightest)',
+            color: 'var(--ink-1)',
+            margin: '0 0 var(--space-4)',
+          }}>
+            {lang === 'en' ? (<>Where<br/><em style={{fontFamily: 'var(--serif)', fontStyle: 'italic', fontWeight: 300}}>strangers</em><br/>become friends</>)
+              : lang === 'easy' ? (<>であいから<br/>はじまる<br/><em style={{fontFamily: 'var(--serif-jp)', fontStyle: 'italic', fontWeight: 300}}>とうきょう</em></>)
+              : (<>出会いから<br/>はじまる<br/><em style={{fontFamily: 'var(--serif-jp)', fontStyle: 'italic', fontWeight: 300}}>東京</em></>)}
+          </h1>
+          <p style={{
+            fontFamily: 'var(--jp)',
+            fontSize: 'var(--font-body-sm)',
+            lineHeight: 'var(--lh-relaxed)',
+            color: 'var(--ink-3)',
+            margin: '0 0 var(--space-7)',
+            letterSpacing: 'var(--ls-relaxed)',
+            maxWidth: 320,
+          }}>
+            {lang === 'en' ? 'A space for international students and locals to discover each other in Tokyo.'
+              : lang === 'easy' ? 'りゅうがくせいと とうきょうのひとが であう ばしょ。'
+              : '在日留学生と東京に住む人が、自然に出会える場所。'}
+          </p>
+        </div>
+
+        {/* === メインビジュアル: スライドショー (白の上に主役写真) === */}
         <div style={{
           position: 'relative',
           width: '100%',
           aspectRatio: '4 / 5',
-          background: '#0a2960',
+          background: 'var(--paper-3)',
           overflow: 'hidden',
         }}>
-          {/* (13.7.1 + 13.7.2) 全スライドを重ねてレンダリング、opacity でクロスフェード */}
-          {slides.map((s, i) => {
-            const slideBg = s.bgColor === 'navy' ? '#0a2960'
-              : s.bgColor === 'white' ? '#ffffff'
-              : s.bgColor === 'beige' ? '#f5f0e8'
-              : s.bgColor === 'gradient-blue' ? 'linear-gradient(135deg, #0a2960 0%, #2c89e8 100%)'
-              : '#0a2960';
-            return (
-              <div key={`${s.kind || 's'}-${i}`} style={{
-                position: 'absolute', inset: 0,
-                opacity: i === idx ? 1 : 0,
-                transition: 'opacity 0.6s cubic-bezier(0.2, 0.8, 0.2, 1)',
-                background: slideBg,
-              }}>
-                {/* 画像 (Ken Burns 効果はアクティブスライドのみ) */}
-                {s.img && (
-                  <img src={s.img} alt="" loading={i === 0 ? 'eager' : 'lazy'} style={{
-                    position: 'absolute', inset: 0,
-                    width: '100%', height: '100%',
-                    objectFit: 'cover',
-                    display: 'block',
-                    animation: i === idx ? 'cca-ken-burns 14s ease-out forwards' : 'none',
-                  }}/>
-                )}
+          {slides.map((s, i) => (
+            <div key={`${s.kind || 's'}-${i}`} style={{
+              position: 'absolute', inset: 0,
+              opacity: i === idx ? 1 : 0,
+              transition: 'opacity 1.2s cubic-bezier(0.2, 0.8, 0.2, 1)',
+            }}>
+              {s.img && (
+                <img src={s.img} alt="" loading={i === 0 ? 'eager' : 'lazy'} style={{
+                  position: 'absolute', inset: 0,
+                  width: '100%', height: '100%',
+                  objectFit: 'cover',
+                  display: 'block',
+                  animation: i === idx ? 'cca-ken-burns 14s ease-out forwards' : 'none',
+                }}/>
+              )}
+              {/* heroOverlay 要素 (Adminで配置したテキスト/図形) */}
+              {Array.isArray(s.heroOverlay) && s.heroOverlay.length > 0 && (
+                <div style={{position:'absolute', inset:0, pointerEvents:'none', overflow:'hidden'}}>
+                  {[...s.heroOverlay].sort((a,b)=>(a.zOrder||0)-(b.zOrder||0)).map((item) => {
+                    const animMap = {
+                      none: 'none',
+                      fadeIn: 'heroOvFadeIn 1.0s cubic-bezier(0.2,0.8,0.2,1) both',
+                      slideUp: 'heroOvSlideUp 1.0s cubic-bezier(0.2,0.8,0.2,1) both',
+                      slideDown: 'heroOvSlideDown 1.0s cubic-bezier(0.2,0.8,0.2,1) both',
+                      slideLeft: 'heroOvSlideLeft 1.0s cubic-bezier(0.2,0.8,0.2,1) both',
+                      slideRight: 'heroOvSlideRight 1.0s cubic-bezier(0.2,0.8,0.2,1) both',
+                      zoomIn: 'heroOvZoomIn 1.0s cubic-bezier(0.2,0.8,0.2,1) both',
+                    };
+                    const animValue = animMap[item.animation || 'none'] || 'none';
+                    const animation = (i === idx && animValue !== 'none') ? animValue : 'none';
+                    const baseStyle = {
+                      position:'absolute',
+                      left: item.x + '%', top: item.y + '%',
+                      width: item.w + '%', height: item.h + '%',
+                      transform: `rotate(${item.rotation||0}deg)`,
+                      boxSizing: 'border-box',
+                      animation, animationDelay: (item.animationDelay || 0) + 's',
+                    };
+                    if (item.type === 'text') {
+                      return (
+                        <div key={`${idx}-${item.id}`} style={{
+                          ...baseStyle,
+                          display:'flex',
+                          alignItems:'center',
+                          justifyContent: item.textAlign === 'left' ? 'flex-start' : item.textAlign === 'right' ? 'flex-end' : 'center',
+                          fontSize: item.fontSize
+                            ? `clamp(${Math.max(12, Math.round(item.fontSize*0.35))}px, ${(item.fontSize/14)}vw, ${Math.min(40, Math.round(item.fontSize*0.6))}px)`
+                            : 'clamp(14px, 4vw, 22px)',
+                          color: item.color || '#fff',
+                          fontFamily: item.fontFamily,
+                          fontWeight: item.fontWeight || 400,
+                          textAlign: item.textAlign || 'center',
+                          lineHeight: 1.15,
+                          whiteSpace: 'pre-wrap',
+                          wordBreak: 'break-word',
+                          padding: 2,
+                          textShadow: '0 2px 12px rgba(0,0,0,0.35)',
+                        }}>{item.text || ''}</div>
+                      );
+                    } else if (item.type === 'circle') {
+                      return <div key={`${idx}-${item.id}`} style={{...baseStyle, borderRadius: '50%', background: item.color || 'transparent', border: `${item.borderWidth || 0}px solid ${item.borderColor || 'transparent'}`}}/>;
+                    } else if (item.type === 'rect') {
+                      return <div key={`${idx}-${item.id}`} style={{...baseStyle, background: item.color || 'transparent', border: `${item.borderWidth || 0}px solid ${item.borderColor || 'transparent'}`}}/>;
+                    } else if (item.type === 'triangle') {
+                      return (
+                        <div key={`${idx}-${item.id}`} style={baseStyle}>
+                          <svg width="100%" height="100%" viewBox="0 0 100 100" preserveAspectRatio="none" style={{display:'block'}}>
+                            <polygon points="50,5 95,95 5,95" fill={item.color || 'transparent'} stroke={item.borderColor || 'transparent'} strokeWidth={item.borderWidth || 0}/>
+                          </svg>
+                        </div>
+                      );
+                    } else if (item.type === 'image' && item.imageUrl) {
+                      return (
+                        <div key={`${idx}-${item.id}`} style={baseStyle}>
+                          <img src={item.imageUrl} alt="" style={{width:'100%',height:'100%',objectFit:'contain',display:'block'}}/>
+                        </div>
+                      );
+                    }
+                    return null;
+                  })}
+                </div>
+              )}
+            </div>
+          ))}
 
-                {/* (13.7.4) ヒーローオーバーレイ — アニメーション付き */}
-                {Array.isArray(s.heroOverlay) && s.heroOverlay.length > 0 && (
-                  <div style={{position:'absolute', inset:0, pointerEvents:'none', zIndex:3, overflow:'hidden'}}>
-                    {[...s.heroOverlay].sort((a,b)=>(a.zOrder||0)-(b.zOrder||0)).map((item) => {
-                      const animMap = {
-                        none: 'none',
-                        fadeIn: 'heroOvFadeIn 0.9s cubic-bezier(0.2,0.8,0.2,1) both',
-                        slideUp: 'heroOvSlideUp 0.9s cubic-bezier(0.2,0.8,0.2,1) both',
-                        slideDown: 'heroOvSlideDown 0.9s cubic-bezier(0.2,0.8,0.2,1) both',
-                        slideLeft: 'heroOvSlideLeft 0.9s cubic-bezier(0.2,0.8,0.2,1) both',
-                        slideRight: 'heroOvSlideRight 0.9s cubic-bezier(0.2,0.8,0.2,1) both',
-                        zoomIn: 'heroOvZoomIn 0.9s cubic-bezier(0.2,0.8,0.2,1) both',
-                      };
-                      const animValue = animMap[item.animation || 'none'] || 'none';
-                      const animation = (i === idx && animValue !== 'none') ? animValue : 'none';
-                      const animationDelay = (item.animationDelay || 0) + 's';
-                      const baseStyle = {
-                        position:'absolute',
-                        left: item.x + '%',
-                        top: item.y + '%',
-                        width: item.w + '%',
-                        height: item.h + '%',
-                        transform: `rotate(${item.rotation||0}deg)`,
-                        boxSizing: 'border-box',
-                        animation, animationDelay,
-                      };
-                      if (item.type === 'text') {
-                        // (13.7.5) アスペクト比補正
-                        // PC版は横長画面 (例: 1280x600 = 約2.13:1) 基準でサイズ調整。
-                        // モバイル (4:5 = 0.8:1) では % w が画面幅でなく狭い基準になる。
-                        // フォントを画面幅 vw 基準で再計算: PC版の式 fontSize/16 vw を fontSize/14 vw に上げる。
-                        // ただし下限と上限を厳しく設定 (極端な大小を防ぐ)。
-                        return (
-                          <div key={`${idx}-${item.id}`} style={{
-                            ...baseStyle,
-                            display:'flex',
-                            alignItems:'center',
-                            justifyContent: item.textAlign === 'left' ? 'flex-start' : item.textAlign === 'right' ? 'flex-end' : 'center',
-                            fontSize: item.fontSize
-                              ? `clamp(${Math.max(12, Math.round(item.fontSize*0.35))}px, ${(item.fontSize/14)}vw, ${Math.min(40, Math.round(item.fontSize*0.6))}px)`
-                              : 'clamp(14px, 4vw, 22px)',
-                            color: item.color || '#fff',
-                            fontFamily: item.fontFamily,
-                            fontWeight: item.fontWeight || 400,
-                            textAlign: item.textAlign || 'center',
-                            lineHeight: 1.15,
-                            whiteSpace: 'pre-wrap',
-                            wordBreak: 'break-word',
-                            padding: 2,
-                            textShadow: '0 2px 12px rgba(0,0,0,0.35)',
-                          }}>{item.text || ''}</div>
-                        );
-                      } else if (item.type === 'circle') {
-                        return (
-                          <div key={`${idx}-${item.id}`} style={{
-                            ...baseStyle,
-                            borderRadius: '50%',
-                            background: item.color || 'transparent',
-                            border: `${item.borderWidth || 0}px solid ${item.borderColor || 'transparent'}`,
-                          }}/>
-                        );
-                      } else if (item.type === 'rect') {
-                        return (
-                          <div key={`${idx}-${item.id}`} style={{
-                            ...baseStyle,
-                            background: item.color || 'transparent',
-                            border: `${item.borderWidth || 0}px solid ${item.borderColor || 'transparent'}`,
-                          }}/>
-                        );
-                      } else if (item.type === 'triangle') {
-                        return (
-                          <div key={`${idx}-${item.id}`} style={baseStyle}>
-                            <svg width="100%" height="100%" viewBox="0 0 100 100" preserveAspectRatio="none" style={{display:'block'}}>
-                              <polygon points="50,5 95,95 5,95" fill={item.color || 'transparent'} stroke={item.borderColor || 'transparent'} strokeWidth={item.borderWidth || 0}/>
-                            </svg>
-                          </div>
-                        );
-                      } else if (item.type === 'image') {
-                        if (!item.imageUrl) return null;
-                        return (
-                          <div key={`${idx}-${item.id}`} style={baseStyle}>
-                            <img src={item.imageUrl} alt="" style={{width:'100%',height:'100%',objectFit:'contain',display:'block'}}/>
-                          </div>
-                        );
-                      }
-                      return null;
-                    })}
-                  </div>
-                )}
-              </div>
-            );
-          })}
-
-          {/* インジケータ (右上、PC版と整合) */}
+          {/* インジケータ (右下に控えめ) */}
           {slides.length > 1 && (
             <div style={{
-              position: 'absolute',
-              right: 16, top: 16,
-              zIndex: 6,
-              display: 'flex', flexDirection: 'column', gap: 8,
-            }} role="tablist" aria-label={lang === 'en' ? 'Slide navigation' : 'スライド選択'}>
-              {slides.map((_, i) => (
-                <button key={i}
-                        onClick={() => setIdx(i)}
-                        role="tab"
-                        aria-selected={i === idx}
-                        aria-label={lang === 'en' ? `Slide ${i+1} of ${slides.length}` : `スライド ${i+1} / ${slides.length}`}
-                        style={{
-                          width: 8, height: 8,
-                          padding: 0,
-                          background: i === idx ? '#fff' : 'rgba(255,255,255,0.4)',
-                          border: 'none',
-                          borderRadius: '50%',
-                          cursor: 'pointer',
-                          transition: 'all .25s',
-                          transform: i === idx ? 'scale(1.3)' : 'scale(1)',
-                        }}/>
-              ))}
+              position: 'absolute', right: 16, bottom: 16,
+              display: 'flex', gap: 6,
+              fontFamily: 'var(--mono)',
+              fontSize: 'var(--font-micro)',
+              color: '#fff',
+              letterSpacing: 'var(--ls-mono-l)',
+              padding: '6px 10px',
+              background: 'rgba(0,0,0,0.4)',
+              backdropFilter: 'blur(8px)',
+            }} role="status" aria-label={lang === 'en' ? `Slide ${idx+1} of ${slides.length}` : `${idx+1}/${slides.length}`}>
+              <span>{String(idx+1).padStart(2, '0')}</span>
+              <span style={{opacity: 0.6}}>/ {String(slides.length).padStart(2, '0')}</span>
             </div>
           )}
-
-          {/* (13.7.6) スクロールインジケータ (画面下中央、微細アニメ) */}
-          <div style={{
-            position: 'absolute',
-            left: '50%', bottom: 16,
-            transform: 'translateX(-50%)',
-            zIndex: 6,
-            display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 6,
-            color: 'rgba(255,255,255,0.7)',
-            fontFamily: 'var(--mono)',
-            fontSize: 10,
-            letterSpacing: '0.2em',
-            pointerEvents: 'none',
-          }}>
-            <span>SCROLL</span>
-            <span style={{
-              display: 'inline-block', width: 1, height: 28,
-              background: 'rgba(255,255,255,0.5)',
-              animation: 'cca-scroll-line 2.4s ease-in-out infinite',
-            }}/>
-          </div>
         </div>
 
-        {/* CTA ボタン群 + ブランドステートメント */}
+        {/* === 写真下のキャプション (Aman 風: メタ情報を控えめに) === */}
         <div style={{
-          padding: '32px 24px 40px',
-          background: '#0a2960',
-          color: '#fff',
+          padding: 'var(--space-5) var(--space-6) var(--space-9)',
+          textAlign: 'center',
         }}>
-          {/* ブランドステートメント (短く、印象的に) */}
+          {currentSlide?.eyebrow && (
+            <div style={{
+              fontSize: 'var(--font-micro)',
+              letterSpacing: 'var(--ls-mono-xl)',
+              fontFamily: 'var(--mono)',
+              color: 'var(--ink-4)',
+              fontWeight: 500,
+              marginBottom: 'var(--space-3)',
+            }}>{currentSlide.eyebrow}</div>
+          )}
           <div style={{
-            fontSize: 10, letterSpacing: '0.3em',
-            color: 'rgba(255,255,255,0.6)',
-            fontFamily: 'var(--mono)',
-            marginBottom: 8,
-          }}>WELCOME TO TOKYO</div>
-          <div style={{
-            fontFamily: '"Noto Serif JP", serif',
-            fontSize: 22, lineHeight: 1.5, fontWeight: 500,
-            marginBottom: 24,
-            letterSpacing: '0.01em',
-          }}>{lang === 'en' ? 'Where strangers' : lang === 'easy' ? 'しらないひとが' : '出会いから、'}<br/>
-            <span style={{fontStyle: 'italic', opacity: 0.85}}>{lang === 'en' ? 'become friends.' : lang === 'easy' ? 'ともだちになる' : 'はじまる。'}</span>
-          </div>
-
-          <div style={{ display: 'grid', gap: 'var(--space-3)' }}>
-            <a href="#/events" style={{
-              display: 'flex', alignItems: 'center', justifyContent: 'space-between',
-              padding: 'var(--space-4) var(--space-5)',
-              background: 'var(--brand-blue)',
-              color: '#fff',
-              textDecoration: 'none',
-              fontSize: 'var(--font-body)', fontWeight: 600,
-              fontFamily: 'var(--jp)',
-              letterSpacing: 'var(--ls-wide)',
-              transition: 'all var(--t-base)',
-              transform: 'translateY(0)',
-            }}
-            onTouchStart={(e) => {
-              e.currentTarget.style.background = 'var(--brand-blue-dark)';
-              e.currentTarget.style.transform = 'scale(0.98)';
-            }}
-            onTouchEnd={(e) => {
-              e.currentTarget.style.background = 'var(--brand-blue)';
-              e.currentTarget.style.transform = 'scale(1)';
-            }}>
-              <span>{lang === 'ja' ? 'イベントを見る' : lang === 'easy' ? 'イベントを みる' : 'See events'}</span>
-              <span style={{fontSize: 16, opacity: 0.9}}>→</span>
-            </a>
-            <a href={auth.user ? '#/mypage' : '#/signup'} style={{
-              display: 'flex', alignItems: 'center', justifyContent: 'space-between',
-              padding: 'var(--space-4) var(--space-5)',
-              background: 'transparent',
-              color: '#fff',
-              textDecoration: 'none',
-              fontSize: 'var(--font-body)', fontWeight: 600,
-              fontFamily: 'var(--jp)',
-              letterSpacing: 'var(--ls-wide)',
-              border: '1.5px solid var(--brand-line-mid)',
-              transition: 'all var(--t-base)',
-              transition: 'all 0.2s',
-            }}
-            onTouchStart={(e) => { e.currentTarget.style.borderColor = 'rgba(255,255,255,0.7)'; }}
-            onTouchEnd={(e) => { e.currentTarget.style.borderColor = 'rgba(255,255,255,0.4)'; }}>
-              <span>{auth.user
-                ? (lang === 'ja' ? 'マイページ' : lang === 'easy' ? 'マイページ' : 'My Page')
-                : (lang === 'ja' ? '会員登録' : lang === 'easy' ? 'とうろく' : 'Sign up')}</span>
-              <span style={{fontSize: 16, opacity: 0.7}}>→</span>
-            </a>
+            fontSize: 'var(--font-caption)',
+            color: 'var(--ink-4)',
+            fontFamily: 'var(--jp)',
+            letterSpacing: 'var(--ls-relaxed)',
+          }}>
+            {lang === 'en' ? `Image ${idx + 1} of ${slides.length}` : `${idx+1} / ${slides.length}`}
           </div>
         </div>
 
-        {/* TOP NEWS (あれば) — リッチなプレゼンテーション */}
+        {/* === CTA ボタン群 (白基調、ブルーアクセント) === */}
+        <div style={{
+          padding: '0 var(--space-6) var(--space-10)',
+          display: 'grid',
+          gap: 'var(--space-3)',
+          maxWidth: 360,
+          margin: '0 auto',
+        }}>
+          <a href="#/events" style={{
+            display: 'flex', alignItems: 'center', justifyContent: 'space-between',
+            padding: 'var(--space-5) var(--space-6)',
+            background: 'var(--brand-navy)',
+            color: '#fff',
+            textDecoration: 'none',
+            fontSize: 'var(--font-body)',
+            fontWeight: 500,
+            fontFamily: 'var(--jp)',
+            letterSpacing: 'var(--ls-wide)',
+            transition: 'all var(--t-base)',
+          }}
+          onTouchStart={(e) => { e.currentTarget.style.background = 'var(--brand-navy-deep)'; e.currentTarget.style.transform = 'scale(0.98)'; }}
+          onTouchEnd={(e) => { e.currentTarget.style.background = 'var(--brand-navy)'; e.currentTarget.style.transform = 'scale(1)'; }}>
+            <span>{lang === 'ja' ? 'イベントを見る' : lang === 'easy' ? 'イベントを みる' : 'Discover events'}</span>
+            <Icon name="arrow-right" size={16} />
+          </a>
+          <a href={auth.user ? '#/mypage' : '#/signup'} style={{
+            display: 'flex', alignItems: 'center', justifyContent: 'space-between',
+            padding: 'var(--space-5) var(--space-6)',
+            background: 'transparent',
+            color: 'var(--ink-1)',
+            textDecoration: 'none',
+            fontSize: 'var(--font-body-sm)',
+            fontWeight: 500,
+            fontFamily: 'var(--jp)',
+            letterSpacing: 'var(--ls-wide)',
+            border: '1px solid var(--ink-6)',
+            transition: 'all var(--t-base)',
+          }}
+          onTouchStart={(e) => { e.currentTarget.style.borderColor = 'var(--brand-navy)'; }}
+          onTouchEnd={(e) => { e.currentTarget.style.borderColor = 'var(--ink-6)'; }}>
+            <span>{auth.user ? (lang === 'en' ? 'My Page' : 'マイページ') : (lang === 'en' ? 'Become a member' : '会員登録')}</span>
+            <Icon name="arrow-right" size={14} />
+          </a>
+        </div>
+
+        {/* === TOP NEWS (あれば、フッター近くに装飾的に) === */}
         {topNews && (
           <a href={`#/news/${topNews.id}`} style={{
             display: 'block',
-            padding: '20px 24px 24px',
-            background: '#f5f0e8',
-            color: '#0a2960',
+            margin: '0 var(--space-6)',
+            padding: 'var(--space-6) 0',
+            borderTop: '1px solid var(--brand-line)',
+            borderBottom: '1px solid var(--brand-line)',
+            color: 'var(--ink-1)',
             textDecoration: 'none',
-            position: 'relative',
+            transition: 'all var(--t-base)',
           }}>
             <div style={{
+              fontSize: 'var(--font-micro)',
+              letterSpacing: 'var(--ls-mono-xl)',
+              fontFamily: 'var(--mono)',
+              color: 'var(--brand-blue)',
+              fontWeight: 600,
+              marginBottom: 'var(--space-3)',
               display: 'flex', alignItems: 'center', gap: 8,
-              marginBottom: 8,
             }}>
-              <span style={{
-                display: 'inline-block', width: 24, height: 1,
-                background: '#0a2960',
-              }}/>
-              <span style={{
-                fontSize: 10, letterSpacing: '0.3em',
-                fontFamily: 'var(--mono)',
-                color: '#0a2960',
-                fontWeight: 600,
-              }}>LATEST</span>
+              <span>LATEST</span>
+              <span style={{ display: 'inline-block', width: 16, height: 1, background: 'var(--brand-blue)' }}/>
             </div>
             <div style={{
-              fontSize: 14, lineHeight: 1.55, fontWeight: 500,
+              fontSize: 'var(--font-body)',
+              lineHeight: 'var(--lh-relaxed)',
               fontFamily: 'var(--jp)',
-              letterSpacing: '0.01em',
-              marginBottom: 8,
+              fontWeight: 500,
+              letterSpacing: 'var(--ls-normal)',
+              marginBottom: 'var(--space-2)',
             }}>{topNews.title || ''}</div>
             <div style={{
-              fontSize: 11, opacity: 0.65,
+              fontSize: 'var(--font-caption)',
+              color: 'var(--ink-5)',
               fontFamily: 'var(--mono)',
-              letterSpacing: '0.04em',
-            }}>{topNews.publishedAt || ''} {topNews.category ? '· ' + topNews.category : ''}</div>
+              letterSpacing: 'var(--ls-mono)',
+            }}>{topNews.publishedAt || ''}{topNews.category ? '  ·  ' + topNews.category : ''}</div>
           </a>
         )}
       </section>
     );
   }
+
 
   return (
     <section data-section="hero" style={{
@@ -16369,37 +16377,108 @@ function FooterCol({ title, items }) {
 //   なし。ロゴ単体。シンプルに削ぎ落とした上品さ。
 function OpeningCurtain({ phase, settings }) {
   const isSplitting = phase === 'splitting';
+  const [innerPhase, setInnerPhase] = React.useState(0);
+  // (S2) 3段階演出
+  // P0 (0.0s): 真っ白
+  // P1 (0.4s): 細い水平線が中央から伸びる
+  // P2 (1.0s): ロゴフェードイン (中央)
+  // P3 (1.8s): タグライン "WELCOME TO TOKYO" 下に小さく
+  // P4 (2.6s): "ENTER" 微小ボタン (装飾、自動進行)
+  React.useEffect(() => {
+    const timers = [];
+    timers.push(setTimeout(() => setInnerPhase(1), 400));
+    timers.push(setTimeout(() => setInnerPhase(2), 1000));
+    timers.push(setTimeout(() => setInnerPhase(3), 1800));
+    timers.push(setTimeout(() => setInnerPhase(4), 2600));
+    return () => timers.forEach(clearTimeout);
+  }, []);
 
   return (
     <div aria-hidden style={{
       position:'fixed', inset:0,
       zIndex: 9000,
-      background: '#ffffff',
+      background: 'var(--paper-1)',
       opacity: isSplitting ? 0 : 1,
-      transition: 'opacity 1.0s ease-out',
+      transition: 'opacity 1.2s cubic-bezier(0.2, 0.8, 0.2, 1)',
       pointerEvents: isSplitting ? 'none' : 'auto',
       display: 'flex',
+      flexDirection: 'column',
       alignItems: 'center',
       justifyContent: 'center',
+      padding: '0 32px',
     }}>
-      <img
-        src={ASSET_LOGO}
-        alt="connec+a"
-        style={{
-          width: 'clamp(180px, 22vw, 280px)',
-          height: 'auto',
-          display: 'block',
-          animation: 'openingLogoReveal 2.5s cubic-bezier(0.25, 0.1, 0.25, 1) forwards',
-        }}
-      />
+      {/* === 細い水平線 (中央から伸びる) === */}
+      <div style={{
+        position: 'absolute',
+        top: '50%',
+        left: '50%',
+        transform: 'translate(-50%, calc(-50% - 80px))',
+        width: innerPhase >= 1 ? 'clamp(120px, 30vw, 200px)' : 0,
+        height: 1,
+        background: 'var(--ink-1)',
+        opacity: innerPhase >= 1 ? 0.25 : 0,
+        transition: 'all 1.2s cubic-bezier(0.2, 0.8, 0.2, 1)',
+      }}/>
 
-      <style>{`
-        @keyframes openingLogoReveal {
-          0%   { opacity: 0; filter: blur(24px); transform: scale(1.02); }
-          40%  { opacity: 1; filter: blur(0); transform: scale(1); }
-          100% { opacity: 1; filter: blur(0); transform: scale(1); }
-        }
-      `}</style>
+      {/* === ロゴ === */}
+      <div style={{
+        opacity: innerPhase >= 2 ? 1 : 0,
+        transform: innerPhase >= 2 ? 'scale(1) translateY(0)' : 'scale(1.02) translateY(8px)',
+        transition: 'all 1.4s cubic-bezier(0.2, 0.8, 0.2, 1)',
+        filter: innerPhase >= 2 ? 'blur(0)' : 'blur(8px)',
+        marginBottom: 'var(--space-6)',
+      }}>
+        <img
+          src={ASSET_LOGO}
+          alt="connec+a"
+          style={{
+            width: 'clamp(140px, 30vw, 200px)',
+            height: 'auto',
+            display: 'block',
+          }}
+        />
+      </div>
+
+      {/* === タグライン (上品な小さな文字、Aman 風) === */}
+      <div style={{
+        opacity: innerPhase >= 3 ? 0.6 : 0,
+        transform: innerPhase >= 3 ? 'translateY(0)' : 'translateY(6px)',
+        transition: 'all 1.0s cubic-bezier(0.2, 0.8, 0.2, 1)',
+        fontSize: 'var(--font-label)',
+        letterSpacing: 'var(--ls-mono-xxl)',
+        fontFamily: 'var(--mono)',
+        color: 'var(--ink-3)',
+        fontWeight: 500,
+        textAlign: 'center',
+      }}>WELCOME TO TOKYO</div>
+
+      {/* === 細い水平線 (下) === */}
+      <div style={{
+        position: 'absolute',
+        top: '50%',
+        left: '50%',
+        transform: 'translate(-50%, calc(-50% + 100px))',
+        width: innerPhase >= 3 ? 24 : 0,
+        height: 1,
+        background: 'var(--brand-blue)',
+        opacity: innerPhase >= 3 ? 0.6 : 0,
+        transition: 'all 1.2s cubic-bezier(0.2, 0.8, 0.2, 1) 0.2s',
+      }}/>
+
+      {/* === Footer 装飾 (画面下) === */}
+      <div style={{
+        position: 'absolute',
+        bottom: 'var(--space-8)',
+        left: '50%',
+        transform: 'translateX(-50%)',
+        opacity: innerPhase >= 4 ? 0.4 : 0,
+        transition: 'opacity 0.8s ease-out',
+        fontSize: 'var(--font-micro)',
+        letterSpacing: 'var(--ls-mono-xl)',
+        fontFamily: 'var(--mono)',
+        color: 'var(--ink-4)',
+        textAlign: 'center',
+      }}>EST. 2018 · TOKYO · JP</div>
     </div>
   );
 }
@@ -16422,8 +16501,8 @@ function App() {
   // showing → splitting (フェードアウト中) → gone (unmount)
   useEffect(() => {
     if (route !== '/') return;   // ホーム以外は即終了
-    const t1 = setTimeout(() => setOpeningPhase('splitting'), 2500);
-    const t2 = setTimeout(() => setOpeningPhase('gone'), 3500);
+    const t1 = setTimeout(() => setOpeningPhase('splitting'), 3600);
+    const t2 = setTimeout(() => setOpeningPhase('gone'), 4800);
     return () => { clearTimeout(t1); clearTimeout(t2); };
   }, []);
 
