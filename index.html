@@ -7091,10 +7091,763 @@ function UpcomingEventsSection({ settings, events, lang, t }) {
   );
 }
 
+// ============================================================================
+// (Phase 15.S4) PageHomeMobile — Aman レベル白基調、6セクション縦スクロール
+// ============================================================================
+// 設計:
+//   1. Header (Logo + Tagline)
+//   2. Hero (Eyebrow + Main Copy + Lead + 2 CTA) + 下にスライドショー
+//   3. Nav Section (4分割グリッド: EVENTS / ABOUT / NEWS / CONTACT)
+//   4. Featured Section (1イベント大きく)
+//   5. Concept (詩的、3行構成)
+//   6. News (1記事だけ大きく)
+//   7. Contact (語りかけ口調 + 単一CTA)
+//
+// 原則: すべてのテキスト・画像・リンクは siteSettings から取得。フォールバック有り
+function PageHomeMobile({ lang, t, events, ads, heroSlides, loading, siteSettings, frontNews, upcomingEvents }) {
+  const auth = useAuth();
+  const s = siteSettings || {};
+  // 言語付きキー取得ヘルパ (mobile → 共通 → fallback)
+  // 優先順: baseKey_mobile_<lang> → baseKey_<lang> → baseKey_mobile → baseKey → fallback
+  const tx = (baseKey, fallback) => {
+    const suffix = lang === 'en' ? '_en' : lang === 'easy' ? '_easy' : '_ja';
+    return s[baseKey + suffix + '_mobile']
+        || s[baseKey + suffix]
+        || s[baseKey + '_mobile']
+        || s[baseKey]
+        || (fallback || '');
+  };
+  // 非言語キー取得ヘルパ (画像URL、リンク等)
+  // 優先順: baseKey_mobile → baseKey → fallback
+  const sx = (baseKey, fallback) => {
+    return s[baseKey + '_mobile'] || s[baseKey] || (fallback || '');
+  };
+
+  // === Hero スライドショー用 ===
+  const slides = React.useMemo(() => {
+    const base = (heroSlides || []).filter(x => x && x.imageUrl).map(x => ({
+      img: normalizeHomeImg(x.imageUrl),
+      eyebrow: x.eyebrow || '',
+      caption: x.titleEm || x.titleEn || x.sub || '',
+    }));
+    if (base.length > 0) return base;
+    const evs = (events || []).slice(0, 3).filter(e => e.heroImageUrl || e.posterUrl);
+    return evs.map(e => ({
+      img: normalizeHomeImg(e.heroImageUrl || e.posterUrl),
+      eyebrow: e.area || '',
+      caption: e.title || '',
+    }));
+  }, [heroSlides, events]);
+  const [slideIdx, setSlideIdx] = React.useState(0);
+  React.useEffect(() => {
+    if (slides.length <= 1) return;
+    const id = setInterval(() => setSlideIdx(i => (i + 1) % slides.length), 5500);
+    return () => clearInterval(id);
+  }, [slides.length]);
+
+  // === Featured イベント (Admin で eventId を指定。 未指定なら最初のイベント) ===
+  const featuredEventId = sx('home_featured_eventId');
+  const featuredEvent = React.useMemo(() => {
+    const list = filterPublicEvents(events || []);
+    if (featuredEventId) {
+      const found = list.find(e => String(e.id) === String(featuredEventId));
+      if (found) return found;
+    }
+    return list[0] || null;
+  }, [events, featuredEventId]);
+
+  // === Top news ===
+  const topNews = (frontNews || [])[0];
+
+  // === Nav Section の 4 グリッド設定 ===
+  const navItems = [
+    {
+      n: 1, defaultEyebrow: 'EVENTS', defaultTitle: 'イベントを探す', defaultLink: '#/events',
+      defaultTitleEn: 'Find events', defaultTitleEasy: 'イベントを みる',
+    },
+    {
+      n: 2, defaultEyebrow: 'ABOUT', defaultTitle: '私たちのこと', defaultLink: '#/about',
+      defaultTitleEn: 'About us', defaultTitleEasy: 'わたしたちのこと',
+    },
+    {
+      n: 3, defaultEyebrow: 'NEWS', defaultTitle: '最近の動き', defaultLink: '#/news',
+      defaultTitleEn: 'Latest news', defaultTitleEasy: 'さいきんの ニュース',
+    },
+    {
+      n: 4, defaultEyebrow: 'CONTACT', defaultTitle: '質問する', defaultLink: '#/contact',
+      defaultTitleEn: 'Get in touch', defaultTitleEasy: 'しつもんする',
+    },
+  ];
+
+  return (
+    <div style={{ background: 'var(--paper-1)', overflow: 'hidden' }}>
+
+      {/* ============================================================ */}
+      {/* SECTION 1: HEADER (Site Tagline) */}
+      {/* ============================================================ */}
+      <header style={{
+        padding: 'clamp(100px, 14vh, 140px) var(--space-6) var(--space-7)',
+        textAlign: 'center',
+        background: 'var(--paper-1)',
+      }}>
+        <Reveal y={20} blur={false}>
+          <div style={{
+            fontSize: 'var(--font-micro)',
+            letterSpacing: 'var(--ls-mono-xxl)',
+            fontFamily: 'var(--mono)',
+            color: 'var(--ink-4)',
+            fontWeight: 500,
+            marginBottom: 'var(--space-3)',
+          }}>{tx('home_header_tagline', lang === 'en' ? 'EST. 2018 · TOKYO · JP' : 'EST. 2018 · TOKYO · JP')}</div>
+          <div style={{
+            width: 24, height: 1,
+            background: 'var(--brand-blue)',
+            margin: '0 auto',
+          }}/>
+        </Reveal>
+      </header>
+
+      {/* ============================================================ */}
+      {/* SECTION 2: HERO (Eyebrow + Main Copy + Lead + 2 CTA + Slideshow) */}
+      {/* ============================================================ */}
+      <section style={{
+        padding: 'var(--space-7) var(--space-6) var(--space-9)',
+        textAlign: 'center',
+        background: 'var(--paper-1)',
+      }}>
+        {/* Eyebrow */}
+        <Reveal y={20} blur={false} delay={100}>
+          <div style={{
+            fontSize: 'var(--font-micro)',
+            letterSpacing: 'var(--ls-mono-xl)',
+            fontFamily: 'var(--mono)',
+            color: 'var(--brand-blue)',
+            fontWeight: 600,
+            marginBottom: 'var(--space-5)',
+          }}>{tx('home_hero_eyebrow', lang === 'en' ? 'WELCOME TO TOKYO' : 'WELCOME TO TOKYO')}</div>
+        </Reveal>
+
+        {/* Main Copy (大セリフ、改行は \n で) */}
+        <Reveal y={30} blur={false} delay={200}>
+          <h1 style={{
+            fontFamily: 'var(--serif)',
+            fontSize: 'var(--font-mega)',
+            lineHeight: 0.95,
+            fontWeight: 300,
+            letterSpacing: 'var(--ls-tightest)',
+            color: 'var(--ink-1)',
+            margin: '0 0 var(--space-6)',
+            whiteSpace: 'pre-line',
+          }}>{tx('home_hero_main',
+            lang === 'en' ? 'Where strangers\nbecome friends' :
+            lang === 'easy' ? 'であいから\nはじまるとうきょう' :
+            '出会いから\nはじまる東京')}</h1>
+        </Reveal>
+
+        {/* Lead Text */}
+        <Reveal y={20} blur={false} delay={350}>
+          <p style={{
+            fontFamily: 'var(--jp)',
+            fontSize: 'var(--font-body-sm)',
+            lineHeight: 'var(--lh-relaxed)',
+            color: 'var(--ink-3)',
+            margin: '0 auto var(--space-8)',
+            letterSpacing: 'var(--ls-relaxed)',
+            maxWidth: 320,
+            whiteSpace: 'pre-line',
+          }}>{tx('home_hero_lead',
+            lang === 'en' ? 'A space for international students\nand locals to discover each other.' :
+            lang === 'easy' ? 'りゅうがくせいと とうきょうのひとが\nであう ばしょ。' :
+            '在日留学生と東京に住む人が、\n自然に出会える場所。')}</p>
+        </Reveal>
+
+        {/* CTA buttons */}
+        <Reveal y={15} blur={false} delay={500}>
+          <div style={{
+            display: 'grid', gap: 'var(--space-3)',
+            maxWidth: 360,
+            margin: '0 auto',
+          }}>
+            <a href={sx('home_hero_cta1_link', '#/events')} style={{
+              display: 'flex', alignItems: 'center', justifyContent: 'space-between',
+              padding: 'var(--space-5) var(--space-6)',
+              background: 'var(--brand-navy)',
+              color: '#fff', textDecoration: 'none',
+              fontSize: 'var(--font-body)', fontWeight: 500,
+              fontFamily: 'var(--jp)', letterSpacing: 'var(--ls-wide)',
+              transition: 'all var(--t-base)',
+            }}
+            onTouchStart={(e) => { e.currentTarget.style.background = 'var(--brand-navy-deep)'; e.currentTarget.style.transform = 'scale(0.98)'; }}
+            onTouchEnd={(e) => { e.currentTarget.style.background = 'var(--brand-navy)'; e.currentTarget.style.transform = 'scale(1)'; }}>
+              <span>{tx('home_hero_cta1_label', lang === 'en' ? 'Discover events' : 'イベントを見る')}</span>
+              <Icon name="arrow-right" size={16} />
+            </a>
+            <a href={sx('home_hero_cta2_link', auth.user ? '#/mypage' : '#/signup')} style={{
+              display: 'flex', alignItems: 'center', justifyContent: 'space-between',
+              padding: 'var(--space-5) var(--space-6)',
+              background: 'transparent',
+              color: 'var(--ink-1)', textDecoration: 'none',
+              fontSize: 'var(--font-body-sm)', fontWeight: 500,
+              fontFamily: 'var(--jp)', letterSpacing: 'var(--ls-wide)',
+              border: '1px solid var(--ink-6)',
+              transition: 'all var(--t-base)',
+            }}
+            onTouchStart={(e) => { e.currentTarget.style.borderColor = 'var(--brand-navy)'; }}
+            onTouchEnd={(e) => { e.currentTarget.style.borderColor = 'var(--ink-6)'; }}>
+              <span>{tx('home_hero_cta2_label',
+                auth.user ? (lang === 'en' ? 'My Page' : 'マイページ')
+                          : (lang === 'en' ? 'Become a member' : '会員登録'))}</span>
+              <Icon name="arrow-right" size={14} />
+            </a>
+          </div>
+        </Reveal>
+      </section>
+
+      {/* === Hero スライドショー (キャプション付き) === */}
+      {slides.length > 0 && (
+        <Reveal y={30} blur={false}>
+          <div style={{ position: 'relative', width: '100%', background: 'var(--paper-3)' }}>
+            <div style={{ position: 'relative', width: '100%', aspectRatio: '4 / 5', overflow: 'hidden' }}>
+              {slides.map((sl, i) => (
+                <div key={i} style={{
+                  position: 'absolute', inset: 0,
+                  opacity: i === slideIdx ? 1 : 0,
+                  transition: 'opacity 1.2s cubic-bezier(0.2, 0.8, 0.2, 1)',
+                }}>
+                  {sl.img && (
+                    <img src={sl.img} alt="" loading={i === 0 ? 'eager' : 'lazy'} style={{
+                      position: 'absolute', inset: 0,
+                      width: '100%', height: '100%', objectFit: 'cover', display: 'block',
+                      animation: i === slideIdx ? 'cca-ken-burns 14s ease-out forwards' : 'none',
+                    }}/>
+                  )}
+                </div>
+              ))}
+              {/* インジケータ */}
+              {slides.length > 1 && (
+                <div style={{
+                  position: 'absolute', right: 16, bottom: 16,
+                  display: 'flex', gap: 6,
+                  fontFamily: 'var(--mono)', fontSize: 'var(--font-micro)',
+                  color: '#fff', letterSpacing: 'var(--ls-mono-l)',
+                  padding: '6px 10px',
+                  background: 'rgba(0,0,0,0.4)', backdropFilter: 'blur(8px)',
+                }}>
+                  <span>{String(slideIdx + 1).padStart(2, '0')}</span>
+                  <span style={{ opacity: 0.6 }}>/ {String(slides.length).padStart(2, '0')}</span>
+                </div>
+              )}
+            </div>
+            {/* Caption */}
+            <div style={{
+              padding: 'var(--space-5) var(--space-6)',
+              textAlign: 'center',
+            }}>
+              {slides[slideIdx]?.eyebrow && (
+                <div style={{
+                  fontSize: 'var(--font-micro)',
+                  letterSpacing: 'var(--ls-mono-xl)',
+                  fontFamily: 'var(--mono)',
+                  color: 'var(--ink-4)',
+                  fontWeight: 500,
+                  marginBottom: 'var(--space-2)',
+                }}>{slides[slideIdx].eyebrow}</div>
+              )}
+              {slides[slideIdx]?.caption && (
+                <div style={{
+                  fontSize: 'var(--font-body-sm)',
+                  fontFamily: 'var(--jp)',
+                  color: 'var(--ink-2)',
+                  lineHeight: 'var(--lh-relaxed)',
+                  letterSpacing: 'var(--ls-relaxed)',
+                }}>{slides[slideIdx].caption}</div>
+              )}
+            </div>
+          </div>
+        </Reveal>
+      )}
+
+      {/* ============================================================ */}
+      {/* SECTION 3: NAV (4分割: EVENTS / ABOUT / NEWS / CONTACT) */}
+      {/* ============================================================ */}
+      <section style={{
+        padding: 'var(--space-12) var(--space-6) var(--space-9)',
+        background: 'var(--paper-1)',
+      }}>
+        <Reveal y={20} blur={false}>
+          <div style={{ textAlign: 'center', marginBottom: 'var(--space-9)' }}>
+            <div style={{
+              fontSize: 'var(--font-micro)',
+              letterSpacing: 'var(--ls-mono-xl)',
+              fontFamily: 'var(--mono)',
+              color: 'var(--brand-blue)',
+              fontWeight: 600,
+              marginBottom: 'var(--space-3)',
+            }}>{tx('home_nav_label', lang === 'en' ? 'EXPLORE' : 'EXPLORE')}</div>
+            <h2 style={{
+              fontFamily: 'var(--serif)',
+              fontSize: 'var(--font-h1)',
+              lineHeight: 'var(--lh-tight)',
+              fontWeight: 300,
+              letterSpacing: 'var(--ls-tight)',
+              color: 'var(--ink-1)',
+              margin: 0,
+            }}>{tx('home_nav_title', lang === 'en' ? 'Choose your path' : 'どこから始める？')}</h2>
+          </div>
+        </Reveal>
+
+        <Reveal y={20} blur={false} delay={150}>
+          <div style={{
+            display: 'grid',
+            gridTemplateColumns: '1fr 1fr',
+            gap: 1,
+            background: 'var(--brand-line)',
+            border: '1px solid var(--brand-line)',
+          }}>
+            {navItems.map(it => {
+              const eyebrow = tx('home_nav_' + it.n + '_eyebrow', it.defaultEyebrow);
+              const title = tx('home_nav_' + it.n + '_title',
+                lang === 'en' ? it.defaultTitleEn :
+                lang === 'easy' ? it.defaultTitleEasy :
+                it.defaultTitle);
+              const link = sx('home_nav_' + it.n + '_link', it.defaultLink);
+              const imageRaw = sx('home_nav_' + it.n + '_image');
+              const image = imageRaw ? normalizeHomeImg(imageRaw) : '';
+
+              return (
+                <a key={it.n} href={link} style={{
+                  position: 'relative',
+                  display: 'block',
+                  aspectRatio: '1 / 1.1',
+                  background: image ? 'var(--brand-navy)' : 'var(--paper-2)',
+                  color: image ? '#fff' : 'var(--ink-1)',
+                  overflow: 'hidden',
+                  textDecoration: 'none',
+                  transition: 'transform var(--t-base)',
+                }}
+                onTouchStart={(e) => { e.currentTarget.style.transform = 'scale(0.98)'; }}
+                onTouchEnd={(e) => { e.currentTarget.style.transform = 'scale(1)'; }}>
+                  {/* 背景画像 */}
+                  {image && (
+                    <img src={image} alt="" loading="lazy" style={{
+                      position: 'absolute', inset: 0,
+                      width: '100%', height: '100%', objectFit: 'cover',
+                      opacity: 0.7,
+                    }}/>
+                  )}
+                  {/* 深いオーバーレイ (画像時) */}
+                  {image && (
+                    <div style={{
+                      position: 'absolute', inset: 0,
+                      background: 'linear-gradient(180deg, rgba(10,22,40,0.45) 0%, rgba(10,22,40,0.85) 100%)',
+                    }}/>
+                  )}
+                  {/* テキスト */}
+                  <div style={{
+                    position: 'absolute', inset: 0,
+                    padding: 'var(--space-5)',
+                    display: 'flex',
+                    flexDirection: 'column',
+                    justifyContent: 'space-between',
+                  }}>
+                    <div style={{
+                      fontSize: 'var(--font-micro)',
+                      letterSpacing: 'var(--ls-mono-xxl)',
+                      fontFamily: 'var(--mono)',
+                      fontWeight: 600,
+                      color: image ? 'rgba(255,255,255,0.9)' : 'var(--brand-blue)',
+                    }}>{eyebrow}</div>
+                    <div>
+                      <div style={{
+                        fontFamily: 'var(--serif)',
+                        fontSize: 'var(--font-h3)',
+                        lineHeight: 'var(--lh-tight)',
+                        fontWeight: 400,
+                        letterSpacing: 'var(--ls-tight)',
+                        marginBottom: 'var(--space-2)',
+                      }}>{title}</div>
+                      <Icon name="arrow-right" size={14} color={image ? '#fff' : 'var(--brand-navy)'} />
+                    </div>
+                  </div>
+                </a>
+              );
+            })}
+          </div>
+        </Reveal>
+      </section>
+
+      {/* ============================================================ */}
+      {/* SECTION 4: FEATURED (1イベント大きく) */}
+      {/* ============================================================ */}
+      {featuredEvent && (
+        <section style={{
+          padding: 'var(--space-12) var(--space-6) var(--space-9)',
+          background: 'var(--paper-2)',
+          borderTop: '1px solid var(--brand-line)',
+        }}>
+          <Reveal y={20} blur={false}>
+            <div style={{ textAlign: 'center', marginBottom: 'var(--space-9)' }}>
+              <div style={{
+                fontSize: 'var(--font-micro)',
+                letterSpacing: 'var(--ls-mono-xl)',
+                fontFamily: 'var(--mono)',
+                color: 'var(--brand-blue)',
+                fontWeight: 600,
+                marginBottom: 'var(--space-3)',
+              }}>{tx('home_featured_label', lang === 'en' ? 'FEATURED' : 'FEATURED')}</div>
+              <h2 style={{
+                fontFamily: 'var(--serif)',
+                fontSize: 'var(--font-h1)',
+                lineHeight: 'var(--lh-tight)',
+                fontWeight: 300,
+                letterSpacing: 'var(--ls-tight)',
+                color: 'var(--ink-1)',
+                margin: 0,
+              }}>{tx('home_featured_title', lang === 'en' ? 'Coming up next' : '次のイベント')}</h2>
+            </div>
+          </Reveal>
+
+          <Reveal y={30} blur={false} delay={150}>
+            <a href={`#/events/${featuredEvent.id}`} style={{
+              display: 'block',
+              background: 'var(--paper-1)',
+              border: '1px solid var(--brand-line)',
+              textDecoration: 'none',
+              color: 'var(--ink-1)',
+              transition: 'all var(--t-base)',
+              marginBottom: 'var(--space-6)',
+            }}
+            onTouchStart={(e) => { e.currentTarget.style.transform = 'scale(0.99)'; }}
+            onTouchEnd={(e) => { e.currentTarget.style.transform = 'scale(1)'; }}>
+              {/* Visual */}
+              <div style={{
+                aspectRatio: '4 / 3',
+                background: 'var(--paper-3)',
+                position: 'relative',
+                overflow: 'hidden',
+              }}>
+                {(featuredEvent.heroImageUrl || featuredEvent.posterUrl) && (
+                  <img src={normalizeHomeImg(featuredEvent.heroImageUrl || featuredEvent.posterUrl)} alt=""
+                    loading="lazy" style={{
+                      position: 'absolute', inset: 0,
+                      width: '100%', height: '100%', objectFit: 'cover',
+                    }}/>
+                )}
+              </div>
+              {/* Body */}
+              <div style={{ padding: 'var(--space-6)' }}>
+                {/* Meta */}
+                <div style={{
+                  display: 'flex', gap: 'var(--space-4)',
+                  fontSize: 'var(--font-micro)',
+                  letterSpacing: 'var(--ls-mono-l)',
+                  fontFamily: 'var(--mono)',
+                  color: 'var(--ink-4)',
+                  fontWeight: 600,
+                  marginBottom: 'var(--space-4)',
+                  flexWrap: 'wrap',
+                }}>
+                  {featuredEvent.date && <span>{featuredEvent.date}</span>}
+                  {featuredEvent.area && <span>· {featuredEvent.area}</span>}
+                  {featuredEvent.feeType === 'free' && <span style={{ color: 'var(--brand-blue)' }}>· FREE</span>}
+                </div>
+                {/* Title */}
+                <div style={{
+                  fontFamily: 'var(--serif)',
+                  fontSize: 'var(--font-h2)',
+                  lineHeight: 'var(--lh-snug)',
+                  fontWeight: 400,
+                  letterSpacing: 'var(--ls-tight)',
+                  color: 'var(--ink-1)',
+                  marginBottom: 'var(--space-4)',
+                }}>{featuredEvent.title}</div>
+                {/* Body Text */}
+                {featuredEvent.summary && (
+                  <p style={{
+                    fontSize: 'var(--font-body-sm)',
+                    lineHeight: 'var(--lh-relaxed)',
+                    color: 'var(--ink-3)',
+                    fontFamily: 'var(--jp)',
+                    margin: 0,
+                    letterSpacing: 'var(--ls-normal)',
+                    display: '-webkit-box',
+                    WebkitLineClamp: 3,
+                    WebkitBoxOrient: 'vertical',
+                    overflow: 'hidden',
+                  }}>{featuredEvent.summary}</p>
+                )}
+              </div>
+            </a>
+          </Reveal>
+
+          {/* Featured CTA */}
+          <Reveal y={15} blur={false} delay={300}>
+            <a href={`#/events/${featuredEvent.id}`} style={{
+              display: 'flex', alignItems: 'center', justifyContent: 'space-between',
+              padding: 'var(--space-5) var(--space-6)',
+              background: 'var(--brand-navy)',
+              color: '#fff', textDecoration: 'none',
+              fontSize: 'var(--font-body)', fontWeight: 500,
+              fontFamily: 'var(--jp)', letterSpacing: 'var(--ls-wide)',
+              maxWidth: 360,
+              margin: '0 auto',
+              transition: 'all var(--t-base)',
+            }}
+            onTouchStart={(e) => { e.currentTarget.style.background = 'var(--brand-navy-deep)'; e.currentTarget.style.transform = 'scale(0.98)'; }}
+            onTouchEnd={(e) => { e.currentTarget.style.background = 'var(--brand-navy)'; e.currentTarget.style.transform = 'scale(1)'; }}>
+              <span>{tx('home_featured_cta_label', lang === 'en' ? 'View this event' : '詳細を見る')}</span>
+              <Icon name="arrow-right" size={16} />
+            </a>
+          </Reveal>
+        </section>
+      )}
+
+      {/* ============================================================ */}
+      {/* SECTION 5: CONCEPT (詩的、3行構成) */}
+      {/* ============================================================ */}
+      <section style={{
+        padding: 'var(--space-12) var(--space-6)',
+        background: 'var(--paper-1)',
+        borderTop: '1px solid var(--brand-line)',
+        textAlign: 'center',
+      }}>
+        <Reveal y={20} blur={false}>
+          <div style={{
+            fontSize: 'var(--font-micro)',
+            letterSpacing: 'var(--ls-mono-xl)',
+            fontFamily: 'var(--mono)',
+            color: 'var(--brand-blue)',
+            fontWeight: 600,
+            marginBottom: 'var(--space-3)',
+          }}>{tx('concept_label', lang === 'en' ? 'CONCEPT' : 'CONCEPT')}</div>
+        </Reveal>
+        <Reveal y={30} blur={false} delay={150}>
+          <h2 style={{
+            fontFamily: 'var(--serif)',
+            fontSize: 'var(--font-h1)',
+            lineHeight: 'var(--lh-tight)',
+            fontWeight: 300,
+            letterSpacing: 'var(--ls-tight)',
+            color: 'var(--ink-1)',
+            margin: '0 0 var(--space-9)',
+            whiteSpace: 'pre-line',
+          }}>{tx('concept_main',
+                lang === 'en' ? 'Make Tokyo home.' : '東京を、もうひとつのふるさとに。')}</h2>
+        </Reveal>
+        <Reveal y={20} blur={false} delay={300}>
+          <p style={{
+            fontFamily: 'var(--jp)',
+            fontSize: 'var(--font-body)',
+            lineHeight: 'var(--lh-loose)',
+            color: 'var(--ink-2)',
+            margin: '0 auto',
+            maxWidth: 380,
+            letterSpacing: 'var(--ls-relaxed)',
+            whiteSpace: 'pre-line',
+          }}>{tx('concept_body',
+                lang === 'en'
+                  ? 'For international students arriving in Tokyo,\nwe offer a space to meet,\nnot just join.'
+                  : 'イベントではなく、出会いを。\n一夜限りでなく、日常のなかで。\n東京を、もうひとつのふるさとに。')}</p>
+        </Reveal>
+      </section>
+
+      {/* ============================================================ */}
+      {/* SECTION 6: NEWS (1記事だけ大きく) */}
+      {/* ============================================================ */}
+      {topNews && (
+        <section style={{
+          padding: 'var(--space-12) var(--space-6) var(--space-9)',
+          background: 'var(--paper-2)',
+          borderTop: '1px solid var(--brand-line)',
+        }}>
+          <Reveal y={20} blur={false}>
+            <div style={{ textAlign: 'center', marginBottom: 'var(--space-9)' }}>
+              <div style={{
+                fontSize: 'var(--font-micro)',
+                letterSpacing: 'var(--ls-mono-xl)',
+                fontFamily: 'var(--mono)',
+                color: 'var(--brand-blue)',
+                fontWeight: 600,
+                marginBottom: 'var(--space-3)',
+              }}>{tx('home_news_label', lang === 'en' ? 'NEWS' : 'NEWS')}</div>
+              <h2 style={{
+                fontFamily: 'var(--serif)',
+                fontSize: 'var(--font-h1)',
+                lineHeight: 'var(--lh-tight)',
+                fontWeight: 300,
+                letterSpacing: 'var(--ls-tight)',
+                color: 'var(--ink-1)',
+                margin: 0,
+              }}>{tx('home_news_title', lang === 'en' ? 'What\'s happening' : '最近の動き')}</h2>
+            </div>
+          </Reveal>
+
+          <Reveal y={20} blur={false} delay={150}>
+            <a href={`#/news/${topNews.id}`} style={{
+              display: 'block',
+              padding: 'var(--space-7) var(--space-6)',
+              background: 'var(--paper-1)',
+              border: '1px solid var(--brand-line)',
+              textDecoration: 'none',
+              color: 'var(--ink-1)',
+              marginBottom: 'var(--space-6)',
+            }}>
+              <div style={{
+                fontSize: 'var(--font-micro)',
+                letterSpacing: 'var(--ls-mono-l)',
+                fontFamily: 'var(--mono)',
+                color: 'var(--ink-4)',
+                fontWeight: 600,
+                marginBottom: 'var(--space-3)',
+              }}>{topNews.publishedAt || ''}{topNews.category ? ' · ' + topNews.category : ''}</div>
+              <div style={{
+                fontFamily: 'var(--jp)',
+                fontSize: 'var(--font-h3)',
+                lineHeight: 'var(--lh-snug)',
+                fontWeight: 600,
+                color: 'var(--ink-1)',
+                letterSpacing: 'var(--ls-normal)',
+              }}>{topNews.title || ''}</div>
+            </a>
+          </Reveal>
+
+          <Reveal y={15} blur={false} delay={250}>
+            <a href="#/news" style={{
+              display: 'flex', alignItems: 'center', justifyContent: 'space-between',
+              padding: 'var(--space-5) var(--space-6)',
+              background: 'transparent',
+              color: 'var(--ink-1)', textDecoration: 'none',
+              fontSize: 'var(--font-body-sm)', fontWeight: 500,
+              fontFamily: 'var(--jp)', letterSpacing: 'var(--ls-wide)',
+              border: '1px solid var(--ink-6)',
+              maxWidth: 360,
+              margin: '0 auto',
+              transition: 'all var(--t-base)',
+            }}>
+              <span>{tx('home_news_cta_label', lang === 'en' ? 'Read all news' : 'すべてのニュースを見る')}</span>
+              <Icon name="arrow-right" size={14} />
+            </a>
+          </Reveal>
+        </section>
+      )}
+
+      {/* ============================================================ */}
+      {/* SECTION 7: CONTACT (語りかけ口調 + 単一CTA) */}
+      {/* ============================================================ */}
+      <section style={{
+        padding: 'var(--space-12) var(--space-6)',
+        background: 'var(--paper-1)',
+        borderTop: '1px solid var(--brand-line)',
+        textAlign: 'center',
+      }}>
+        <Reveal y={20} blur={false}>
+          <div style={{
+            fontSize: 'var(--font-micro)',
+            letterSpacing: 'var(--ls-mono-xl)',
+            fontFamily: 'var(--mono)',
+            color: 'var(--brand-blue)',
+            fontWeight: 600,
+            marginBottom: 'var(--space-3)',
+          }}>{tx('home_contact_label', lang === 'en' ? 'CONTACT' : 'CONTACT')}</div>
+        </Reveal>
+        <Reveal y={30} blur={false} delay={150}>
+          <h2 style={{
+            fontFamily: 'var(--serif)',
+            fontSize: 'var(--font-h1)',
+            lineHeight: 'var(--lh-tight)',
+            fontWeight: 300,
+            letterSpacing: 'var(--ls-tight)',
+            color: 'var(--ink-1)',
+            margin: '0 0 var(--space-7)',
+            whiteSpace: 'pre-line',
+          }}>{tx('home_contact_title',
+            lang === 'en' ? 'Got questions\nbefore joining?' :
+            lang === 'easy' ? 'さんかするまえに、\nしつもんありますか？' :
+            '参加前に、\n聞きたいことありますか？')}</h2>
+        </Reveal>
+        <Reveal y={20} blur={false} delay={300}>
+          <p style={{
+            fontFamily: 'var(--jp)',
+            fontSize: 'var(--font-body-sm)',
+            lineHeight: 'var(--lh-loose)',
+            color: 'var(--ink-3)',
+            margin: '0 auto var(--space-9)',
+            maxWidth: 360,
+            letterSpacing: 'var(--ls-relaxed)',
+            whiteSpace: 'pre-line',
+          }}>{tx('home_contact_body',
+            lang === 'en' ? 'Events, how to join, going alone — feel free to ask anything. We\'re here to help.' :
+            lang === 'easy' ? 'イベントの こと、さんかの しかた、\nひとりで さんかすること など、\nどうぞ きがるに きいてください。' :
+            'イベントのこと、参加方法、\nひとりで参加する不安など、\n気軽にお問い合わせください。')}</p>
+        </Reveal>
+        <Reveal y={15} blur={false} delay={450}>
+          <a href="#/contact" style={{
+            display: 'inline-flex', alignItems: 'center', justifyContent: 'space-between',
+            padding: 'var(--space-5) var(--space-7)',
+            background: 'var(--brand-navy)',
+            color: '#fff', textDecoration: 'none',
+            fontSize: 'var(--font-body)', fontWeight: 500,
+            fontFamily: 'var(--jp)', letterSpacing: 'var(--ls-wide)',
+            minWidth: 260,
+            gap: 'var(--space-4)',
+            transition: 'all var(--t-base)',
+          }}
+          onTouchStart={(e) => { e.currentTarget.style.background = 'var(--brand-navy-deep)'; e.currentTarget.style.transform = 'scale(0.98)'; }}
+          onTouchEnd={(e) => { e.currentTarget.style.background = 'var(--brand-navy)'; e.currentTarget.style.transform = 'scale(1)'; }}>
+            <span>{tx('home_contact_cta_label', lang === 'en' ? 'Get in touch' : '質問してみる')}</span>
+            <Icon name="arrow-right" size={16} />
+          </a>
+        </Reveal>
+      </section>
+
+      {/* === Footer 装飾 === */}
+      <div style={{
+        padding: 'var(--space-9) var(--space-6) var(--space-7)',
+        textAlign: 'center',
+        background: 'var(--paper-1)',
+      }}>
+        <div style={{
+          width: 24, height: 1,
+          background: 'var(--brand-blue)',
+          margin: '0 auto var(--space-4)',
+          opacity: 0.4,
+        }}/>
+        <div style={{
+          fontSize: 'var(--font-micro)',
+          letterSpacing: 'var(--ls-mono-xxl)',
+          fontFamily: 'var(--mono)',
+          color: 'var(--ink-5)',
+          fontWeight: 500,
+        }}>EST. 2018 · TOKYO · JP</div>
+      </div>
+    </div>
+  );
+}
+
+// 画像URL正規化 (PageHomeMobile 用)
+function normalizeHomeImg(url) {
+  if (!url || typeof url !== 'string') return url;
+  let m = url.match(/drive\.google\.com\/file\/d\/([^/]+)/);
+  if (m) return `https://drive.google.com/thumbnail?id=${m[1]}&sz=w2000`;
+  m = url.match(/drive\.google\.com\/uc.*?[?&]id=([^&]+)/);
+  if (m) return `https://drive.google.com/thumbnail?id=${m[1]}&sz=w2000`;
+  return url;
+}
+
 function PageHome({ lang, t, events, ads, heroSlides, loading, siteSettings, frontNews }) {
   const heroRef = useRef(null);
+  const vp = useViewport();
 
   const upcomingEvents = filterPublicEvents(events).slice(0, 3);
+
+  // (Phase 15.S4) モバイル時は専用構成 (Hero → Nav 4分割 → Featured → Concept → News → Contact)
+  if (vp.isMobile) {
+    return <PageHomeMobile
+      lang={lang} t={t} events={events} ads={ads} heroSlides={heroSlides}
+      loading={loading} siteSettings={siteSettings} frontNews={frontNews}
+      upcomingEvents={upcomingEvents}
+    />;
+  }
 
   return (
     <div>
