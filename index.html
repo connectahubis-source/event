@@ -12292,6 +12292,16 @@ function PageEventRegister({ lang, t, eventId, events, loading: appLoading, site
   // 支払い方法 (有料時)
   const [paymentMethod, setPaymentMethod] = React.useState('');
 
+  // (Part B) Drive画像URL正規化
+  const normalizeImageUrl = (url) => {
+    if (!url || typeof url !== 'string') return url;
+    let m = url.match(/drive\.google\.com\/file\/d\/([^/]+)/);
+    if (m) return `https://drive.google.com/thumbnail?id=${m[1]}&sz=w2000`;
+    m = url.match(/drive\.google\.com\/uc.*?[?&]id=([^&]+)/);
+    if (m) return `https://drive.google.com/thumbnail?id=${m[1]}&sz=w2000`;
+    return url;
+  };
+
   // 未ログインなら login ページへ
   React.useEffect(() => {
     if (!auth.user && !auth.loading) {
@@ -16040,10 +16050,10 @@ function PageContact({ lang, t }) {
 function PagePolicyDoc({ lang, t, kind, siteSettings }) {
   const settings = siteSettings || {};
   const isPrivacy = kind === 'privacy';
-  // 多言語: privacy_policy, privacy_policy_en, privacy_policy_easy
+  // 多言語: 優先順 = [_en/_easy のローカライズ] → [_ja] → [suffixなし]
   const fieldBase = isPrivacy ? 'privacy_policy' : 'terms';
-  const langSuffix = lang === 'en' ? '_en' : lang === 'easy' ? '_easy' : '';
-  const content = settings[fieldBase + langSuffix] || settings[fieldBase] || '';
+  const langSuffix = lang === 'en' ? '_en' : lang === 'easy' ? '_easy' : '_ja';
+  const content = settings[fieldBase + langSuffix] || settings[fieldBase + '_ja'] || settings[fieldBase] || '';
   const updatedAt = settings[fieldBase + '_updated_at'] || '';
 
   const title = isPrivacy
