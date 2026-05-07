@@ -2,18 +2,62 @@
 <html lang="ja">
 <head>
 <meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
 <title>connec+a — 出会いが、まちを変えていく。</title>
-<meta name="description" content="在日外国人留学生と日本人をつなぐ、参加型の国際交流プラットフォーム。">
+<meta name="description" content="在日外国人留学生と日本人をつなぐ、参加型の国際交流プラットフォーム。一般社団法人connec+a。">
+<meta name="keywords" content="国際交流,留学生,東京,イベント,Japan,Tokyo,exchange,students,foreign,connec+a">
+<meta name="author" content="一般社団法人connec+a">
+<meta name="robots" content="index, follow">
 
-<!-- OGP -->
-<meta property="og:title" content="connec+a — 一般社団法人">
-<meta property="og:description" content="在日外国人留学生と日本人をつなぐ、参加型の国際交流プラットフォーム。">
+<!-- (L9) ブランドカラー (PWA・モバイルブラウザのテーマ) -->
+<meta name="theme-color" content="#0a2960" media="(prefers-color-scheme: light)">
+<meta name="theme-color" content="#0a2960" media="(prefers-color-scheme: dark)">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="connec+a">
+<meta name="application-name" content="connec+a">
+<meta name="format-detection" content="telephone=no">
+
+<!-- (L9) Favicon — SVG (modern) + ICO (legacy fallback) -->
+<link rel="icon" type="image/png" href="data:image/png;base64,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">
+<link rel="apple-touch-icon" href="data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAALQAAAC0CAYAAAA9zQYyAAABCGlDQ1BJQ0MgUHJvZmlsZQAAeJxjYGA8wQAELAYMDLl5JUVB7k4KEZFRCuwPGBiBEAwSk4sLGHADoKpv1yBqL+viUYcLcKakFicD6Q9ArFIEtBxopAiQLZIOYWuA2EkQtg2IXV5SUAJkB4DYRSFBzkB2CpCtkY7ETkJiJxcUgdT3ANk2uTmlyQh3M/Ck5oUGA2kOIJZhKGYIYnBncAL5H6IkfxEDg8VXBgbmCQixpJkMDNtbGRgkbiHEVBYwMPC3MDBsO48QQ4RJQWJRIliIBYiZ0tIYGD4tZ2DgjWRgEL7AwMAVDQsIHG5TALvNnSEfCNMZchhSgSKeDHkMyQx6QJYRgwGDIYMZAKbWPz9HbOBQAAAhd0lEQVR42u2deXxdxZHvf9V9zrmLdlmSJVnItrziHW8BDJbBBHBYA1xPyGAgYQKEYCADyUxChqtLXgiTSXgJPCbh5cEDMkAikQQStoQwltghxqy2sYMXeROSbMuWdHWXc7pr/jj3yvIClgw2stLfz+foLpLO1tV1qqqrugGDwWAwGAwGg8FgMBgMBoPBYDAYDAaDwWAwGAwGg8FgMBgMBoPBYDAYDAaDwWAwGAwGg8FgMBgMBoPBYDAYDAaDwWAwGAwGg8FgMBgMBoPBYDAYDAaDwWAwGAwGg8FgMBgMBoPBYDAYDAaDwWAwGAwGg8FgMBgMBsPQgpnJ3AXD0Si4gplpHwEW2ddolEUkEpEAqM/vBDNTbW3UAiBNxzAMFmG2Mm/J/7w2wMwkBIGZiwewnwMJtRHkowjrKDclCAB/+OGHVcxdeUDu+wCkm+iY29HVtqKwZMIJv/71g4FZsxY17+gquD3ubtvcvuG9bwM7O4uLxx5fnJ/7ub9tePP9L174z+Mg3KpEV8eTAF6IRCKyqKhIdHScphsaFisgInt6flEZChW3ElHaiI3hsNrEzExvvfXW+EUXXHbhn155/nPZ7yfNPOuxwmNOWVs58tSNYyZezGPnXcWh8hlfZ2Y67tQlNw+ftCg+94x/3Dp1yhIeddzF/OWlNy5hZgEiMHOebfva37IE2pOdE7NmjWmFwYs42k6YiBgAMXOu5+24kpntwtJjZ54b+e4TG9YlHr32yp++Ou/UC+9mZpo4Zdyy4pqTx3mBqmWnLbKrFHWynVdUCECefs45M1A0N/zBmtYP333vt19JCKnfXbddEpEGc2HFiFOurBp3YdPnTr/irZziWQtLg/nv19XVZY9vMAL96WhnZq4GwDNmnD597epNGwE4gZzy24ZXlVauffeta7e37niQgzXXLLn6ttNGHzf1VR1UOpFob/7FHQ+0dm7p6Zozs/YkALzsuZerdSqO66646EfPP3XXk248LApURSrB2z9fMTnyZmVNZXT4sLJntm5U40vKRv2lpqZmaiwWY995jArs7WAajEAPjGg0KgBgzbotY2umnPd0ayL44rz5S2f88Y9vsBOoOH3azIn3aL327o62psv+tqVly59ferNs5LDyinh8B1VWhhsBFEsVvqWnJ7EAQM67qzYkSgt2t0W/d9VTS3/wWBmRxNq/vr79a9/95ZmqbMyoDk+3j51eWubkp1A2sjj+7LJl5cwcDAVtBcQ0GhoUAKOtjUAfGrHGRiGE4IULrzultLT6zG8svfj+c84/uYt5bZ6Ak374vqcSzGwzc8WsWdNCY0ePyLet3eR2Ek48YeZkAF3pruYVFiXCC8+++OricLi2eWPLrUTUlZNfGqocbvX834eu2/TYb9fbBaonhXT42WefWv2leEJveeftFVfWVFcvn3/h166tHHX6XyfP+MqK0nHnPZ47/uySo9V0MwL9GWtnbmxUja88MzoUCn71xOOnrvjetRf/6wP33fbEuede3F5dE36voLTosrq6Lxe8uOK1c9pbu4qqSsrClQV5I4I9O2l4ReF2IkoEcttTze8te7Fx2Ys7Q7R15UUnjXkIAKYcU1HMO1rleWeel3/SpFHjura0p372w7Mf37W5oaJjTUNN9+bXf1sy+pQrU+n8H+UXFW+YOGX8KzUTas7N0zsfAUCRSMSYHoYBGc8EgG677bZhM064dPsvHn72LWYuad3cOv2h+vpZV/9L7OGpC7/mlo76UueoKefwvIuW8rLl750EAOXlM77AzOF4vL1yj2MJ1D/22IStWznMzPadd/58eknZtGiSk+dccdVtd1ZP/wYfu/Aqnly75Lnq6pnRcPGs08fMvJZLR5wTY+Z8Zs6bW3v6DZXV0x/InKARaMPAiETqJTOLCTMuefHU827m97Y+W83MkyZNP/vP50WufOCZl1/8x4kzrni+tPrzv//O7T/5EjMXMbPo1fCZ98xMmc8V2c9SSkgp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">
+
+<!-- (L9) OGP -->
+<meta property="og:title" content="connec+a — 出会いが、まちを変えていく。">
+<meta property="og:description" content="在日外国人留学生と日本人をつなぐ、参加型の国際交流プラットフォーム。一般社団法人connec+a。">
 <meta property="og:type" content="website">
+<meta property="og:site_name" content="connec+a">
+<meta property="og:locale" content="ja_JP">
+<meta property="og:locale:alternate" content="en_US">
+<meta property="og:url" content="https://connectahubis-source.github.io/event/">
 
-<!-- フォント -->
+<!-- (L9) Twitter Cards -->
+<meta name="twitter:card" content="summary_large_image">
+<meta name="twitter:title" content="connec+a — 出会いが、まちを変えていく。">
+<meta name="twitter:description" content="在日外国人留学生と日本人をつなぐ、参加型の国際交流プラットフォーム。">
+
+<!-- (L9) Schema.org JSON-LD (検索エンジン対応) -->
+<script type="application/ld+json">
+{
+  "@context": "https://schema.org",
+  "@type": "Organization",
+  "name": "一般社団法人connec+a",
+  "alternateName": "connec+a",
+  "url": "https://connectahubis-source.github.io/event/",
+  "description": "在日外国人留学生と日本人をつなぐ、参加型の国際交流プラットフォーム",
+  "areaServed": "JP"
+}
+</script>
+
+<!-- (L5) パフォーマンス: preconnect で外部リソースの接続を先取り -->
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="preconnect" href="https://drive.google.com">
+<link rel="preconnect" href="https://lh3.googleusercontent.com">
+<link rel="preconnect" href="https://script.google.com">
+<link rel="dns-prefetch" href="https://script.google.com">
+
+<!-- フォント -->
 <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@300;400;500;600;700;800&family=Zen+Maru+Gothic:wght@300;400;500;700;900&family=Zen+Kaku+Gothic+New:wght@300;400;500;700;900&family=Noto+Serif+JP:wght@400;500;700;900&family=JetBrains+Mono:wght@400;500;600&family=Cormorant+Garamond:ital,wght@0,400;0,500;0,600;1,400&family=Fraunces:ital,opsz,wght@0,9..144,300;0,9..144,400;0,9..144,500;0,9..144,600;1,9..144,400&display=swap" rel="stylesheet">
 <!-- (Phase 7.2) ヒーローオーバーレイ用手書きフォント -->
 <link href="https://fonts.googleapis.com/css2?family=Caveat:wght@400;700&family=Kalam:wght@400;700&family=Permanent+Marker&family=Yuji+Mai&family=Yuji+Boku&family=Klee+One:wght@400;600&family=Zen+Kurenaido&family=Hachi+Maru+Pop&display=swap" rel="stylesheet">
@@ -76,6 +120,69 @@
   --sky-grad: linear-gradient(180deg, var(--sky-50) 0%, var(--sky-100) 30%, var(--sky-200) 65%, var(--sky-300) 100%);
   --sky-grad-deep: linear-gradient(180deg, var(--sky-300) 0%, var(--sky-500) 50%, var(--sky-700) 100%);
   --sky-grad-soft: linear-gradient(180deg, #ffffff 0%, var(--sky-50) 100%);
+
+  /* (Phase 14: L1〜L3) デザインシステム — モバイル・大手企業基準 */
+  /* === ブランドカラー (Semantic) === */
+  --brand-navy:    #0a2960;
+  --brand-navy-deep: #06183f;
+  --brand-blue:    #2c89e8;
+  --brand-blue-dark: #1a73d4;
+  --brand-beige:   #f5f0e8;
+  --brand-paper:   #fafbfc;
+  --brand-line:    rgba(10, 41, 96, 0.15);
+  --brand-line-light: rgba(255, 255, 255, 0.15);
+  --brand-line-mid: rgba(255, 255, 255, 0.4);
+
+  /* === タイポグラフィスケール === */
+  --font-display: 40px;       /* h2 大セリフ (Hero, Concept等) */
+  --font-h1:      36px;       /* h1 メインセクション見出し */
+  --font-h2:      32px;       /* h2 サブセクション */
+  --font-h3:      22px;       /* h3 カードタイトル */
+  --font-lead:    17px;       /* リード文 */
+  --font-body:    14px;       /* 本文 */
+  --font-body-sm: 13px;       /* 本文 (小) */
+  --font-caption: 11px;       /* キャプション、メタ情報 */
+  --font-label:   10px;       /* mono ラベル */
+
+  /* === 行間 === */
+  --lh-tight:    1.15;        /* 見出し */
+  --lh-snug:     1.3;         /* h3 */
+  --lh-normal:   1.55;        /* 本文 */
+  --lh-relaxed:  1.7;         /* 引用、読み物 */
+  --lh-loose:    1.9;         /* 大きな本文 */
+
+  /* === レターススペース === */
+  --ls-tight:    -0.02em;     /* 大見出し */
+  --ls-normal:   0.01em;      /* 本文 */
+  --ls-wide:     0.04em;      /* 装飾的本文 */
+  --ls-mono:     0.1em;       /* mono ラベル (短) */
+  --ls-mono-l:   0.2em;       /* mono ラベル (長) */
+  --ls-mono-xl:  0.3em;       /* mono セクションラベル */
+
+  /* === スペーシング (8段階) === */
+  --space-1:  4px;
+  --space-2:  8px;
+  --space-3:  12px;
+  --space-4:  16px;
+  --space-5:  20px;
+  --space-6:  24px;
+  --space-7:  32px;
+  --space-8:  40px;
+  --space-9:  48px;
+  --space-10: 64px;
+  --space-11: 80px;
+  --space-12: 96px;
+
+  /* === セクション固有スペーシング === */
+  --section-py: 88px;          /* セクション padding 上下 */
+  --section-px: 24px;          /* セクション padding 左右 (mobile) */
+  --section-gap: 32px;         /* セクション内ブロック間 */
+
+  /* === トランジション === */
+  --t-fast:   0.15s cubic-bezier(0.4, 0, 0.2, 1);
+  --t-base:   0.25s cubic-bezier(0.4, 0, 0.2, 1);
+  --t-slow:   0.5s cubic-bezier(0.2, 0.8, 0.2, 1);
+  --t-reveal: 0.7s cubic-bezier(0.2, 0.8, 0.2, 1);
 }
 
 * { box-sizing: border-box; }
@@ -336,10 +443,117 @@ button { font-family: inherit; cursor: pointer; }
 .cloud-float-3 { animation: cca-float 26s ease-in-out infinite; }
 
 /* ===== モバイル対応 ===== */
+/* (L5) パフォーマンス最適化: GPU加速、画像最適化 */
+img {
+  -webkit-touch-callout: none;
+  -webkit-user-select: none;
+  user-select: none;
+}
+img[loading="lazy"] {
+  background: linear-gradient(90deg, #f0f4f9 25%, #e6ecf3 50%, #f0f4f9 75%);
+  background-size: 200% 100%;
+  animation: cca-skeleton 1.5s ease-in-out infinite;
+}
+@keyframes cca-skeleton {
+  0%   { background-position: 200% 0; }
+  100% { background-position: -200% 0; }
+}
+
+/* (Part C) 申込完了画面の絵文字ポップアニメ */
+@keyframes cca-thank-you-pop {
+  0%   { transform: scale(0) rotate(-20deg); opacity: 0; }
+  70%  { transform: scale(1.15) rotate(8deg); opacity: 1; }
+  100% { transform: scale(1) rotate(0deg); opacity: 1; }
+}
+/* (Part C) QR出現アニメ (Part C で詳細実装) */
+@keyframes cca-qr-reveal {
+  0%   { clip-path: inset(0 100% 0 0); opacity: 0; }
+  60%  { clip-path: inset(0 0 0 0); opacity: 1; }
+  100% { clip-path: inset(0 0 0 0); opacity: 1; }
+}
+@keyframes cca-qr-glow {
+  0%, 100% { box-shadow: 0 0 0 0 rgba(255,255,255,0); }
+  50%      { box-shadow: 0 0 32px 8px rgba(255,255,255,0.25); }
+}
+/* (Part C) 同心円パルス (チェックアイコン周辺) */
+@keyframes cca-pulse {
+  0%   { transform: scale(1);   opacity: 0.5; }
+  100% { transform: scale(1.4); opacity: 0; }
+}
+
+/* (L6) アクセシビリティ: フォーカスリング (キーボード操作時のみ表示) */
+*:focus {
+  outline: none;
+}
+*:focus-visible {
+  outline: 2px solid var(--brand-blue);
+  outline-offset: 2px;
+  border-radius: 2px;
+}
+
+/* (L6) アクセシビリティ: prefers-reduced-motion 対応 */
+@media (prefers-reduced-motion: reduce) {
+  *, *::before, *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+    scroll-behavior: auto !important;
+  }
+}
+
+/* (L6) アクセシビリティ: スクリーンリーダー専用 (視覚的に隠す) */
+.sr-only {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  padding: 0;
+  margin: -1px;
+  overflow: hidden;
+  clip: rect(0, 0, 0, 0);
+  white-space: nowrap;
+  border: 0;
+}
+
+/* (L6) アクセシビリティ: スキップリンク */
+.skip-link {
+  position: absolute;
+  top: -100px;
+  left: 8px;
+  z-index: 100;
+  padding: 12px 20px;
+  background: var(--brand-navy);
+  color: #fff;
+  text-decoration: none;
+  font-size: 13px;
+  font-weight: 600;
+  border-radius: 0 0 4px 4px;
+  transition: top 0.2s;
+}
+.skip-link:focus {
+  top: 0;
+}
+
+/* (L8) ローディング骨格 */
+.skeleton {
+  background: linear-gradient(90deg, rgba(0,0,0,0.06) 25%, rgba(0,0,0,0.12) 50%, rgba(0,0,0,0.06) 75%);
+  background-size: 200% 100%;
+  animation: cca-skeleton 1.5s ease-in-out infinite;
+  border-radius: 4px;
+}
+.skeleton-dark {
+  background: linear-gradient(90deg, rgba(255,255,255,0.04) 25%, rgba(255,255,255,0.10) 50%, rgba(255,255,255,0.04) 75%);
+  background-size: 200% 100%;
+  animation: cca-skeleton 1.5s ease-in-out infinite;
+  border-radius: 4px;
+}
+
 /* 横スクロール完全防止 (Phase 13.1) */
 html, body {
   overflow-x: hidden;
   max-width: 100vw;
+  -webkit-text-size-adjust: 100%; /* (L5) iOS で文字が拡大されない */
+  text-size-adjust: 100%;
+  -webkit-tap-highlight-color: transparent; /* (L7) タップ時のハイライト色を透明に */
 }
 * {
   max-width: 100%;
@@ -452,14 +666,20 @@ html, body {
 </style>
 </head>
 <body>
+<!-- (L6) アクセシビリティ: スキップリンク (キーボード操作で最初にフォーカス) -->
+<a href="#main-content" class="skip-link">メインコンテンツへスキップ</a>
+
 <div id="root">
   <!-- フォールバック: スクリプトが読み込まれない、JS無効、エラー時に表示 -->
-  <div id="fallback" style="padding:60px 24px;font-family:system-ui;color:#333;text-align:center;">
-    <h1 style="font-size:24px;margin-bottom:12px;">connec+a</h1>
+  <div id="fallback" style="padding:60px 24px;font-family:system-ui;color:#333;text-align:center;min-height:100vh;display:flex;flex-direction:column;align-items:center;justify-content:center;">
+    <div style="display:inline-block;width:48px;height:48px;border:3px solid #e6ecf3;border-top-color:#0a2960;border-radius:50%;animation:spin 0.8s linear infinite;margin-bottom:24px;"></div>
+    <h1 style="font-size:24px;margin-bottom:12px;color:#0a2960;font-weight:700;">connec+a</h1>
     <p style="color:#666;font-size:14px;">読み込み中...</p>
     <noscript>
-      <p style="color:#d44;margin-top:20px;">JavaScript を有効にしてください。</p>
+      <p style="color:#d44;margin-top:20px;font-weight:600;">JavaScript を有効にしてください。</p>
+      <p style="color:#888;margin-top:8px;font-size:13px;">Please enable JavaScript to use this site.</p>
     </noscript>
+    <style>@keyframes spin{to{transform:rotate(360deg)}}</style>
   </div>
 </div>
 
@@ -1740,6 +1960,81 @@ function captureUTM() {
 }
 
 // ============================================================================
+// ICON COMPONENT — Lucide-style minimal SVG icons (絵文字置換用)
+// ============================================================================
+// 大手企業基準: 絵文字ではなく統一感ある SVG アイコンを使用。
+// 24x24 viewBox、stroke-based、currentColor 対応で色を自由制御。
+function Icon({ name, size = 20, strokeWidth = 1.5, color, style = {} }) {
+  const baseProps = {
+    width: size, height: size,
+    viewBox: '0 0 24 24',
+    fill: 'none',
+    stroke: color || 'currentColor',
+    strokeWidth,
+    strokeLinecap: 'round',
+    strokeLinejoin: 'round',
+    style: { display: 'inline-block', verticalAlign: 'middle', flexShrink: 0, ...style },
+    'aria-hidden': true,
+  };
+
+  switch (name) {
+    case 'check':
+      return <svg {...baseProps}><polyline points="20 6 9 17 4 12"/></svg>;
+    case 'check-circle':
+      return <svg {...baseProps}><path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"/><polyline points="22 4 12 14.01 9 11.01"/></svg>;
+    case 'pin':
+      return <svg {...baseProps}><path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z"/><circle cx="12" cy="10" r="3"/></svg>;
+    case 'alert-triangle':
+      return <svg {...baseProps}><path d="M10.29 3.86 1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"/><line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg>;
+    case 'credit-card':
+      return <svg {...baseProps}><rect x="2" y="5" width="20" height="14" rx="2"/><line x1="2" y1="10" x2="22" y2="10"/></svg>;
+    case 'cash':
+    case 'banknote':
+      return <svg {...baseProps}><rect x="2" y="6" width="20" height="12" rx="2"/><circle cx="12" cy="12" r="2"/><path d="M6 12h.01M18 12h.01"/></svg>;
+    case 'smartphone':
+      return <svg {...baseProps}><rect x="5" y="2" width="14" height="20" rx="2"/><line x1="12" y1="18" x2="12.01" y2="18"/></svg>;
+    case 'bank':
+    case 'building':
+      return <svg {...baseProps}><line x1="3" y1="21" x2="21" y2="21"/><path d="M3 10 12 3l9 7"/><line x1="5" y1="10" x2="5" y2="21"/><line x1="9" y1="14" x2="9" y2="21"/><line x1="15" y1="14" x2="15" y2="21"/><line x1="19" y1="10" x2="19" y2="21"/></svg>;
+    case 'wallet':
+      return <svg {...baseProps}><path d="M20 12V8H6a2 2 0 0 1-2-2c0-1.1.9-2 2-2h12v4"/><path d="M4 6v12c0 1.1.9 2 2 2h14v-4"/><path d="M18 12a2 2 0 0 0 0 4h4v-4Z"/></svg>;
+    case 'sparkle':
+    case 'celebrate':
+      return <svg {...baseProps}><path d="M12 3 14.4 9.6 21 12l-6.6 2.4L12 21l-2.4-6.6L3 12l6.6-2.4L12 3Z"/></svg>;
+    case 'document':
+    case 'file-text':
+      return <svg {...baseProps}><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="16" y1="13" x2="8" y2="13"/><line x1="16" y1="17" x2="8" y2="17"/><line x1="10" y1="9" x2="8" y2="9"/></svg>;
+    case 'arrow-right':
+      return <svg {...baseProps}><line x1="5" y1="12" x2="19" y2="12"/><polyline points="12 5 19 12 12 19"/></svg>;
+    case 'arrow-left':
+      return <svg {...baseProps}><line x1="19" y1="12" x2="5" y2="12"/><polyline points="12 19 5 12 12 5"/></svg>;
+    case 'star':
+      return <svg {...baseProps}><polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"/></svg>;
+    case 'heart':
+      return <svg {...baseProps}><path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z"/></svg>;
+    case 'qr-code':
+      return <svg {...baseProps}><rect x="3" y="3" width="7" height="7"/><rect x="14" y="3" width="7" height="7"/><rect x="3" y="14" width="7" height="7"/><line x1="14" y1="14" x2="14" y2="17"/><line x1="14" y1="20" x2="17" y2="20"/><line x1="17" y1="14" x2="17" y2="17"/><line x1="20" y1="14" x2="20" y2="20"/><line x1="14" y1="17" x2="17" y2="17"/></svg>;
+    case 'calendar':
+      return <svg {...baseProps}><rect x="3" y="4" width="18" height="18" rx="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/></svg>;
+    case 'clock':
+      return <svg {...baseProps}><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>;
+    case 'user':
+      return <svg {...baseProps}><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>;
+    case 'mail':
+      return <svg {...baseProps}><path d="M4 4h16c1.1 0 2 .9 2 2v12c0 1.1-.9 2-2 2H4c-1.1 0-2-.9-2-2V6c0-1.1.9-2 2-2z"/><polyline points="22 6 12 13 2 6"/></svg>;
+    case 'lock':
+      return <svg {...baseProps}><rect x="3" y="11" width="18" height="11" rx="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg>;
+    case 'x':
+    case 'close':
+      return <svg {...baseProps}><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>;
+    case 'menu':
+      return <svg {...baseProps}><line x1="3" y1="12" x2="21" y2="12"/><line x1="3" y1="6" x2="21" y2="6"/><line x1="3" y1="18" x2="21" y2="18"/></svg>;
+    default:
+      return null;
+  }
+}
+
+// ============================================================================
 // MOTION COMPONENTS
 // ============================================================================
 function Reveal({ delay = 0, children, y = 30, blur = true, style = {}, ...rest }) {
@@ -2407,7 +2702,11 @@ function FeaturedEventCard({ ev, lang, t }) {
           borderRadius: 999,
           zIndex: 2,
           boxShadow: '0 6px 16px -4px rgba(22, 86, 176, 0.5)',
-        }}>★ FEATURED</div>
+          display: 'inline-flex', alignItems: 'center', gap: 5,
+        }}>
+          <Icon name="star" size={11} strokeWidth={2.5} />
+          <span>FEATURED</span>
+        </div>
       </div>
 
       {/* 本文 */}
@@ -3577,22 +3876,88 @@ function HeroSlideshow({ lang, t, events, heroSlides, loading, frontNews, siteSe
   const topNews = topNewsList[Math.min(newsIdx, topNewsList.length - 1)] || null;
   const subSlide = slides.length > 1 ? slides[(idx + 1) % slides.length] : null;
 
-  // (Phase 13.2) モバイル時はシンプルなHero代替版
+  // (Phase 13.2 / 13.7) モバイル時はシンプルなHero代替版 (アニメ・装飾あり)
   if (heroVp.isMobile) {
-    const currentSlide = slides[idx] || slides[0];
-    const slideImg = currentSlide ? currentSlide.img : '';
-    const overlayItems = (currentSlide && Array.isArray(currentSlide.heroOverlay))
-      ? currentSlide.heroOverlay
-      : [];
+    // (L8) loading 状態: 骨格表示
+    if (loading) {
+      return (
+        <section data-section="hero" aria-label={lang === 'en' ? 'Loading hero' : 'ヒーロー読み込み中'} style={{
+          position: 'relative',
+          width: '100%',
+          marginTop: 80,
+          background: 'var(--brand-navy)',
+          aspectRatio: '4 / 5',
+        }}>
+          <div className="skeleton-dark" style={{ position: 'absolute', inset: 0 }}/>
+          <div style={{
+            position: 'absolute', left: 24, right: 24, bottom: 32,
+            display: 'grid', gap: 12,
+          }}>
+            <div className="skeleton-dark" style={{ height: 12, width: '40%' }}/>
+            <div className="skeleton-dark" style={{ height: 28, width: '80%' }}/>
+            <div className="skeleton-dark" style={{ height: 14, width: '60%' }}/>
+          </div>
+        </section>
+      );
+    }
+
+    // (L8) スライドが0件: Empty State
+    if (slides.length === 0) {
+      return (
+        <section data-section="hero" aria-label={lang === 'en' ? 'Welcome' : 'ようこそ'} style={{
+          position: 'relative',
+          width: '100%',
+          marginTop: 80,
+          background: 'linear-gradient(180deg, var(--brand-navy) 0%, #1a3a7a 100%)',
+          aspectRatio: '4 / 5',
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'center',
+          color: '#fff',
+          padding: 'var(--space-6)',
+          textAlign: 'center',
+        }}>
+          <div>
+            <div style={{
+              fontSize: 'var(--font-label)', letterSpacing: 'var(--ls-mono-xl)',
+              fontFamily: 'var(--mono)',
+              opacity: 0.6,
+              marginBottom: 'var(--space-4)',
+            }}>WELCOME</div>
+            <div style={{
+              fontFamily: '"Noto Serif JP", serif',
+              fontSize: 'var(--font-h2)',
+              fontWeight: 600,
+              lineHeight: 'var(--lh-tight)',
+              letterSpacing: 'var(--ls-tight)',
+            }}>connec+a</div>
+          </div>
+        </section>
+      );
+    }
 
     return (
-      <section data-section="hero" style={{
+      <section data-section="hero"
+        role="region"
+        aria-label={lang === 'en' ? 'Hero slideshow' : 'ヒーロースライドショー'}
+        aria-roledescription={lang === 'en' ? 'carousel' : 'カルーセル'}
+        style={{
         position: 'relative',
         width: '100%',
         marginTop: 80,
-        background: '#0a2960',
+        background: 'var(--brand-navy)',
         overflow: 'hidden',
       }}>
+        {/* (13.7) ベージュ縦帯 (左サイド、装飾) */}
+        <div style={{
+          position: 'absolute',
+          left: 0, top: 0, bottom: 0,
+          width: 28,
+          background: '#f5f0e8',
+          zIndex: 5,
+          pointerEvents: 'none',
+        }}/>
+
         {/* メイン画像エリア (アスペクト比 4:5、スマホで縦長) */}
         <div style={{
           position: 'relative',
@@ -3601,162 +3966,279 @@ function HeroSlideshow({ lang, t, events, heroSlides, loading, frontNews, siteSe
           background: '#0a2960',
           overflow: 'hidden',
         }}>
-          {/* 画像 */}
-          {slideImg && (
-            <img src={slideImg} alt="" style={{
-              position: 'absolute', inset: 0,
-              width: '100%', height: '100%',
-              objectFit: 'cover',
-              display: 'block',
-            }}/>
-          )}
+          {/* (13.7.1 + 13.7.2) 全スライドを重ねてレンダリング、opacity でクロスフェード */}
+          {slides.map((s, i) => {
+            const slideBg = s.bgColor === 'navy' ? '#0a2960'
+              : s.bgColor === 'white' ? '#ffffff'
+              : s.bgColor === 'beige' ? '#f5f0e8'
+              : s.bgColor === 'gradient-blue' ? 'linear-gradient(135deg, #0a2960 0%, #2c89e8 100%)'
+              : '#0a2960';
+            return (
+              <div key={`${s.kind || 's'}-${i}`} style={{
+                position: 'absolute', inset: 0,
+                opacity: i === idx ? 1 : 0,
+                transition: 'opacity 0.6s cubic-bezier(0.2, 0.8, 0.2, 1)',
+                background: slideBg,
+              }}>
+                {/* 画像 (Ken Burns 効果はアクティブスライドのみ) */}
+                {s.img && (
+                  <img src={s.img} alt="" loading={i === 0 ? 'eager' : 'lazy'} style={{
+                    position: 'absolute', inset: 0,
+                    width: '100%', height: '100%',
+                    objectFit: 'cover',
+                    display: 'block',
+                    animation: i === idx ? 'cca-ken-burns 14s ease-out forwards' : 'none',
+                  }}/>
+                )}
 
-          {/* (Phase 7.6 / 13.2) ヒーローオーバーレイ — Adminで設定したテキスト/図形/画像 */}
-          {/* PC版と同じ絶対配置ロジックを使い、モバイルでも x/y/w/h % をそのまま反映 */}
-          {overlayItems.length > 0 && (
-            <div style={{position:'absolute', inset:0, pointerEvents:'none', zIndex:3, overflow:'hidden'}}>
-              {[...overlayItems].sort((a,b)=>(a.zOrder||0)-(b.zOrder||0)).map((item) => {
-                const baseStyle = {
-                  position:'absolute',
-                  left: item.x + '%',
-                  top: item.y + '%',
-                  width: item.w + '%',
-                  height: item.h + '%',
-                  transform: `rotate(${item.rotation||0}deg)`,
-                  boxSizing: 'border-box',
-                };
-                if (item.type === 'text') {
-                  return (
-                    <div key={item.id} style={{
-                      ...baseStyle,
-                      display:'flex',
-                      alignItems:'center',
-                      justifyContent: item.textAlign === 'left' ? 'flex-start' : item.textAlign === 'right' ? 'flex-end' : 'center',
-                      // モバイル用にフォントサイズ縮小: PC指定の0.5倍を base にして clamp
-                      fontSize: item.fontSize
-                        ? `clamp(${Math.round(item.fontSize*0.4)}px, ${item.fontSize/24}vw, ${Math.round(item.fontSize*0.7)}px)`
-                        : 'clamp(13px, 3.5vw, 22px)',
-                      color: item.color || '#fff',
-                      fontFamily: item.fontFamily,
-                      fontWeight: item.fontWeight || 400,
-                      textAlign: item.textAlign || 'center',
-                      lineHeight: 1.15,
-                      whiteSpace: 'pre-wrap',
-                      wordBreak: 'break-word',
-                      padding: 2,
-                      textShadow: '0 2px 12px rgba(0,0,0,0.35)',
-                    }}>{item.text || ''}</div>
-                  );
-                } else if (item.type === 'circle') {
-                  return (
-                    <div key={item.id} style={{
-                      ...baseStyle,
-                      borderRadius: '50%',
-                      background: item.color || 'transparent',
-                      border: `${item.borderWidth || 0}px solid ${item.borderColor || 'transparent'}`,
-                    }}/>
-                  );
-                } else if (item.type === 'rect') {
-                  return (
-                    <div key={item.id} style={{
-                      ...baseStyle,
-                      background: item.color || 'transparent',
-                      border: `${item.borderWidth || 0}px solid ${item.borderColor || 'transparent'}`,
-                    }}/>
-                  );
-                } else if (item.type === 'triangle') {
-                  return (
-                    <div key={item.id} style={baseStyle}>
-                      <svg width="100%" height="100%" viewBox="0 0 100 100" preserveAspectRatio="none" style={{display:'block'}}>
-                        <polygon points="50,5 95,95 5,95" fill={item.color || 'transparent'} stroke={item.borderColor || 'transparent'} strokeWidth={item.borderWidth || 0}/>
-                      </svg>
-                    </div>
-                  );
-                } else if (item.type === 'image') {
-                  if (!item.imageUrl) return null;
-                  return (
-                    <div key={item.id} style={baseStyle}>
-                      <img src={item.imageUrl} alt="" style={{width:'100%',height:'100%',objectFit:'contain',display:'block'}}/>
-                    </div>
-                  );
-                }
-                return null;
-              })}
-            </div>
-          )}
+                {/* (13.7.4) ヒーローオーバーレイ — アニメーション付き */}
+                {Array.isArray(s.heroOverlay) && s.heroOverlay.length > 0 && (
+                  <div style={{position:'absolute', inset:0, pointerEvents:'none', zIndex:3, overflow:'hidden'}}>
+                    {[...s.heroOverlay].sort((a,b)=>(a.zOrder||0)-(b.zOrder||0)).map((item) => {
+                      const animMap = {
+                        none: 'none',
+                        fadeIn: 'heroOvFadeIn 0.9s cubic-bezier(0.2,0.8,0.2,1) both',
+                        slideUp: 'heroOvSlideUp 0.9s cubic-bezier(0.2,0.8,0.2,1) both',
+                        slideDown: 'heroOvSlideDown 0.9s cubic-bezier(0.2,0.8,0.2,1) both',
+                        slideLeft: 'heroOvSlideLeft 0.9s cubic-bezier(0.2,0.8,0.2,1) both',
+                        slideRight: 'heroOvSlideRight 0.9s cubic-bezier(0.2,0.8,0.2,1) both',
+                        zoomIn: 'heroOvZoomIn 0.9s cubic-bezier(0.2,0.8,0.2,1) both',
+                      };
+                      const animValue = animMap[item.animation || 'none'] || 'none';
+                      const animation = (i === idx && animValue !== 'none') ? animValue : 'none';
+                      const animationDelay = (item.animationDelay || 0) + 's';
+                      const baseStyle = {
+                        position:'absolute',
+                        left: item.x + '%',
+                        top: item.y + '%',
+                        width: item.w + '%',
+                        height: item.h + '%',
+                        transform: `rotate(${item.rotation||0}deg)`,
+                        boxSizing: 'border-box',
+                        animation, animationDelay,
+                      };
+                      if (item.type === 'text') {
+                        // (13.7.5) アスペクト比補正
+                        // PC版は横長画面 (例: 1280x600 = 約2.13:1) 基準でサイズ調整。
+                        // モバイル (4:5 = 0.8:1) では % w が画面幅でなく狭い基準になる。
+                        // フォントを画面幅 vw 基準で再計算: PC版の式 fontSize/16 vw を fontSize/14 vw に上げる。
+                        // ただし下限と上限を厳しく設定 (極端な大小を防ぐ)。
+                        return (
+                          <div key={`${idx}-${item.id}`} style={{
+                            ...baseStyle,
+                            display:'flex',
+                            alignItems:'center',
+                            justifyContent: item.textAlign === 'left' ? 'flex-start' : item.textAlign === 'right' ? 'flex-end' : 'center',
+                            fontSize: item.fontSize
+                              ? `clamp(${Math.max(12, Math.round(item.fontSize*0.35))}px, ${(item.fontSize/14)}vw, ${Math.min(40, Math.round(item.fontSize*0.6))}px)`
+                              : 'clamp(14px, 4vw, 22px)',
+                            color: item.color || '#fff',
+                            fontFamily: item.fontFamily,
+                            fontWeight: item.fontWeight || 400,
+                            textAlign: item.textAlign || 'center',
+                            lineHeight: 1.15,
+                            whiteSpace: 'pre-wrap',
+                            wordBreak: 'break-word',
+                            padding: 2,
+                            textShadow: '0 2px 12px rgba(0,0,0,0.35)',
+                          }}>{item.text || ''}</div>
+                        );
+                      } else if (item.type === 'circle') {
+                        return (
+                          <div key={`${idx}-${item.id}`} style={{
+                            ...baseStyle,
+                            borderRadius: '50%',
+                            background: item.color || 'transparent',
+                            border: `${item.borderWidth || 0}px solid ${item.borderColor || 'transparent'}`,
+                          }}/>
+                        );
+                      } else if (item.type === 'rect') {
+                        return (
+                          <div key={`${idx}-${item.id}`} style={{
+                            ...baseStyle,
+                            background: item.color || 'transparent',
+                            border: `${item.borderWidth || 0}px solid ${item.borderColor || 'transparent'}`,
+                          }}/>
+                        );
+                      } else if (item.type === 'triangle') {
+                        return (
+                          <div key={`${idx}-${item.id}`} style={baseStyle}>
+                            <svg width="100%" height="100%" viewBox="0 0 100 100" preserveAspectRatio="none" style={{display:'block'}}>
+                              <polygon points="50,5 95,95 5,95" fill={item.color || 'transparent'} stroke={item.borderColor || 'transparent'} strokeWidth={item.borderWidth || 0}/>
+                            </svg>
+                          </div>
+                        );
+                      } else if (item.type === 'image') {
+                        if (!item.imageUrl) return null;
+                        return (
+                          <div key={`${idx}-${item.id}`} style={baseStyle}>
+                            <img src={item.imageUrl} alt="" style={{width:'100%',height:'100%',objectFit:'contain',display:'block'}}/>
+                          </div>
+                        );
+                      }
+                      return null;
+                    })}
+                  </div>
+                )}
+              </div>
+            );
+          })}
 
-          {/* インジケータ (左下) */}
+          {/* インジケータ (右上、PC版と整合) */}
           {slides.length > 1 && (
             <div style={{
               position: 'absolute',
-              left: 20, bottom: 16,
-              zIndex: 4,
-              display: 'flex', gap: 6,
-            }}>
+              right: 16, top: 16,
+              zIndex: 6,
+              display: 'flex', flexDirection: 'column', gap: 8,
+            }} role="tablist" aria-label={lang === 'en' ? 'Slide navigation' : 'スライド選択'}>
               {slides.map((_, i) => (
-                <span key={i} style={{
-                  width: i === idx ? 20 : 6, height: 6,
-                  background: i === idx ? '#fff' : 'rgba(255,255,255,0.4)',
-                  borderRadius: 3,
-                  transition: 'all .25s',
-                }}/>
+                <button key={i}
+                        onClick={() => setIdx(i)}
+                        role="tab"
+                        aria-selected={i === idx}
+                        aria-label={lang === 'en' ? `Slide ${i+1} of ${slides.length}` : `スライド ${i+1} / ${slides.length}`}
+                        style={{
+                          width: 8, height: 8,
+                          padding: 0,
+                          background: i === idx ? '#fff' : 'rgba(255,255,255,0.4)',
+                          border: 'none',
+                          borderRadius: '50%',
+                          cursor: 'pointer',
+                          transition: 'all .25s',
+                          transform: i === idx ? 'scale(1.3)' : 'scale(1)',
+                        }}/>
               ))}
             </div>
           )}
+
+          {/* (13.7.6) スクロールインジケータ (画面下中央、微細アニメ) */}
+          <div style={{
+            position: 'absolute',
+            left: '50%', bottom: 16,
+            transform: 'translateX(-50%)',
+            zIndex: 6,
+            display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 6,
+            color: 'rgba(255,255,255,0.7)',
+            fontFamily: 'var(--mono)',
+            fontSize: 10,
+            letterSpacing: '0.2em',
+            pointerEvents: 'none',
+          }}>
+            <span>SCROLL</span>
+            <span style={{
+              display: 'inline-block', width: 1, height: 28,
+              background: 'rgba(255,255,255,0.5)',
+              animation: 'cca-scroll-line 2.4s ease-in-out infinite',
+            }}/>
+          </div>
         </div>
 
-        {/* CTA ボタン群 */}
+        {/* CTA ボタン群 + ブランドステートメント */}
         <div style={{
-          padding: '20px 16px 28px',
+          padding: '32px 24px 40px',
           background: '#0a2960',
-          display: 'grid',
-          gap: 10,
+          color: '#fff',
         }}>
-          <a href="#/events" style={{
-            display: 'block',
-            padding: '14px 20px',
-            background: '#2c89e8',
-            color: '#fff',
-            textDecoration: 'none',
-            fontSize: 14, fontWeight: 600,
-            fontFamily: 'var(--jp)',
-            letterSpacing: '0.04em',
-            textAlign: 'center',
-          }}>{lang === 'ja' ? 'イベントを見る' : lang === 'easy' ? 'イベントを みる' : 'See events'} →</a>
-          <a href={auth.user ? '#/mypage' : '#/signup'} style={{
-            display: 'block',
-            padding: '14px 20px',
-            background: 'transparent',
-            color: '#fff',
-            textDecoration: 'none',
-            fontSize: 14, fontWeight: 600,
-            fontFamily: 'var(--jp)',
-            letterSpacing: '0.04em',
-            textAlign: 'center',
-            border: '1.5px solid rgba(255,255,255,0.5)',
-          }}>{auth.user
-            ? (lang === 'ja' ? 'マイページ' : lang === 'easy' ? 'マイページ' : 'My Page')
-            : (lang === 'ja' ? '会員登録' : lang === 'easy' ? 'とうろく' : 'Sign up')} →</a>
+          {/* ブランドステートメント (短く、印象的に) */}
+          <div style={{
+            fontSize: 10, letterSpacing: '0.3em',
+            color: 'rgba(255,255,255,0.6)',
+            fontFamily: 'var(--mono)',
+            marginBottom: 8,
+          }}>WELCOME TO TOKYO</div>
+          <div style={{
+            fontFamily: '"Noto Serif JP", serif',
+            fontSize: 22, lineHeight: 1.5, fontWeight: 500,
+            marginBottom: 24,
+            letterSpacing: '0.01em',
+          }}>{lang === 'en' ? 'Where strangers' : lang === 'easy' ? 'しらないひとが' : '出会いから、'}<br/>
+            <span style={{fontStyle: 'italic', opacity: 0.85}}>{lang === 'en' ? 'become friends.' : lang === 'easy' ? 'ともだちになる' : 'はじまる。'}</span>
+          </div>
+
+          <div style={{ display: 'grid', gap: 'var(--space-3)' }}>
+            <a href="#/events" style={{
+              display: 'flex', alignItems: 'center', justifyContent: 'space-between',
+              padding: 'var(--space-4) var(--space-5)',
+              background: 'var(--brand-blue)',
+              color: '#fff',
+              textDecoration: 'none',
+              fontSize: 'var(--font-body)', fontWeight: 600,
+              fontFamily: 'var(--jp)',
+              letterSpacing: 'var(--ls-wide)',
+              transition: 'all var(--t-base)',
+              transform: 'translateY(0)',
+            }}
+            onTouchStart={(e) => {
+              e.currentTarget.style.background = 'var(--brand-blue-dark)';
+              e.currentTarget.style.transform = 'scale(0.98)';
+            }}
+            onTouchEnd={(e) => {
+              e.currentTarget.style.background = 'var(--brand-blue)';
+              e.currentTarget.style.transform = 'scale(1)';
+            }}>
+              <span>{lang === 'ja' ? 'イベントを見る' : lang === 'easy' ? 'イベントを みる' : 'See events'}</span>
+              <span style={{fontSize: 16, opacity: 0.9}}>→</span>
+            </a>
+            <a href={auth.user ? '#/mypage' : '#/signup'} style={{
+              display: 'flex', alignItems: 'center', justifyContent: 'space-between',
+              padding: 'var(--space-4) var(--space-5)',
+              background: 'transparent',
+              color: '#fff',
+              textDecoration: 'none',
+              fontSize: 'var(--font-body)', fontWeight: 600,
+              fontFamily: 'var(--jp)',
+              letterSpacing: 'var(--ls-wide)',
+              border: '1.5px solid var(--brand-line-mid)',
+              transition: 'all var(--t-base)',
+              transition: 'all 0.2s',
+            }}
+            onTouchStart={(e) => { e.currentTarget.style.borderColor = 'rgba(255,255,255,0.7)'; }}
+            onTouchEnd={(e) => { e.currentTarget.style.borderColor = 'rgba(255,255,255,0.4)'; }}>
+              <span>{auth.user
+                ? (lang === 'ja' ? 'マイページ' : lang === 'easy' ? 'マイページ' : 'My Page')
+                : (lang === 'ja' ? '会員登録' : lang === 'easy' ? 'とうろく' : 'Sign up')}</span>
+              <span style={{fontSize: 16, opacity: 0.7}}>→</span>
+            </a>
+          </div>
         </div>
 
-        {/* TOP NEWS (あれば) */}
+        {/* TOP NEWS (あれば) — リッチなプレゼンテーション */}
         {topNews && (
           <a href={`#/news/${topNews.id}`} style={{
             display: 'block',
-            padding: '14px 20px',
-            background: '#0a2960',
-            color: '#fff',
+            padding: '20px 24px 24px',
+            background: '#f5f0e8',
+            color: '#0a2960',
             textDecoration: 'none',
-            borderTop: '1px solid rgba(255,255,255,0.15)',
+            position: 'relative',
           }}>
             <div style={{
-              fontSize: 10, letterSpacing: '0.2em', opacity: 0.7, marginBottom: 4,
-              fontFamily: 'var(--jp)',
-            }}>NEWS</div>
+              display: 'flex', alignItems: 'center', gap: 8,
+              marginBottom: 8,
+            }}>
+              <span style={{
+                display: 'inline-block', width: 24, height: 1,
+                background: '#0a2960',
+              }}/>
+              <span style={{
+                fontSize: 10, letterSpacing: '0.3em',
+                fontFamily: 'var(--mono)',
+                color: '#0a2960',
+                fontWeight: 600,
+              }}>LATEST</span>
+            </div>
             <div style={{
-              fontSize: 13, lineHeight: 1.5,
+              fontSize: 14, lineHeight: 1.55, fontWeight: 500,
               fontFamily: 'var(--jp)',
+              letterSpacing: '0.01em',
+              marginBottom: 8,
             }}>{topNews.title || ''}</div>
+            <div style={{
+              fontSize: 11, opacity: 0.65,
+              fontFamily: 'var(--mono)',
+              letterSpacing: '0.04em',
+            }}>{topNews.publishedAt || ''} {topNews.category ? '· ' + topNews.category : ''}</div>
           </a>
         )}
       </section>
@@ -4649,30 +5131,101 @@ function ConceptSection({ settings, lang, t }) {
   if (conceptVp.isMobile) {
     return (
       <section data-section="concept" style={{
-        background: '#0a2960',
-        padding: '60px 20px',
+        background: 'linear-gradient(180deg, var(--brand-navy) 0%, #1a3a7a 100%)',
+        padding: 'var(--section-py) 0 var(--space-12)',
         color: '#fff',
+        position: 'relative',
+        overflow: 'hidden',
       }}>
+        {/* 装飾: 右上の小さな円 (ブランドアクセント) */}
         <div style={{
-          fontSize: 11, letterSpacing: '0.3em', opacity: 0.7, marginBottom: 16,
-          fontFamily: 'var(--jp)',
-        }}>CONCEPT</div>
-        <h2 style={{
-          fontSize: 28, lineHeight: 1.4, fontWeight: 600, margin: '0 0 8px',
-          fontFamily: '"Noto Serif JP", serif',
-          letterSpacing: '0.02em',
-        }}>{mainEn}</h2>
-        <p style={{
-          fontSize: 16, lineHeight: 1.7, margin: '0 0 24px',
-          fontFamily: 'var(--jp)',
-          fontWeight: 500,
-          color: '#cfdcf2',
-        }}>{mainJa}</p>
-        <p style={{
-          fontSize: 13, lineHeight: 1.8, opacity: 0.85,
-          fontFamily: 'var(--jp)',
-          whiteSpace: 'pre-wrap',
-        }}>{lang === 'ja' || lang === 'easy' ? bodyJa : bodyEn}</p>
+          position: 'absolute',
+          top: 60, right: -40,
+          width: 160, height: 160,
+          borderRadius: '50%',
+          background: 'radial-gradient(circle at 30% 30%, rgba(44, 137, 232, 0.3), transparent 70%)',
+          pointerEvents: 'none',
+        }}/>
+        {/* 装飾: 左下の細線 */}
+        <div style={{
+          position: 'absolute',
+          left: 0, bottom: 60,
+          width: 40, height: 1,
+          background: 'rgba(255,255,255,0.3)',
+          pointerEvents: 'none',
+        }}/>
+
+        <div style={{ position: 'relative', padding: '0 var(--section-px)' }}>
+          <Reveal y={20} blur={false}>
+            {/* セクションラベル */}
+            <div style={{
+              display: 'flex', alignItems: 'center', gap: 'var(--space-3)',
+              marginBottom: 'var(--space-7)',
+            }}>
+              <span style={{
+                display: 'inline-block', width: 28, height: 1,
+                background: 'rgba(255,255,255,0.5)',
+              }}/>
+              <span style={{
+                fontSize: 'var(--font-label)', letterSpacing: 'var(--ls-mono-xl)',
+                fontFamily: 'var(--mono)',
+                color: 'rgba(255,255,255,0.85)',
+                fontWeight: 600,
+              }}>OUR CONCEPT</span>
+            </div>
+          </Reveal>
+
+          <Reveal y={20} blur={false} delay={100}>
+            {/* メインコピー (英語、大きく) */}
+            <h2 style={{
+              fontSize: 'var(--font-display)', lineHeight: 'var(--lh-tight)', fontWeight: 600,
+              margin: '0 0 var(--space-5)',
+              fontFamily: '"Noto Serif JP", "Playfair Display", serif',
+              letterSpacing: 'var(--ls-tight)',
+            }}>{mainEn}</h2>
+          </Reveal>
+
+          <Reveal y={20} blur={false} delay={200}>
+            {/* サブコピー (日本語、装飾的) */}
+            <div style={{
+              fontSize: 'var(--font-lead)', lineHeight: 'var(--lh-normal)', fontWeight: 500,
+              margin: '0 0 var(--space-9)',
+              fontFamily: 'var(--jp)',
+              color: '#cfdcf2',
+              letterSpacing: 'var(--ls-normal)',
+            }}>{mainJa}</div>
+          </Reveal>
+
+          <Reveal y={15} blur={false} delay={280}>
+            {/* 区切り線 (装飾) */}
+            <div style={{
+              display: 'flex', alignItems: 'center', gap: 'var(--space-2)',
+              margin: '0 0 var(--space-7)',
+            }}>
+              <span style={{
+                display: 'inline-block', width: 32, height: 1,
+                background: 'rgba(255,255,255,0.35)',
+              }}/>
+              <span style={{
+                display: 'inline-block', width: 4, height: 4,
+                background: 'rgba(255,255,255,0.5)',
+                borderRadius: '50%',
+              }}/>
+            </div>
+          </Reveal>
+
+          <Reveal y={15} blur={false} delay={350}>
+            {/* 本文 */}
+            <p style={{
+              fontSize: 'var(--font-body)', lineHeight: 'var(--lh-loose)', margin: 0,
+              fontFamily: 'var(--jp)',
+              color: 'rgba(255,255,255,0.88)',
+              whiteSpace: 'pre-wrap',
+              letterSpacing: 'var(--ls-wide)',
+              fontWeight: 400,
+            }}>{lang === 'ja' || lang === 'easy' ? bodyJa : bodyEn}</p>
+          </Reveal>
+        </div>
       </section>
     );
   }
@@ -5000,47 +5553,123 @@ function EventsEntrySection({ settings, lang, t }) {
   // (Phase 13.3) モバイル時はシンプル版
   if (eventsEntryVp.isMobile) {
     const heading = lang === 'en' ? 'Events' : lang === 'easy' ? 'イベント' : 'イベント';
+    const subline = lang === 'en' ? 'Small. Daily. Real.'
+                  : lang === 'easy' ? 'ちいさく、ちかく、リアルに'
+                  : '小さく、近く、リアルに。';
     return (
       <section data-section="events-entry" style={{
-        background: bgImage
-          ? `linear-gradient(180deg, rgba(255,255,255,0.92) 0%, rgba(245,247,250,0.94) 100%), center / cover no-repeat url("${bgImage}")`
-          : '#fafbfc',
-        padding: '60px 20px',
+        position: 'relative',
+        background: '#0a2960',
+        minHeight: 380,
+        display: 'flex',
+        flexDirection: 'column',
+        justifyContent: 'flex-end',
+        overflow: 'hidden',
       }}>
+        {/* 背景画像 */}
+        {bgImage && (
+          <img src={bgImage} alt="" style={{
+            position: 'absolute', inset: 0,
+            width: '100%', height: '100%',
+            objectFit: 'cover',
+            display: 'block',
+          }}/>
+        )}
+        {/* グラデーションオーバーレイ */}
         <div style={{
-          fontSize: 11, letterSpacing: '0.3em', color: '#6b7280', marginBottom: 12,
-          fontFamily: 'var(--jp)',
-        }}>EVENTS</div>
-        <h2 style={{
-          fontSize: 26, lineHeight: 1.3, fontWeight: 600, margin: '0 0 20px',
-          fontFamily: '"Noto Serif JP", serif',
-          color: '#0a2960',
-          letterSpacing: '0.02em',
-        }}>{heading}</h2>
-        <div style={{ display: 'grid', gap: 10 }}>
-          <a href={ctaLink} onClick={(e) => handleCta(e, ctaLink)} style={{
-            display: 'block',
-            padding: '14px 20px',
-            background: '#2c89e8',
-            color: '#fff',
-            textDecoration: 'none',
-            fontSize: 14, fontWeight: 600,
-            fontFamily: 'var(--jp)',
-            letterSpacing: '0.04em',
-            textAlign: 'center',
-          }}>{ctaText} →</a>
-          <a href={galleryLink} onClick={(e) => handleCta(e, galleryLink)} style={{
-            display: 'block',
-            padding: '14px 20px',
-            background: 'transparent',
-            color: '#0a2960',
-            textDecoration: 'none',
-            fontSize: 13, fontWeight: 600,
-            fontFamily: 'var(--jp)',
-            letterSpacing: '0.04em',
-            textAlign: 'center',
-            border: '1.5px solid #0a2960',
-          }}>{galleryText} →</a>
+          position: 'absolute', inset: 0,
+          background: 'linear-gradient(180deg, rgba(10,41,96,0.4) 0%, rgba(10,41,96,0.85) 75%, rgba(10,41,96,0.95) 100%)',
+        }}/>
+
+        <div style={{ position: 'relative', padding: 'var(--section-py) var(--section-px) var(--space-9)', color: '#fff' }}>
+          <Reveal y={20} blur={false}>
+            {/* セクションラベル */}
+            <div style={{
+              display: 'flex', alignItems: 'center', gap: 'var(--space-3)',
+              marginBottom: 'var(--space-5)',
+            }}>
+              <span style={{
+                display: 'inline-block', width: 28, height: 1,
+                background: 'rgba(255,255,255,0.5)',
+              }}/>
+              <span style={{
+                fontSize: 'var(--font-label)', letterSpacing: 'var(--ls-mono-xl)',
+                fontFamily: 'var(--mono)',
+                color: 'rgba(255,255,255,0.85)',
+                fontWeight: 600,
+              }}>EVENTS</span>
+            </div>
+          </Reveal>
+
+          <Reveal y={20} blur={false} delay={100}>
+            <h2 style={{
+              fontSize: 'var(--font-display)', lineHeight: 'var(--lh-tight)', fontWeight: 600,
+              margin: '0 0 var(--space-3)',
+              fontFamily: '"Noto Serif JP", "Playfair Display", serif',
+              letterSpacing: 'var(--ls-tight)',
+            }}>{heading}</h2>
+          </Reveal>
+
+          <Reveal y={20} blur={false} delay={200}>
+            <div style={{
+              fontSize: 'var(--font-body)', lineHeight: 'var(--lh-normal)',
+              color: 'rgba(255,255,255,0.85)',
+              fontFamily: 'var(--jp)',
+              marginBottom: 'var(--space-7)',
+              letterSpacing: 'var(--ls-wide)',
+            }}>{subline}</div>
+          </Reveal>
+
+          <Reveal y={15} blur={false} delay={300}>
+            <div style={{ display: 'grid', gap: 'var(--space-3)' }}>
+              <a href={ctaLink} onClick={(e) => handleCta(e, ctaLink)} style={{
+                display: 'flex', alignItems: 'center', justifyContent: 'space-between',
+                padding: 'var(--space-4) var(--space-5)',
+                background: '#fff',
+                color: 'var(--brand-navy)',
+                textDecoration: 'none',
+                fontSize: 'var(--font-body)', fontWeight: 600,
+                fontFamily: 'var(--jp)',
+                letterSpacing: 'var(--ls-wide)',
+                transition: 'all var(--t-base)',
+                transform: 'translateY(0)',
+              }}
+              onTouchStart={(e) => {
+                e.currentTarget.style.background = '#e8eef8';
+                e.currentTarget.style.transform = 'scale(0.98)';
+              }}
+              onTouchEnd={(e) => {
+                e.currentTarget.style.background = '#fff';
+                e.currentTarget.style.transform = 'scale(1)';
+              }}>
+                <span>{ctaText}</span>
+                <span style={{fontSize: 16, opacity: 0.7, transition: 'transform var(--t-base)'}}>→</span>
+              </a>
+              <a href={galleryLink} onClick={(e) => handleCta(e, galleryLink)} style={{
+                display: 'flex', alignItems: 'center', justifyContent: 'space-between',
+                padding: 'var(--space-4) var(--space-5)',
+                background: 'transparent',
+                color: '#fff',
+                textDecoration: 'none',
+                fontSize: 'var(--font-body-sm)', fontWeight: 600,
+                fontFamily: 'var(--jp)',
+                letterSpacing: 'var(--ls-wide)',
+                border: '1.5px solid var(--brand-line-mid)',
+                transition: 'all var(--t-base)',
+              }}
+              onTouchStart={(e) => {
+                e.currentTarget.style.borderColor = '#fff';
+                e.currentTarget.style.transform = 'scale(0.98)';
+              }}
+              onTouchEnd={(e) => {
+                e.currentTarget.style.borderColor = 'var(--brand-line-mid)';
+                e.currentTarget.style.transform = 'scale(1)';
+              }}>
+                <span>{galleryText}</span>
+                <span style={{fontSize: 14, opacity: 0.7}}>→</span>
+              </a>
+            </div>
+          </Reveal>
         </div>
       </section>
     );
@@ -5372,51 +6001,133 @@ function NewsSection({ settings, newsList, lang, t }) {
   if (newsVp.isMobile) {
     return (
       <section data-section="news" style={{
-        background: '#0a2960',
-        padding: '60px 20px',
-        color: '#fff',
+        background: 'var(--brand-paper)',
+        padding: 'var(--section-py) var(--section-px) var(--space-12)',
+        color: 'var(--brand-navy)',
+        position: 'relative',
       }}>
-        <div style={{
-          fontSize: 11, letterSpacing: '0.3em', opacity: 0.7, marginBottom: 12,
-          fontFamily: 'var(--jp)',
-        }}>NEWS</div>
-        <h2 style={{
-          fontSize: 24, lineHeight: 1.3, fontWeight: 600, margin: '0 0 24px',
-          fontFamily: '"Noto Serif JP", serif',
-          letterSpacing: '0.02em',
-        }}>{labelEn}</h2>
+        <Reveal y={20} blur={false}>
+          {/* セクションラベル */}
+          <div style={{
+            display: 'flex', alignItems: 'center', gap: 'var(--space-3)',
+            marginBottom: 'var(--space-5)',
+          }}>
+            <span style={{
+              display: 'inline-block', width: 28, height: 1,
+              background: 'var(--brand-navy)',
+              opacity: 0.4,
+            }}/>
+            <span style={{
+              fontSize: 'var(--font-label)', letterSpacing: 'var(--ls-mono-xl)',
+              fontFamily: 'var(--mono)',
+              color: 'var(--brand-navy)',
+              fontWeight: 600,
+            }}>NEWS</span>
+          </div>
+        </Reveal>
+        <Reveal y={20} blur={false} delay={100}>
+          <h2 style={{
+            fontSize: 'var(--font-h1)', lineHeight: 'var(--lh-tight)', fontWeight: 600,
+            margin: '0 0 var(--space-2)',
+            fontFamily: '"Noto Serif JP", "Playfair Display", serif',
+            letterSpacing: 'var(--ls-tight)',
+            color: 'var(--brand-navy)',
+          }}>{labelEn}</h2>
+        </Reveal>
+        <Reveal y={15} blur={false} delay={180}>
+          <div style={{
+            fontSize: 'var(--font-body-sm)', opacity: 0.6,
+            fontFamily: 'var(--jp)',
+            marginBottom: 'var(--space-7)',
+            letterSpacing: 'var(--ls-wide)',
+          }}>{labelJa}</div>
+        </Reveal>
+
         {items.length === 0 ? (
           <p style={{
-            fontSize: 13, opacity: 0.7,
+            fontSize: 'var(--font-body-sm)', opacity: 0.6,
             fontFamily: 'var(--jp)',
           }}>{lang === 'en' ? 'No news yet.' : 'お知らせはまだありません'}</p>
         ) : (
-          <div style={{ display: 'grid', gap: 12 }}>
-            {items.map(n => {
+          <div style={{ display: 'grid', gap: 0 }}>
+            {items.map((n, i) => {
               const title = lang === 'en' ? (n.title_en || n.title)
                           : lang === 'easy' ? (n.title_easy || n.title)
                           : n.title;
               return (
-                <a key={n.id} href={`#/news/${n.id}`} style={{
-                  display: 'block',
-                  padding: '14px 0',
-                  borderBottom: '1px solid rgba(255,255,255,0.15)',
-                  textDecoration: 'none',
-                  color: '#fff',
-                }}>
-                  <div style={{
-                    fontSize: 11, opacity: 0.6, marginBottom: 4,
-                    fontFamily: 'var(--jp)',
-                  }}>{n.publishedAt || ''} · {n.category || ''}</div>
-                  <div style={{
-                    fontSize: 14, lineHeight: 1.5, fontWeight: 500,
-                    fontFamily: 'var(--jp)',
-                  }}>{title}</div>
-                </a>
+                <Reveal key={n.id} y={15} blur={false} delay={250 + i * 80}>
+                  <a href={`#/news/${n.id}`} style={{
+                    display: 'flex', alignItems: 'flex-start', gap: 'var(--space-4)',
+                    padding: 'var(--space-5) 0',
+                    borderTop: i === 0 ? '1px solid var(--brand-line)' : 'none',
+                    borderBottom: '1px solid var(--brand-line)',
+                    textDecoration: 'none',
+                    color: 'var(--brand-navy)',
+                    transition: 'all var(--t-base)',
+                  }}
+                  onTouchStart={(e) => {
+                    e.currentTarget.style.background = 'rgba(10, 41, 96, 0.03)';
+                    e.currentTarget.style.paddingLeft = 'var(--space-2)';
+                  }}
+                  onTouchEnd={(e) => {
+                    e.currentTarget.style.background = 'transparent';
+                    e.currentTarget.style.paddingLeft = '0';
+                  }}>
+                    {/* 番号 */}
+                    <div style={{
+                      flexShrink: 0,
+                      fontSize: 'var(--font-caption)',
+                      fontFamily: 'var(--mono)',
+                      opacity: 0.5,
+                      fontWeight: 600,
+                      paddingTop: 2,
+                      minWidth: 24,
+                      letterSpacing: 'var(--ls-mono)',
+                    }}>0{i + 1}</div>
+                    <div style={{ flex: 1, minWidth: 0 }}>
+                      <div style={{
+                        fontSize: 'var(--font-label)', opacity: 0.55, marginBottom: 6,
+                        fontFamily: 'var(--mono)',
+                        letterSpacing: 'var(--ls-mono)',
+                      }}>{n.publishedAt || ''}{n.category ? '  ·  ' + n.category : ''}</div>
+                      <div style={{
+                        fontSize: 15, lineHeight: 'var(--lh-normal)', fontWeight: 500,
+                        fontFamily: 'var(--jp)',
+                        letterSpacing: 'var(--ls-normal)',
+                      }}>{title}</div>
+                    </div>
+                    <span style={{
+                      flexShrink: 0,
+                      fontSize: 14, opacity: 0.4,
+                      paddingTop: 2,
+                      transition: 'transform var(--t-base)',
+                    }}>→</span>
+                  </a>
+                </Reveal>
               );
             })}
           </div>
         )}
+
+        <Reveal y={15} blur={false} delay={500}>
+          {/* もっと見る */}
+          <a href="#/news" style={{
+            display: 'inline-flex', alignItems: 'center', gap: 'var(--space-2)',
+            marginTop: 'var(--space-7)',
+            fontSize: 'var(--font-caption)', fontWeight: 600,
+            fontFamily: 'var(--mono)',
+            color: 'var(--brand-navy)',
+            textDecoration: 'none',
+            letterSpacing: 'var(--ls-mono-l)',
+            padding: 'var(--space-3) 0',
+            borderBottom: '1px solid var(--brand-navy)',
+            transition: 'all var(--t-base)',
+          }}
+          onTouchStart={(e) => { e.currentTarget.style.opacity = '0.6'; }}
+          onTouchEnd={(e) => { e.currentTarget.style.opacity = '1'; }}>
+            {lang === 'en' ? 'ALL NEWS' : lang === 'easy' ? 'すべて' : 'すべての記事'} →
+          </a>
+        </Reveal>
       </section>
     );
   }
@@ -5863,73 +6574,151 @@ function UpcomingEventsSection({ settings, events, lang, t }) {
   if (upcomingVp.isMobile) {
     return (
       <section data-section="upcoming-events" style={{
-        background: '#fafbfc',
-        padding: '60px 20px',
+        background: 'var(--brand-navy)',
+        padding: 'var(--section-py) var(--section-px) var(--space-12)',
+        color: '#fff',
+        position: 'relative',
+        overflow: 'hidden',
       }}>
+        {/* 装飾: 左の縦線 */}
         <div style={{
-          fontSize: 11, letterSpacing: '0.3em', color: '#6b7280', marginBottom: 12,
-          fontFamily: 'var(--jp)',
-        }}>UPCOMING</div>
-        <h2 style={{
-          fontSize: 24, lineHeight: 1.3, fontWeight: 600, margin: '0 0 24px',
-          fontFamily: '"Noto Serif JP", serif',
-          color: '#0a2960',
-          letterSpacing: '0.02em',
-        }}>{labelJa}</h2>
-        <div style={{ display: 'grid', gap: 12 }}>
-          {items.map(ev => {
-            const bg = normalizeImageUrl(ev.heroImageUrl || ev.posterUrl);
-            return (
-              <a key={ev.id} href={`#/events/${ev.id}`} style={{
-                display: 'block',
-                background: '#0a2960',
-                aspectRatio: '16 / 10',
-                position: 'relative',
-                textDecoration: 'none',
-                overflow: 'hidden',
-              }}>
-                {/* 画像 (img タグ方式、Google Drive Thumbnail 対策) */}
-                {bg && (
-                  <img src={bg} alt="" style={{
-                    position: 'absolute', inset: 0,
-                    width: '100%', height: '100%',
-                    objectFit: 'cover',
-                    display: 'block',
-                  }}/>
-                )}
-                <div style={{
-                  position: 'absolute', inset: 0,
-                  background: 'linear-gradient(180deg, rgba(0,0,0,0) 30%, rgba(10,41,96,0.85) 100%)',
-                }}/>
-                <div style={{
-                  position: 'absolute', left: 14, right: 14, bottom: 12,
-                  color: '#fff',
+          position: 'absolute',
+          left: 0, top: 88, bottom: 96,
+          width: 1,
+          background: 'rgba(255,255,255,0.15)',
+        }}/>
+
+        <Reveal y={20} blur={false}>
+          {/* セクションラベル */}
+          <div style={{
+            display: 'flex', alignItems: 'center', gap: 'var(--space-3)',
+            marginBottom: 'var(--space-5)',
+          }}>
+            <span style={{
+              display: 'inline-block', width: 28, height: 1,
+              background: 'rgba(255,255,255,0.5)',
+            }}/>
+            <span style={{
+              fontSize: 'var(--font-label)', letterSpacing: 'var(--ls-mono-xl)',
+              fontFamily: 'var(--mono)',
+              color: 'rgba(255,255,255,0.85)',
+              fontWeight: 600,
+            }}>UPCOMING</span>
+          </div>
+        </Reveal>
+        <Reveal y={20} blur={false} delay={100}>
+          <h2 style={{
+            fontSize: 'var(--font-h1)', lineHeight: 'var(--lh-tight)', fontWeight: 600, margin: '0 0 var(--space-2)',
+            fontFamily: '"Noto Serif JP", "Playfair Display", serif',
+            letterSpacing: 'var(--ls-tight)',
+          }}>{labelJa}</h2>
+        </Reveal>
+        <Reveal y={15} blur={false} delay={180}>
+          <div style={{
+            fontSize: 'var(--font-body-sm)', opacity: 0.6,
+            fontFamily: 'var(--mono)',
+            marginBottom: 'var(--space-7)',
+            letterSpacing: 'var(--ls-mono)',
+          }}>{labelEn}</div>
+        </Reveal>
+
+        {items.length === 0 ? (
+          <p style={{ fontSize: 'var(--font-body-sm)', opacity: 0.6, fontFamily: 'var(--jp)' }}>
+            {lang === 'en' ? 'No upcoming events.' : '近日開催のイベントはありません'}
+          </p>
+        ) : (
+          <div style={{ display: 'grid', gap: 'var(--space-4)' }}>
+            {items.map((ev, i) => {
+              const bg = normalizeImageUrl(ev.heroImageUrl || ev.posterUrl);
+              return (
+                <Reveal key={ev.id} y={20} blur={false} delay={250 + i * 100}>
+                <a href={`#/events/${ev.id}`} style={{
+                  display: 'block',
+                  background: '#06183f',
+                  position: 'relative',
+                  textDecoration: 'none',
+                  overflow: 'hidden',
+                  border: '1px solid rgba(255,255,255,0.08)',
                 }}>
+                  {/* 画像エリア */}
                   <div style={{
-                    fontSize: 10, opacity: 0.8, marginBottom: 4,
-                    fontFamily: 'var(--jp)',
-                    letterSpacing: '0.04em',
-                  }}>{ev.date || ''}{ev.venue ? ' · ' + ev.venue : ''}</div>
-                  <div style={{
-                    fontSize: 15, lineHeight: 1.4, fontWeight: 600,
-                    fontFamily: 'var(--jp)',
-                  }}>{ev.title || ''}</div>
-                </div>
-              </a>
-            );
-          })}
-        </div>
-        <a href="#/events" style={{
-          display: 'block',
-          marginTop: 20,
-          padding: '12px 16px',
-          color: '#0a2960',
-          textDecoration: 'none',
-          fontSize: 13, fontWeight: 600,
-          fontFamily: 'var(--jp)',
-          textAlign: 'center',
-          border: '1.5px solid #0a2960',
-        }}>{lang === 'en' ? 'See all events' : 'すべてのイベントを見る'} →</a>
+                    position: 'relative',
+                    width: '100%',
+                    aspectRatio: '16 / 10',
+                    background: '#06183f',
+                    overflow: 'hidden',
+                  }}>
+                    {bg && (
+                      <img src={bg} alt="" style={{
+                        position: 'absolute', inset: 0,
+                        width: '100%', height: '100%',
+                        objectFit: 'cover',
+                        display: 'block',
+                      }}/>
+                    )}
+                    {/* 番号バッジ (左上) */}
+                    <div style={{
+                      position: 'absolute', top: 12, left: 12,
+                      padding: '4px 10px',
+                      background: 'rgba(10,41,96,0.85)',
+                      backdropFilter: 'blur(8px)',
+                      color: '#fff',
+                      fontSize: 10, fontWeight: 600,
+                      fontFamily: 'var(--mono)',
+                      letterSpacing: '0.1em',
+                    }}>0{i + 1}</div>
+                  </div>
+
+                  {/* 情報エリア (画像下) */}
+                  <div style={{ padding: '16px 18px 20px' }}>
+                    <div style={{
+                      fontSize: 11, opacity: 0.7, marginBottom: 8,
+                      fontFamily: 'var(--mono)',
+                      letterSpacing: '0.08em',
+                    }}>{ev.date || ''}{ev.venue ? '  ·  ' + ev.venue : ''}</div>
+                    <div style={{
+                      fontSize: 16, lineHeight: 1.45, fontWeight: 600,
+                      fontFamily: 'var(--jp)',
+                      marginBottom: 12,
+                      letterSpacing: '0.01em',
+                    }}>{ev.title || ''}</div>
+                    <div style={{
+                      display: 'inline-flex', alignItems: 'center', gap: 6,
+                      fontSize: 'var(--font-caption)', fontWeight: 600,
+                      fontFamily: 'var(--mono)',
+                      color: 'rgba(255,255,255,0.7)',
+                      letterSpacing: 'var(--ls-mono)',
+                    }}>
+                      <span>{lang === 'en' ? 'VIEW' : '詳細'}</span>
+                      <span>→</span>
+                    </div>
+                  </div>
+                </a>
+                </Reveal>
+              );
+            })}
+          </div>
+        )}
+
+        <Reveal y={15} blur={false} delay={500}>
+          {/* もっと見る */}
+          <a href="#/events" style={{
+            display: 'inline-flex', alignItems: 'center', gap: 'var(--space-2)',
+            marginTop: 'var(--space-7)',
+            fontSize: 'var(--font-caption)', fontWeight: 600,
+            fontFamily: 'var(--mono)',
+            color: '#fff',
+            textDecoration: 'none',
+            letterSpacing: 'var(--ls-mono-l)',
+            padding: 'var(--space-3) 0',
+            borderBottom: '1px solid #fff',
+            transition: 'all var(--t-base)',
+          }}
+          onTouchStart={(e) => { e.currentTarget.style.opacity = '0.7'; }}
+          onTouchEnd={(e) => { e.currentTarget.style.opacity = '1'; }}>
+            {lang === 'en' ? 'ALL EVENTS' : 'すべてのイベント'} →
+          </a>
+        </Reveal>
       </section>
     );
   }
@@ -8013,7 +8802,8 @@ function PageEventDetail({ lang, t, eventId }) {
 
   const handleRegister = async () => {
     if (!auth.user) {
-      // 未ログイン: ログインページへ
+      // 未ログイン: ログインページへ (戻り先付き)
+      try { sessionStorage.setItem('connecta_redirect_after_login', `#/events/${eventId}/register`); } catch(e) {}
       window.location.hash = '/login';
       return;
     }
@@ -8024,30 +8814,8 @@ function PageEventDetail({ lang, t, eventId }) {
       });
       return;
     }
-    if (isFree) {
-      // 無料 → 確認のみ
-      const ok = await dialog.confirm({
-        title: '参加申込の確認',
-        message: 'このイベントに参加します。\nよろしいですか？',
-        confirmLabel: '参加する',
-        cancelLabel: 'キャンセル',
-      });
-      if (!ok) return;
-      await submitRegistration('');
-    } else if (isPaid) {
-      // 有料 → モーダルで決済方法選択
-      setRegisterModalOpen(true);
-    } else {
-      // 料金タイプ不明 → 確認のみ
-      const ok = await dialog.confirm({
-        title: '参加申込の確認',
-        message: 'このイベントに参加します。\nよろしいですか？',
-        confirmLabel: '参加する',
-        cancelLabel: 'キャンセル',
-      });
-      if (!ok) return;
-      await submitRegistration('');
-    }
+    // (Part B) 申込ページへ遷移 (無料/有料/不明すべて統一)
+    window.location.hash = `/events/${eventId}/register`;
   };
 
   // 実際のAPI呼び出し
@@ -8770,12 +9538,12 @@ function PageEventDetail({ lang, t, eventId }) {
                     alignItems: 'center',
                     gap: 12,
                   }}>
-                    <span style={{ fontSize: 20 }}>💳</span>
+                    <Icon name="credit-card" size={22} />
                     <div style={{ flex: 1 }}>
                       <div style={{ fontWeight: 700, marginBottom: 2 }}>{lang === 'en' ? 'Pay now' : lang === 'easy' ? 'いま はらう' : '事前決済'}</div>
                       <div style={{ fontSize: 11, color: '#6b7280', fontWeight: 400 }}>{lang === 'en' ? 'Pay now by credit card' : lang === 'easy' ? 'クレジットカードで いま はらう' : 'クレジットカードで今すぐ支払う'}</div>
                     </div>
-                    <span style={{ fontSize: 16 }}>→</span>
+                    <Icon name="arrow-right" size={16} />
                   </button>
 
                   <button onClick={() => submitRegistration('当日払い')} disabled={registerStatus === 'submitting'} style={{
@@ -8794,12 +9562,12 @@ function PageEventDetail({ lang, t, eventId }) {
                     alignItems: 'center',
                     gap: 12,
                   }}>
-                    <span style={{ fontSize: 20 }}>💴</span>
+                    <Icon name="cash" size={22} />
                     <div style={{ flex: 1 }}>
                       <div style={{ fontWeight: 700, marginBottom: 2 }}>{lang === 'en' ? 'Pay on the day' : lang === 'easy' ? 'とうじつ はらう' : '当日払い'}</div>
                       <div style={{ fontSize: 11, color: '#6b7280', fontWeight: 400 }}>{lang === 'en' ? 'Cash at venue (invoice via email)' : lang === 'easy' ? 'かいじょうで げんきん (せいきゅうしょは メール)' : '会場で現金支払い (請求書をメール送信)'}</div>
                     </div>
-                    <span style={{ fontSize: 16 }}>→</span>
+                    <Icon name="arrow-right" size={16} />
                   </button>
                 </div>
 
@@ -10277,6 +11045,8 @@ function PageLogin({ lang, t }) {
   const [password, setPassword] = React.useState('');
   const [submitting, setSubmitting] = React.useState(false);
   const [error, setError] = React.useState('');
+  // (Part A) プライバシー同意
+  const [agreedPrivacy, setAgreedPrivacy] = React.useState(false);
 
   const handleSubmit = async (e) => {
     if (e) e.preventDefault();
@@ -10285,10 +11055,24 @@ function PageLogin({ lang, t }) {
       setError(at.loginErr);
       return;
     }
+    if (!agreedPrivacy) {
+      setError(lang === 'en' ? 'Please agree to the Privacy Policy.' : lang === 'easy' ? 'プライバシーポリシーに どうい してください。' : 'プライバシーポリシーに同意してください。');
+      return;
+    }
     setSubmitting(true);
     try {
       await auth.login(email, password);
-      window.location.hash = '/mypage';
+      // (Part B) リダイレクト先があれば優先
+      let redirect = '/mypage';
+      try {
+        const saved = sessionStorage.getItem('connecta_redirect_after_login');
+        if (saved) {
+          sessionStorage.removeItem('connecta_redirect_after_login');
+          // saved は既に '#/...' 形式なので hash 部分を取り出す
+          redirect = saved.startsWith('#') ? saved.slice(1) : saved;
+        }
+      } catch(e) {}
+      window.location.hash = redirect;
     } catch (err) {
       setError(err.message || at.loginFailed);
       setSubmitting(false);
@@ -10328,8 +11112,44 @@ function PageLogin({ lang, t }) {
           }}>{error}</div>
         )}
 
+        {/* (Part A) プライバシーポリシー同意チェック */}
+        <label style={{
+          display: 'flex', alignItems: 'flex-start', gap: 10,
+          cursor: 'pointer',
+          padding: '8px 0',
+        }}>
+          <input
+            type="checkbox"
+            checked={agreedPrivacy}
+            onChange={(e) => setAgreedPrivacy(e.target.checked)}
+            style={{
+              width: 18, height: 18,
+              marginTop: 2,
+              accentColor: '#0a2960',
+              cursor: 'pointer',
+              flexShrink: 0,
+            }}
+          />
+          <span style={{
+            fontSize: 13, lineHeight: 1.55,
+            fontFamily: 'var(--jp)',
+            color: '#374151',
+          }}>
+            <a href="#/privacy" target="_blank" rel="noopener noreferrer" style={{
+              color: '#0a2960',
+              textDecoration: 'underline',
+              fontWeight: 500,
+            }}>
+              {lang === 'en' ? 'Privacy Policy' : lang === 'easy' ? 'プライバシーポリシー' : 'プライバシーポリシー'}
+            </a>
+            <span style={{ color: '#6b7280' }}>
+              {lang === 'en' ? ' to agree' : lang === 'easy' ? ' に どうい する' : ' に同意する'}
+            </span>
+          </span>
+        </label>
+
         <div style={{ marginTop: 8 }}>
-          <AuthButton onClick={handleSubmit} disabled={submitting}>
+          <AuthButton onClick={handleSubmit} disabled={submitting || !agreedPrivacy}>
             {submitting ? at.loginIn : at.loginBtn}
             <span style={{ marginLeft: 'auto' }}>→</span>
           </AuthButton>
@@ -10381,6 +11201,9 @@ function PageSignup({ lang, t }) {
   const [submitting, setSubmitting] = React.useState(false);
   const [error, setError] = React.useState('');
   const [sent, setSent] = React.useState(false);
+  // (Part A) プライバシー同意
+  const [agreedPrivacy, setAgreedPrivacy] = React.useState(false);
+  const [agreedTerms, setAgreedTerms] = React.useState(false);
 
   const handleSubmit = async (e) => {
     if (e) e.preventDefault();
@@ -10395,6 +11218,10 @@ function PageSignup({ lang, t }) {
     }
     if (password !== passwordConfirm) {
       setError(at.pwMismatch);
+      return;
+    }
+    if (!agreedPrivacy || !agreedTerms) {
+      setError(lang === 'en' ? 'Please agree to the Privacy Policy and Terms.' : lang === 'easy' ? 'プライバシーポリシーと りようきやくに どうい してください。' : 'プライバシーポリシーと利用規約に同意してください。');
       return;
     }
     setSubmitting(true);
@@ -10487,8 +11314,82 @@ function PageSignup({ lang, t }) {
           }}>{error}</div>
         )}
 
+        {/* (Part A) プライバシーポリシー & 利用規約 同意 */}
+        <div style={{ display: 'grid', gap: 10, marginTop: 4 }}>
+          <label style={{
+            display: 'flex', alignItems: 'flex-start', gap: 10,
+            cursor: 'pointer',
+            padding: '4px 0',
+          }}>
+            <input
+              type="checkbox"
+              checked={agreedPrivacy}
+              onChange={(e) => setAgreedPrivacy(e.target.checked)}
+              style={{
+                width: 18, height: 18,
+                marginTop: 2,
+                accentColor: '#0a2960',
+                cursor: 'pointer',
+                flexShrink: 0,
+              }}
+            />
+            <span style={{
+              fontSize: 13, lineHeight: 1.55,
+              fontFamily: 'var(--jp)',
+              color: '#374151',
+            }}>
+              <a href="#/privacy" target="_blank" rel="noopener noreferrer" style={{
+                color: '#0a2960',
+                textDecoration: 'underline',
+                fontWeight: 500,
+              }}>
+                {lang === 'en' ? 'Privacy Policy' : 'プライバシーポリシー'}
+              </a>
+              <span style={{ color: '#6b7280' }}>
+                {lang === 'en' ? ' to agree' : ' に同意する'}
+              </span>
+              <span style={{ color: '#dc2626', marginLeft: 4 }}>*</span>
+            </span>
+          </label>
+          <label style={{
+            display: 'flex', alignItems: 'flex-start', gap: 10,
+            cursor: 'pointer',
+            padding: '4px 0',
+          }}>
+            <input
+              type="checkbox"
+              checked={agreedTerms}
+              onChange={(e) => setAgreedTerms(e.target.checked)}
+              style={{
+                width: 18, height: 18,
+                marginTop: 2,
+                accentColor: '#0a2960',
+                cursor: 'pointer',
+                flexShrink: 0,
+              }}
+            />
+            <span style={{
+              fontSize: 13, lineHeight: 1.55,
+              fontFamily: 'var(--jp)',
+              color: '#374151',
+            }}>
+              <a href="#/terms" target="_blank" rel="noopener noreferrer" style={{
+                color: '#0a2960',
+                textDecoration: 'underline',
+                fontWeight: 500,
+              }}>
+                {lang === 'en' ? 'Terms of Service' : '利用規約'}
+              </a>
+              <span style={{ color: '#6b7280' }}>
+                {lang === 'en' ? ' to agree' : ' に同意する'}
+              </span>
+              <span style={{ color: '#dc2626', marginLeft: 4 }}>*</span>
+            </span>
+          </label>
+        </div>
+
         <div style={{ marginTop: 8 }}>
-          <AuthButton onClick={handleSubmit} disabled={submitting}>
+          <AuthButton onClick={handleSubmit} disabled={submitting || !agreedPrivacy || !agreedTerms}>
             {submitting ? at.sending : at.signupBtn}
             <span style={{ marginLeft: 'auto' }}>→</span>
           </AuthButton>
@@ -11376,6 +12277,866 @@ function useFavorites() {
     toggle,
     reorder,
   };
+}
+
+// ============================================================================
+// (Part B) PageEventRegister — 申込画面 (1ページ縦スクロール)
+// ============================================================================
+// フロー: サマリ → ポリシー同意 → 支払い選択 → 確認ボタン → 申込完了画面へ遷移
+function PageEventRegister({ lang, t, eventId, events, loading: appLoading, siteSettings }) {
+  const auth = useAuth();
+  const dialog = useDialog();
+  const [submitting, setSubmitting] = React.useState(false);
+  // 同意フラグ
+  const [agreedPolicy, setAgreedPolicy] = React.useState(false);
+  // 支払い方法 (有料時)
+  const [paymentMethod, setPaymentMethod] = React.useState('');
+
+  // 未ログインなら login ページへ
+  React.useEffect(() => {
+    if (!auth.user && !auth.loading) {
+      try { sessionStorage.setItem('connecta_redirect_after_login', `#/events/${eventId}/register`); } catch(e) {}
+      window.location.hash = '/login';
+    }
+  }, [auth.user, auth.loading]);
+
+  // events 配列から該当 id を検索
+  const event = React.useMemo(() => {
+    if (!Array.isArray(events) || !eventId) return null;
+    return events.find(e => String(e.id) === String(eventId)) || null;
+  }, [events, eventId]);
+  const loading = appLoading;
+  const error = (!loading && !event) ? (lang === 'en' ? 'Event not found.' : 'イベントが見つかりません') : '';
+
+  // ローディング
+  if (loading) {
+    return (
+      <section style={{ minHeight: '100vh', paddingTop: 200, padding: '200px 24px 80px', maxWidth: 760, margin: '0 auto' }}>
+        <div className="skeleton" style={{ height: 28, width: '40%', marginBottom: 20 }}/>
+        <div className="skeleton" style={{ height: 80, width: '100%', marginBottom: 20 }}/>
+        <div className="skeleton" style={{ height: 200, width: '100%', marginBottom: 20 }}/>
+        <div className="skeleton" style={{ height: 56, width: '100%' }}/>
+      </section>
+    );
+  }
+
+  if (error || !event) {
+    return (
+      <section style={{ minHeight: '100vh', paddingTop: 200, padding: '200px 24px 80px', maxWidth: 760, margin: '0 auto', textAlign: 'center' }}>
+        <h1 style={{
+          fontFamily: '"Noto Serif JP", serif',
+          fontSize: 'var(--font-h2)', color: 'var(--brand-navy)', marginBottom: 12,
+        }}>{lang === 'en' ? 'Error' : 'エラー'}</h1>
+        <p style={{ fontFamily: 'var(--jp)', color: '#6b7280', fontSize: 14, marginBottom: 24 }}>{error || (lang === 'en' ? 'Event not found.' : 'イベントが見つかりません')}</p>
+        <a href="#/events" style={{
+          display: 'inline-block', padding: '12px 24px',
+          background: 'var(--brand-navy)', color: '#fff',
+          fontSize: 13, fontWeight: 600,
+          fontFamily: 'var(--jp)',
+          textDecoration: 'none',
+        }}>{lang === 'en' ? 'Back to events' : 'イベント一覧へ'}</a>
+      </section>
+    );
+  }
+
+  const ev = event;
+  const isFree = ev.feeType === 'free' || (Number(ev.fee) === 0 && ev.feeType !== 'paid');
+  const isPaid = ev.feeType === 'paid' || (Number(ev.fee) > 0 && ev.feeType !== 'free');
+
+  // (Part B) 支払い方法: Admin が ev.paymentMethods (カンマ区切り) で設定。未設定なら 'PayPay,現金'
+  let availablePayments = [];
+  if (isPaid) {
+    let raw = ev.paymentMethods || ev.payment_methods || '';
+    if (Array.isArray(raw)) {
+      availablePayments = raw.map(s => String(s).trim()).filter(Boolean);
+    } else if (typeof raw === 'string' && raw.trim()) {
+      availablePayments = raw.split(',').map(s => s.trim()).filter(Boolean);
+    } else {
+      availablePayments = ['PayPay', '現金'];
+    }
+  }
+
+  // (Part B) イベントポリシー: Admin が ev.policy で設定。多言語対応
+  const langSuffix = lang === 'en' ? '_en' : lang === 'easy' ? '_easy' : '';
+  const policyText = ev['policy' + langSuffix] || ev.policy || '';
+  const hasPolicy = !!(policyText && String(policyText).trim());
+
+  // 申込ボタンの活性化条件
+  const canSubmit = hasPolicy && agreedPolicy && (isFree || (isPaid && paymentMethod));
+
+  const handleSubmit = async () => {
+    if (!canSubmit || submitting) return;
+    setSubmitting(true);
+    try {
+      const token = authStore.getToken();
+      const result = await authApi.registerEvent(token, eventId, isPaid ? paymentMethod : '');
+      // (Part C) 完了画面へ遷移、 regId をクエリで渡す
+      const regId = result && result.registrationId ? result.registrationId : '';
+      window.location.hash = `/events/${eventId}/register/complete${regId ? '?regId=' + encodeURIComponent(regId) : ''}`;
+    } catch (err) {
+      setSubmitting(false);
+      await dialog.error({
+        title: lang === 'en' ? 'Registration failed' : '申込に失敗しました',
+        message: err.message || (lang === 'en' ? 'Please try again.' : 'もう一度お試しください'),
+      });
+    }
+  };
+
+  return (
+    <section style={{
+      minHeight: '100vh',
+      background: 'var(--brand-paper)',
+      padding: 'clamp(120px, 18vh, 200px) 0 var(--space-12)',
+    }}>
+      <div style={{
+        maxWidth: 720,
+        margin: '0 auto',
+        padding: '0 var(--section-px)',
+      }}>
+        {/* === 戻るリンク === */}
+        <Reveal y={10} blur={false}>
+          <a href={`#/events/${eventId}`} style={{
+            display: 'inline-flex', alignItems: 'center', gap: 6,
+            fontSize: 'var(--font-body-sm)',
+            color: '#6b7280',
+            textDecoration: 'none',
+            fontFamily: 'var(--jp)',
+            marginBottom: 'var(--space-6)',
+          }}>
+            <span>←</span>
+            <span>{lang === 'en' ? 'Back to event' : 'イベント詳細へ戻る'}</span>
+          </a>
+        </Reveal>
+
+        {/* === セクションラベル === */}
+        <Reveal y={20} blur={false} delay={50}>
+          <div style={{
+            display: 'flex', alignItems: 'center', gap: 'var(--space-3)',
+            marginBottom: 'var(--space-4)',
+          }}>
+            <span style={{
+              display: 'inline-block', width: 28, height: 1,
+              background: 'var(--brand-navy)', opacity: 0.4,
+            }}/>
+            <span style={{
+              fontSize: 'var(--font-label)', letterSpacing: 'var(--ls-mono-xl)',
+              fontFamily: 'var(--mono)', color: 'var(--brand-navy)', fontWeight: 600,
+            }}>REGISTRATION</span>
+          </div>
+        </Reveal>
+        <Reveal y={20} blur={false} delay={100}>
+          <h1 style={{
+            fontSize: 'var(--font-h1)', lineHeight: 'var(--lh-tight)',
+            fontWeight: 600, margin: '0 0 var(--space-9)',
+            fontFamily: '"Noto Serif JP", "Playfair Display", serif',
+            color: 'var(--brand-navy)',
+            letterSpacing: 'var(--ls-tight)',
+          }}>{lang === 'en' ? 'Register' : '参加申込'}</h1>
+        </Reveal>
+
+        {/* === 1. イベントサマリ === */}
+        <Reveal y={20} blur={false} delay={150}>
+          <RegisterStepCard step="01" title={lang === 'en' ? 'Event details' : 'イベント詳細'}>
+            <div style={{
+              display: 'flex', gap: 'var(--space-4)',
+              alignItems: 'flex-start',
+            }}>
+              {(ev.heroImageUrl || ev.posterUrl) && (
+                <div style={{
+                  flexShrink: 0,
+                  width: 96, height: 96,
+                  background: 'var(--brand-navy)',
+                  overflow: 'hidden',
+                }}>
+                  <img src={normalizeImageUrl(ev.heroImageUrl || ev.posterUrl)} alt="" style={{
+                    width: '100%', height: '100%', objectFit: 'cover', display: 'block',
+                  }}/>
+                </div>
+              )}
+              <div style={{ flex: 1, minWidth: 0 }}>
+                <div style={{
+                  fontSize: 'var(--font-h3)', fontWeight: 600,
+                  fontFamily: 'var(--jp)',
+                  color: 'var(--brand-navy)',
+                  lineHeight: 'var(--lh-snug)',
+                  marginBottom: 'var(--space-2)',
+                }}>{ev.title}</div>
+                <div style={{
+                  fontSize: 'var(--font-caption)',
+                  color: '#6b7280',
+                  fontFamily: 'var(--mono)',
+                  letterSpacing: 'var(--ls-mono)',
+                  marginBottom: 'var(--space-1)',
+                }}>{ev.date || ''}{ev.startTime ? ' · ' + ev.startTime : ''}</div>
+                {ev.venue && (
+                  <div style={{
+                    fontSize: 'var(--font-caption)',
+                    color: '#6b7280',
+                    fontFamily: 'var(--jp)',
+                    display: 'flex', alignItems: 'center', gap: 4,
+                  }}>
+                    <Icon name="pin" size={14} />
+                    <span>{ev.venue}</span>
+                  </div>
+                )}
+              </div>
+            </div>
+            {/* 料金表示 */}
+            <div style={{
+              marginTop: 'var(--space-5)',
+              paddingTop: 'var(--space-4)',
+              borderTop: '1px solid var(--brand-line)',
+              display: 'flex', justifyContent: 'space-between', alignItems: 'center',
+            }}>
+              <span style={{
+                fontSize: 'var(--font-body-sm)',
+                color: '#6b7280',
+                fontFamily: 'var(--jp)',
+              }}>{lang === 'en' ? 'Fee' : '参加費'}</span>
+              <span style={{
+                fontSize: isPaid ? 22 : 'var(--font-h3)',
+                fontWeight: 700,
+                fontFamily: 'var(--jp)',
+                color: 'var(--brand-navy)',
+                letterSpacing: 'var(--ls-tight)',
+              }}>
+                {isFree
+                  ? (lang === 'en' ? 'FREE' : '無料')
+                  : `¥${(Number(ev.fee) || 0).toLocaleString()}`}
+              </span>
+            </div>
+          </RegisterStepCard>
+        </Reveal>
+
+        {/* === 2. イベントポリシー === */}
+        <Reveal y={20} blur={false} delay={220}>
+          <RegisterStepCard step="02" title={lang === 'en' ? 'Event policy' : 'イベントポリシー'} required>
+            {hasPolicy ? (
+              <>
+                <div style={{
+                  maxHeight: 280,
+                  overflowY: 'auto',
+                  padding: 'var(--space-4)',
+                  background: '#fafbfc',
+                  border: '1px solid var(--brand-line)',
+                  borderRadius: 4,
+                  fontSize: 'var(--font-body-sm)',
+                  lineHeight: 'var(--lh-relaxed)',
+                  color: '#374151',
+                  fontFamily: 'var(--jp)',
+                  whiteSpace: 'pre-wrap',
+                  letterSpacing: 'var(--ls-normal)',
+                  marginBottom: 'var(--space-5)',
+                }}>{policyText}</div>
+                <label style={{
+                  display: 'flex', alignItems: 'flex-start', gap: 10,
+                  cursor: 'pointer',
+                  padding: '8px 0',
+                }}>
+                  <input
+                    type="checkbox"
+                    checked={agreedPolicy}
+                    onChange={(e) => setAgreedPolicy(e.target.checked)}
+                    style={{
+                      width: 18, height: 18, marginTop: 2,
+                      accentColor: 'var(--brand-navy)',
+                      cursor: 'pointer', flexShrink: 0,
+                    }}
+                  />
+                  <span style={{
+                    fontSize: 'var(--font-body-sm)', lineHeight: 'var(--lh-normal)',
+                    fontFamily: 'var(--jp)',
+                    color: '#374151',
+                    fontWeight: 500,
+                  }}>
+                    {lang === 'en' ? 'I have read and agree to the event policy.'
+                     : lang === 'easy' ? 'イベントポリシーを よみました。 どうい します。'
+                     : '上記イベントポリシーを確認し、同意します'}
+                    <span style={{ color: '#dc2626', marginLeft: 4 }}>*</span>
+                  </span>
+                </label>
+              </>
+            ) : (
+              <div style={{
+                padding: 'var(--space-5)',
+                background: '#fffbeb',
+                border: '1px solid #fcd34d',
+                borderRadius: 4,
+              }}>
+                <div style={{
+                  fontSize: 'var(--font-body-sm)', fontWeight: 600,
+                  color: '#92400e',
+                  fontFamily: 'var(--jp)',
+                  marginBottom: 'var(--space-2)',
+                  display: 'flex', alignItems: 'center', gap: 8,
+                }}>
+                  <Icon name="alert-triangle" size={18} />
+                  <span>{lang === 'en' ? 'Policy not configured' : 'イベントポリシーが未設定です'}</span>
+                </div>
+                <div style={{
+                  fontSize: 'var(--font-caption)',
+                  color: '#78350f',
+                  fontFamily: 'var(--jp)',
+                  lineHeight: 'var(--lh-normal)',
+                }}>
+                  {lang === 'en'
+                    ? 'This event cannot accept registrations until the policy is set by the administrator. Please contact the operator.'
+                    : '本イベントはポリシーが管理者により設定されるまで申込を受け付けられません。運営にご連絡ください。'}
+                </div>
+                <a href="#/contact" style={{
+                  display: 'inline-block',
+                  marginTop: 'var(--space-4)',
+                  padding: '10px 20px',
+                  background: '#92400e',
+                  color: '#fff',
+                  fontSize: 'var(--font-body-sm)',
+                  fontWeight: 600,
+                  textDecoration: 'none',
+                  fontFamily: 'var(--jp)',
+                }}>{lang === 'en' ? 'Contact operator' : '運営にお問い合わせ'} →</a>
+              </div>
+            )}
+          </RegisterStepCard>
+        </Reveal>
+
+        {/* === 3. 支払い方法 (有料時のみ) === */}
+        {isPaid && (
+          <Reveal y={20} blur={false} delay={290}>
+            <RegisterStepCard step="03" title={lang === 'en' ? 'Payment method' : '支払い方法'} required>
+              <div style={{ display: 'grid', gap: 'var(--space-3)' }}>
+                {availablePayments.map((m) => (
+                  <PaymentOption
+                    key={m}
+                    method={m}
+                    selected={paymentMethod === m}
+                    onSelect={() => setPaymentMethod(m)}
+                    lang={lang}
+                  />
+                ))}
+              </div>
+              {availablePayments.length === 0 && (
+                <div style={{
+                  fontSize: 'var(--font-body-sm)',
+                  color: '#6b7280',
+                  fontFamily: 'var(--jp)',
+                  textAlign: 'center',
+                  padding: 'var(--space-5)',
+                }}>{lang === 'en' ? 'No payment methods available' : '支払い方法が設定されていません'}</div>
+              )}
+            </RegisterStepCard>
+          </Reveal>
+        )}
+
+        {/* === 4. 確認ボタン === */}
+        <Reveal y={20} blur={false} delay={isPaid ? 360 : 290}>
+          <div style={{
+            background: '#fff',
+            padding: 'var(--space-6)',
+            borderRadius: 4,
+            border: '1px solid var(--brand-line)',
+            boxShadow: '0 8px 24px rgba(10, 41, 96, 0.06)',
+          }}>
+            {/* 申込前の最終確認サマリ */}
+            <div style={{
+              fontSize: 'var(--font-caption)',
+              color: '#6b7280',
+              fontFamily: 'var(--mono)',
+              letterSpacing: 'var(--ls-mono-l)',
+              marginBottom: 'var(--space-3)',
+            }}>{lang === 'en' ? 'CONFIRMATION' : '最終確認'}</div>
+            <div style={{
+              display: 'grid', gap: 'var(--space-2)',
+              fontSize: 'var(--font-body-sm)',
+              color: '#374151',
+              fontFamily: 'var(--jp)',
+              marginBottom: 'var(--space-5)',
+            }}>
+              <div style={{ display: 'flex', justifyContent: 'space-between' }}>
+                <span style={{ color: '#6b7280' }}>{lang === 'en' ? 'Event' : 'イベント'}</span>
+                <span style={{ fontWeight: 500 }}>{ev.title}</span>
+              </div>
+              <div style={{ display: 'flex', justifyContent: 'space-between' }}>
+                <span style={{ color: '#6b7280' }}>{lang === 'en' ? 'Fee' : '参加費'}</span>
+                <span style={{ fontWeight: 500 }}>
+                  {isFree ? (lang === 'en' ? 'FREE' : '無料') : `¥${(Number(ev.fee) || 0).toLocaleString()}`}
+                </span>
+              </div>
+              {isPaid && paymentMethod && (
+                <div style={{ display: 'flex', justifyContent: 'space-between' }}>
+                  <span style={{ color: '#6b7280' }}>{lang === 'en' ? 'Payment' : '支払い'}</span>
+                  <span style={{ fontWeight: 500 }}>{paymentMethod}</span>
+                </div>
+              )}
+            </div>
+
+            <button
+              onClick={handleSubmit}
+              disabled={!canSubmit || submitting}
+              style={{
+                width: '100%',
+                padding: 'var(--space-5) var(--space-5)',
+                background: canSubmit ? 'var(--brand-navy)' : '#d1d5db',
+                color: '#fff',
+                border: 'none',
+                fontSize: 'var(--font-body)',
+                fontWeight: 700,
+                fontFamily: 'var(--jp)',
+                letterSpacing: 'var(--ls-wide)',
+                cursor: canSubmit ? 'pointer' : 'not-allowed',
+                transition: 'all var(--t-base)',
+              }}
+              onTouchStart={(e) => { if (canSubmit) e.currentTarget.style.transform = 'scale(0.98)'; }}
+              onTouchEnd={(e) => { e.currentTarget.style.transform = 'scale(1)'; }}>
+              {submitting
+                ? (lang === 'en' ? 'Processing...' : '処理中...')
+                : (lang === 'en' ? 'Confirm registration' : 'この内容で申込む')}
+              {!submitting && canSubmit && <span style={{ marginLeft: 8 }}>→</span>}
+            </button>
+
+            {!canSubmit && !submitting && (
+              <div style={{
+                marginTop: 'var(--space-3)',
+                fontSize: 'var(--font-caption)',
+                color: '#dc2626',
+                fontFamily: 'var(--jp)',
+                textAlign: 'center',
+              }}>
+                {!hasPolicy ? (lang === 'en' ? 'Policy not set by administrator' : 'ポリシー未設定のため申込不可')
+                 : !agreedPolicy ? (lang === 'en' ? 'Please agree to the event policy' : 'イベントポリシーに同意してください')
+                 : (isPaid && !paymentMethod) ? (lang === 'en' ? 'Please select a payment method' : '支払い方法を選択してください')
+                 : ''}
+              </div>
+            )}
+          </div>
+        </Reveal>
+      </div>
+    </section>
+  );
+}
+
+// ============================================================================
+// (Part B) RegisterStepCard — 申込フローの各ステップカード
+// ============================================================================
+function RegisterStepCard({ step, title, required, children }) {
+  return (
+    <div style={{
+      background: '#fff',
+      padding: 'var(--space-6) var(--space-6)',
+      marginBottom: 'var(--space-5)',
+      border: '1px solid var(--brand-line)',
+      borderRadius: 4,
+    }}>
+      <div style={{
+        display: 'flex', alignItems: 'center', gap: 'var(--space-3)',
+        marginBottom: 'var(--space-5)',
+        paddingBottom: 'var(--space-3)',
+        borderBottom: '1px solid var(--brand-line)',
+      }}>
+        <div style={{
+          width: 32, height: 32,
+          background: 'var(--brand-navy)',
+          color: '#fff',
+          fontSize: 'var(--font-caption)',
+          fontWeight: 700,
+          fontFamily: 'var(--mono)',
+          display: 'flex', alignItems: 'center', justifyContent: 'center',
+          letterSpacing: 'var(--ls-mono)',
+          flexShrink: 0,
+        }}>{step}</div>
+        <div style={{
+          fontSize: 'var(--font-h3)',
+          fontWeight: 600,
+          fontFamily: '"Noto Serif JP", serif',
+          color: 'var(--brand-navy)',
+          flex: 1,
+        }}>{title}</div>
+        {required && (
+          <span style={{
+            fontSize: 'var(--font-label)',
+            fontWeight: 600,
+            color: '#dc2626',
+            fontFamily: 'var(--jp)',
+            padding: '2px 8px',
+            border: '1px solid #fecaca',
+            background: '#fef2f2',
+            letterSpacing: 'var(--ls-normal)',
+          }}>必須</span>
+        )}
+      </div>
+      {children}
+    </div>
+  );
+}
+
+// ============================================================================
+// (Part B) PaymentOption — 支払い方法選択カード
+// ============================================================================
+function PaymentOption({ method, selected, onSelect, lang }) {
+  // 既知の支払い方法にアイコン名と説明をマッピング
+  const meta = (() => {
+    const m = String(method).toLowerCase();
+    if (m.includes('paypay')) return { icon: 'smartphone', desc: lang === 'en' ? 'Pay with PayPay app' : 'PayPayアプリで支払い' };
+    if (m.includes('現金') || m.includes('当日') || m.includes('cash')) return { icon: 'cash', desc: lang === 'en' ? 'Cash at venue' : '会場で現金支払い' };
+    if (m.includes('credit') || m.includes('クレジット') || m.includes('カード')) return { icon: 'credit-card', desc: lang === 'en' ? 'Credit card' : 'クレジットカード' };
+    if (m.includes('銀行') || m.includes('振込') || m.includes('bank')) return { icon: 'bank', desc: lang === 'en' ? 'Bank transfer' : '銀行振込' };
+    if (m.includes('事前') || m.includes('prepay')) return { icon: 'credit-card', desc: lang === 'en' ? 'Pay in advance' : '事前にお支払い' };
+    return { icon: 'wallet', desc: '' };
+  })();
+
+  return (
+    <button onClick={onSelect} style={{
+      width: '100%',
+      padding: 'var(--space-5)',
+      background: selected ? 'rgba(44, 137, 232, 0.05)' : '#fff',
+      color: 'var(--brand-navy)',
+      border: selected ? '2px solid var(--brand-blue)' : '2px solid #e5e7eb',
+      borderRadius: 4,
+      fontSize: 'var(--font-body)',
+      fontWeight: 600,
+      fontFamily: 'var(--jp)',
+      cursor: 'pointer',
+      textAlign: 'left',
+      display: 'flex',
+      alignItems: 'center',
+      gap: 'var(--space-4)',
+      transition: 'all var(--t-base)',
+    }}>
+      <div style={{
+        width: 44, height: 44,
+        background: selected ? 'var(--brand-blue)' : 'rgba(10, 41, 96, 0.06)',
+        color: selected ? '#fff' : 'var(--brand-navy)',
+        display: 'flex', alignItems: 'center', justifyContent: 'center',
+        flexShrink: 0,
+        borderRadius: 4,
+        transition: 'all var(--t-base)',
+      }}>
+        <Icon name={meta.icon} size={22} />
+      </div>
+      <div style={{ flex: 1 }}>
+        <div style={{ fontWeight: 700, marginBottom: meta.desc ? 2 : 0 }}>{method}</div>
+        {meta.desc && (
+          <div style={{ fontSize: 'var(--font-caption)', color: '#6b7280', fontWeight: 400 }}>{meta.desc}</div>
+        )}
+      </div>
+      <span style={{
+        width: 20, height: 20,
+        borderRadius: '50%',
+        border: selected ? '6px solid var(--brand-blue)' : '2px solid #d1d5db',
+        background: '#fff',
+        flexShrink: 0,
+        transition: 'all var(--t-base)',
+      }}/>
+    </button>
+  );
+}
+
+// ============================================================================
+// (Part C) PageEventRegisterComplete — 申込完了画面 (QRアニメ + ありがとう)
+// ============================================================================
+// 演出の段階:
+//   Phase 0 (0.0s): 紺背景フェードイン
+//   Phase 1 (0.3s): "REGISTERED" ラベル + 大きなチェックマーク (回転 → 静止)
+//   Phase 2 (1.0s): "参加ありがとうございます！" タイトル
+//   Phase 3 (1.5s): サブテキスト
+//   Phase 4 (2.0s): QRコード reveal (clip-path)
+//   Phase 5 (2.7s): イベント情報カード fade-in
+//   Phase 6 (3.2s): CTA ボタン (チケット詳細 / マイページ)
+function PageEventRegisterComplete({ lang, t, eventId, events }) {
+  const auth = useAuth();
+  // クエリから regId を取得
+  const params = React.useMemo(() => {
+    return new URLSearchParams(window.location.hash.split('?')[1] || '');
+  }, []);
+  const regId = params.get('regId') || '';
+
+  const [reg, setReg] = React.useState(null);
+  const [phase, setPhase] = React.useState(0);
+
+  // events 配列から該当 id を検索
+  const event = React.useMemo(() => {
+    if (!Array.isArray(events) || !eventId) return null;
+    return events.find(e => String(e.id) === String(eventId)) || null;
+  }, [events, eventId]);
+
+  // 演出の段階制御
+  React.useEffect(() => {
+    const timers = [];
+    timers.push(setTimeout(() => setPhase(1), 300));
+    timers.push(setTimeout(() => setPhase(2), 1000));
+    timers.push(setTimeout(() => setPhase(3), 1500));
+    timers.push(setTimeout(() => setPhase(4), 2000));
+    timers.push(setTimeout(() => setPhase(5), 2700));
+    timers.push(setTimeout(() => setPhase(6), 3200));
+    return () => timers.forEach(clearTimeout);
+  }, []);
+
+  // 登録情報を取得 (regId が必要なため)
+  React.useEffect(() => {
+    if (!auth.user || !regId) return;
+    let cancelled = false;
+    (async () => {
+      try {
+        const token = authStore.getToken();
+        if (!token) return;
+        const result = await authApi.getMyRegistrations(token);
+        const found = (result.registrations || []).find(r => r.regId === regId);
+        if (!cancelled && found) setReg(found);
+      } catch (err) { console.error('Failed to load registration:', err); }
+    })();
+    return () => { cancelled = true; };
+  }, [auth.user, regId]);
+
+  // QR SVG 生成
+  const qrSvg = React.useMemo(() => {
+    if (!regId || !window.qrcode) return '';
+    try {
+      const qr = window.qrcode(0, 'M');
+      qr.addData(regId);
+      qr.make();
+      return qr.createSvgTag({ scalable: true, margin: 0 });
+    } catch (err) { return ''; }
+  }, [regId]);
+
+  return (
+    <section style={{
+      minHeight: '100vh',
+      background: 'linear-gradient(180deg, var(--brand-navy) 0%, #1a3a7a 60%, #0a2960 100%)',
+      color: '#fff',
+      padding: 'clamp(120px, 18vh, 200px) var(--section-px) var(--space-12)',
+      position: 'relative',
+      overflow: 'hidden',
+    }}>
+      {/* 装飾: 上部右の大きな円 */}
+      <div aria-hidden style={{
+        position: 'absolute',
+        top: -80, right: -120,
+        width: 320, height: 320,
+        borderRadius: '50%',
+        background: 'radial-gradient(circle at 30% 30%, rgba(44, 137, 232, 0.25), transparent 60%)',
+        pointerEvents: 'none',
+      }}/>
+      {/* 装飾: 下部左 */}
+      <div aria-hidden style={{
+        position: 'absolute',
+        bottom: -60, left: -80,
+        width: 240, height: 240,
+        borderRadius: '50%',
+        background: 'radial-gradient(circle at 70% 70%, rgba(255,255,255,0.08), transparent 60%)',
+        pointerEvents: 'none',
+      }}/>
+
+      <div style={{
+        maxWidth: 480,
+        margin: '0 auto',
+        textAlign: 'center',
+        position: 'relative',
+        zIndex: 1,
+      }}>
+        {/* === Phase 1: チェックアイコン (大、回転 → 静止) === */}
+        <div style={{
+          opacity: phase >= 1 ? 1 : 0,
+          transform: phase >= 1 ? 'scale(1) rotate(0deg)' : 'scale(0) rotate(-180deg)',
+          transition: 'all 0.7s cubic-bezier(0.34, 1.56, 0.64, 1)',
+          marginBottom: 'var(--space-7)',
+          display: 'inline-block',
+        }}>
+          <div style={{
+            width: 88, height: 88,
+            borderRadius: '50%',
+            background: 'rgba(255, 255, 255, 0.15)',
+            display: 'inline-flex', alignItems: 'center', justifyContent: 'center',
+            position: 'relative',
+          }}>
+            <div style={{
+              position: 'absolute', inset: -8,
+              borderRadius: '50%',
+              border: '2px solid rgba(255,255,255,0.25)',
+              animation: phase >= 1 ? 'cca-pulse 2s ease-in-out infinite' : 'none',
+            }}/>
+            <Icon name="check" size={44} strokeWidth={2.5} color="#fff" />
+          </div>
+        </div>
+
+        {/* === セクションラベル === */}
+        <div style={{
+          opacity: phase >= 1 ? 0.7 : 0,
+          transform: phase >= 1 ? 'translateY(0)' : 'translateY(10px)',
+          transition: 'all 0.5s ease-out',
+          fontSize: 'var(--font-label)',
+          letterSpacing: 'var(--ls-mono-xl)',
+          fontFamily: 'var(--mono)',
+          fontWeight: 600,
+          marginBottom: 'var(--space-4)',
+        }}>REGISTERED</div>
+
+        {/* === Phase 2: タイトル === */}
+        <h1 style={{
+          opacity: phase >= 2 ? 1 : 0,
+          transform: phase >= 2 ? 'translateY(0)' : 'translateY(20px)',
+          transition: 'all 0.6s cubic-bezier(0.2, 0.8, 0.2, 1)',
+          fontSize: 'var(--font-h1)',
+          lineHeight: 'var(--lh-tight)',
+          fontWeight: 600,
+          margin: '0 0 var(--space-4)',
+          fontFamily: '"Noto Serif JP", serif',
+          letterSpacing: 'var(--ls-tight)',
+        }}>{lang === 'en' ? 'Thank you for joining!' : lang === 'easy' ? 'さんかありがとう！' : '参加ありがとうございます！'}</h1>
+
+        {/* === Phase 3: サブテキスト === */}
+        <p style={{
+          opacity: phase >= 3 ? 0.85 : 0,
+          transform: phase >= 3 ? 'translateY(0)' : 'translateY(15px)',
+          transition: 'all 0.6s cubic-bezier(0.2, 0.8, 0.2, 1) 0.1s',
+          fontSize: 'var(--font-body)',
+          lineHeight: 'var(--lh-relaxed)',
+          color: 'rgba(255,255,255,0.85)',
+          fontFamily: 'var(--jp)',
+          marginBottom: 'var(--space-9)',
+          letterSpacing: 'var(--ls-normal)',
+        }}>{lang === 'en'
+          ? 'Your registration is confirmed.\nShow this QR code at the venue.'
+          : lang === 'easy'
+          ? 'もうしこみが おわりました。\nかいじょうで このQRコードを みせてください。'
+          : '申込が完了しました。\n当日、会場でこのQRコードをご提示ください。'}</p>
+
+        {/* === Phase 4: QR コード (clip-path で reveal) === */}
+        {qrSvg && (
+          <div style={{
+            opacity: phase >= 4 ? 1 : 0,
+            transform: phase >= 4 ? 'scale(1)' : 'scale(0.9)',
+            transition: 'opacity 0.6s ease-out, transform 0.6s cubic-bezier(0.34, 1.56, 0.64, 1)',
+            marginBottom: 'var(--space-7)',
+            display: 'inline-block',
+            position: 'relative',
+          }}>
+            <div style={{
+              padding: 24,
+              background: '#fff',
+              borderRadius: 4,
+              boxShadow: '0 12px 40px rgba(0,0,0,0.25)',
+              animation: phase >= 4 ? 'cca-qr-glow 3s ease-in-out 0.5s 1' : 'none',
+            }}>
+              <div style={{
+                width: 200, height: 200,
+                animation: phase >= 4 ? 'cca-qr-reveal 1s cubic-bezier(0.2, 0.8, 0.2, 1) forwards' : 'none',
+                opacity: 0,
+              }} dangerouslySetInnerHTML={{ __html: qrSvg }}/>
+            </div>
+            {/* QR下のラベル */}
+            <div style={{
+              opacity: phase >= 4 ? 0.7 : 0,
+              transition: 'opacity 0.5s ease-out 0.5s',
+              marginTop: 'var(--space-3)',
+              fontSize: 'var(--font-caption)',
+              fontFamily: 'var(--mono)',
+              letterSpacing: 'var(--ls-mono-l)',
+              color: 'rgba(255,255,255,0.7)',
+            }}>{regId}</div>
+          </div>
+        )}
+
+        {/* === Phase 5: イベント情報カード === */}
+        {event && (
+          <div style={{
+            opacity: phase >= 5 ? 1 : 0,
+            transform: phase >= 5 ? 'translateY(0)' : 'translateY(20px)',
+            transition: 'all 0.6s cubic-bezier(0.2, 0.8, 0.2, 1)',
+            background: 'rgba(255,255,255,0.06)',
+            backdropFilter: 'blur(8px)',
+            border: '1px solid rgba(255,255,255,0.12)',
+            borderRadius: 4,
+            padding: 'var(--space-5)',
+            marginBottom: 'var(--space-7)',
+            textAlign: 'left',
+          }}>
+            <div style={{
+              fontSize: 'var(--font-label)',
+              letterSpacing: 'var(--ls-mono-l)',
+              fontFamily: 'var(--mono)',
+              opacity: 0.6,
+              marginBottom: 'var(--space-2)',
+            }}>EVENT</div>
+            <div style={{
+              fontSize: 'var(--font-h3)',
+              fontWeight: 600,
+              fontFamily: 'var(--jp)',
+              lineHeight: 'var(--lh-snug)',
+              marginBottom: 'var(--space-3)',
+            }}>{event.title || ''}</div>
+            <div style={{
+              display: 'flex', flexWrap: 'wrap', gap: 'var(--space-4)',
+              fontSize: 'var(--font-caption)',
+              fontFamily: 'var(--mono)',
+              opacity: 0.85,
+              letterSpacing: 'var(--ls-mono)',
+            }}>
+              {event.date && (
+                <span style={{ display: 'inline-flex', alignItems: 'center', gap: 4 }}>
+                  <Icon name="calendar" size={14} />
+                  <span>{event.date}{event.startTime ? ' ' + event.startTime : ''}</span>
+                </span>
+              )}
+              {event.venue && (
+                <span style={{ display: 'inline-flex', alignItems: 'center', gap: 4 }}>
+                  <Icon name="pin" size={14} />
+                  <span>{event.venue}</span>
+                </span>
+              )}
+            </div>
+          </div>
+        )}
+
+        {/* === Phase 6: CTAボタン === */}
+        <div style={{
+          opacity: phase >= 6 ? 1 : 0,
+          transform: phase >= 6 ? 'translateY(0)' : 'translateY(15px)',
+          transition: 'all 0.5s ease-out',
+          display: 'grid', gap: 'var(--space-3)',
+        }}>
+          {regId && (
+            <a href={`#/ticket/${regId}`} style={{
+              display: 'flex', alignItems: 'center', justifyContent: 'space-between',
+              padding: 'var(--space-4) var(--space-5)',
+              background: '#fff',
+              color: 'var(--brand-navy)',
+              fontSize: 'var(--font-body)',
+              fontWeight: 700,
+              fontFamily: 'var(--jp)',
+              textDecoration: 'none',
+              letterSpacing: 'var(--ls-wide)',
+              transition: 'all var(--t-base)',
+            }}
+            onTouchStart={(e) => { e.currentTarget.style.transform = 'scale(0.98)'; }}
+            onTouchEnd={(e) => { e.currentTarget.style.transform = 'scale(1)'; }}>
+              <span style={{ display: 'inline-flex', alignItems: 'center', gap: 8 }}>
+                <Icon name="qr-code" size={18} />
+                <span>{lang === 'en' ? 'View ticket details' : 'チケット詳細を見る'}</span>
+              </span>
+              <Icon name="arrow-right" size={16} />
+            </a>
+          )}
+          <a href="#/mypage" style={{
+            display: 'flex', alignItems: 'center', justifyContent: 'space-between',
+            padding: 'var(--space-4) var(--space-5)',
+            background: 'transparent',
+            color: '#fff',
+            fontSize: 'var(--font-body-sm)',
+            fontWeight: 600,
+            fontFamily: 'var(--jp)',
+            textDecoration: 'none',
+            border: '1.5px solid rgba(255,255,255,0.4)',
+            letterSpacing: 'var(--ls-wide)',
+            transition: 'all var(--t-base)',
+          }}
+          onTouchStart={(e) => { e.currentTarget.style.borderColor = '#fff'; }}
+          onTouchEnd={(e) => { e.currentTarget.style.borderColor = 'rgba(255,255,255,0.4)'; }}>
+            <span>{lang === 'en' ? 'Go to My Page' : 'マイページへ'}</span>
+            <Icon name="arrow-right" size={14} />
+          </a>
+        </div>
+      </div>
+    </section>
+  );
 }
 
 function PageMyPage({ lang, t, events }) {
@@ -14274,6 +16035,165 @@ function PageContact({ lang, t }) {
   );
 }
 
+// (Part A) プライバシーポリシー / 利用規約 ページ
+// Admin の siteSettings.privacy_policy / siteSettings.terms から本文取得
+function PagePolicyDoc({ lang, t, kind, siteSettings }) {
+  const settings = siteSettings || {};
+  const isPrivacy = kind === 'privacy';
+  // 多言語: privacy_policy, privacy_policy_en, privacy_policy_easy
+  const fieldBase = isPrivacy ? 'privacy_policy' : 'terms';
+  const langSuffix = lang === 'en' ? '_en' : lang === 'easy' ? '_easy' : '';
+  const content = settings[fieldBase + langSuffix] || settings[fieldBase] || '';
+  const updatedAt = settings[fieldBase + '_updated_at'] || '';
+
+  const title = isPrivacy
+    ? (lang === 'en' ? 'Privacy Policy' : lang === 'easy' ? 'プライバシーポリシー' : 'プライバシーポリシー')
+    : (lang === 'en' ? 'Terms of Service' : lang === 'easy' ? 'りようきやく' : '利用規約');
+  const subtitle = isPrivacy
+    ? (lang === 'en' ? 'How we collect and protect your data' : '個人情報の取り扱いについて')
+    : (lang === 'en' ? 'Rules for using our service' : '当サービスのご利用にあたって');
+
+  return (
+    <section style={{
+      minHeight: '100vh',
+      background: 'var(--brand-paper)',
+      padding: 'clamp(120px, 18vh, 200px) 0 var(--space-12)',
+    }}>
+      <div style={{
+        maxWidth: 760,
+        margin: '0 auto',
+        padding: '0 var(--section-px)',
+      }}>
+        <Reveal y={20} blur={false}>
+          {/* セクションラベル */}
+          <div style={{
+            display: 'flex', alignItems: 'center', gap: 'var(--space-3)',
+            marginBottom: 'var(--space-5)',
+          }}>
+            <span style={{
+              display: 'inline-block', width: 28, height: 1,
+              background: 'var(--brand-navy)',
+              opacity: 0.4,
+            }}/>
+            <span style={{
+              fontSize: 'var(--font-label)', letterSpacing: 'var(--ls-mono-xl)',
+              fontFamily: 'var(--mono)',
+              color: 'var(--brand-navy)',
+              fontWeight: 600,
+            }}>{isPrivacy ? 'PRIVACY' : 'TERMS'}</span>
+          </div>
+        </Reveal>
+        <Reveal y={20} blur={false} delay={100}>
+          <h1 style={{
+            fontSize: 'var(--font-h1)', lineHeight: 'var(--lh-tight)',
+            fontWeight: 600, margin: '0 0 var(--space-3)',
+            fontFamily: '"Noto Serif JP", "Playfair Display", serif',
+            color: 'var(--brand-navy)',
+            letterSpacing: 'var(--ls-tight)',
+          }}>{title}</h1>
+        </Reveal>
+        <Reveal y={15} blur={false} delay={180}>
+          <p style={{
+            fontSize: 'var(--font-body)', color: '#6b7280',
+            margin: '0 0 var(--space-9)',
+            fontFamily: 'var(--jp)',
+            lineHeight: 'var(--lh-normal)',
+          }}>{subtitle}</p>
+        </Reveal>
+
+        {updatedAt && (
+          <Reveal y={10} blur={false} delay={220}>
+            <div style={{
+              fontSize: 'var(--font-caption)',
+              color: '#9ca3af',
+              marginBottom: 'var(--space-7)',
+              fontFamily: 'var(--mono)',
+              letterSpacing: 'var(--ls-mono)',
+            }}>
+              {lang === 'en' ? 'Last updated: ' : '最終更新: '}{updatedAt}
+            </div>
+          </Reveal>
+        )}
+
+        <Reveal y={15} blur={false} delay={280}>
+          {content ? (
+            <div style={{
+              fontSize: 15, lineHeight: 1.85,
+              color: '#374151',
+              fontFamily: 'var(--jp)',
+              whiteSpace: 'pre-wrap',
+              letterSpacing: 'var(--ls-normal)',
+            }}>{content}</div>
+          ) : (
+            <div style={{
+              padding: 'var(--space-7)',
+              background: '#fff',
+              border: '1px solid var(--brand-line)',
+              borderRadius: 4,
+              fontSize: 'var(--font-body)',
+              color: '#6b7280',
+              fontFamily: 'var(--jp)',
+              lineHeight: 1.7,
+              textAlign: 'center',
+            }}>
+              <div style={{ marginBottom: 12, opacity: 0.4, color: 'var(--brand-navy)' }}>
+                <Icon name="document" size={32} />
+              </div>
+              <div style={{ marginBottom: 8, color: '#374151', fontWeight: 500 }}>
+                {lang === 'en'
+                  ? 'This document is being prepared.'
+                  : lang === 'easy'
+                  ? 'いま じゅんびちゅうです。'
+                  : 'ただいま準備中です。'}
+              </div>
+              <div style={{ fontSize: 12, color: '#9ca3af' }}>
+                {lang === 'en'
+                  ? 'Please contact us for inquiries.'
+                  : 'ご不明な点はお問い合わせください。'}
+              </div>
+            </div>
+          )}
+        </Reveal>
+
+        <Reveal y={10} blur={false} delay={400}>
+          <div style={{
+            marginTop: 'var(--space-9)',
+            paddingTop: 'var(--space-7)',
+            borderTop: '1px solid var(--brand-line)',
+            display: 'flex', gap: 'var(--space-4)', flexWrap: 'wrap',
+          }}>
+            <a href="#/" style={{
+              display: 'inline-flex', alignItems: 'center', gap: 6,
+              fontSize: 'var(--font-body-sm)',
+              color: 'var(--brand-navy)',
+              textDecoration: 'none',
+              fontFamily: 'var(--jp)',
+              fontWeight: 500,
+            }}>
+              <span>←</span>
+              <span>{lang === 'en' ? 'Back to home' : 'ホームへ戻る'}</span>
+            </a>
+            <a href={isPrivacy ? '#/terms' : '#/privacy'} style={{
+              display: 'inline-flex', alignItems: 'center', gap: 6,
+              fontSize: 'var(--font-body-sm)',
+              color: 'var(--brand-navy)',
+              textDecoration: 'none',
+              fontFamily: 'var(--jp)',
+              fontWeight: 500,
+              marginLeft: 'auto',
+            }}>
+              <span>{isPrivacy
+                ? (lang === 'en' ? 'Terms of Service' : '利用規約')
+                : (lang === 'en' ? 'Privacy Policy' : 'プライバシーポリシー')}</span>
+              <span>→</span>
+            </a>
+          </div>
+        </Reveal>
+      </div>
+    </section>
+  );
+}
+
 // ContactInput: PageContact用の入力フィールド (AuthInputと別、placeholderの色など微調整)
 function ContactInput({ label, type, value, onChange, placeholder, required, error }) {
   return (
@@ -14361,6 +16281,39 @@ function Footer({ lang, t }) {
           fontSize: 12, fontFamily: 'var(--mono)', opacity: 0.6,
         }}>
           <div>{t.footer.rights}</div>
+          {/* (L10) エンタープライズリンク: プライバシー・利用規約・特商法 */}
+          <div style={{
+            display: 'flex', flexWrap: 'wrap', gap: 16,
+            alignItems: 'center',
+          }}>
+            <a href="#/privacy" style={{
+              color: 'rgba(255,255,255,0.7)',
+              textDecoration: 'none',
+              transition: 'color var(--t-base)',
+            }}
+            onMouseEnter={(e) => e.currentTarget.style.color = '#fff'}
+            onMouseLeave={(e) => e.currentTarget.style.color = 'rgba(255,255,255,0.7)'}>
+              {lang === 'en' ? 'Privacy' : 'プライバシーポリシー'}
+            </a>
+            <a href="#/terms" style={{
+              color: 'rgba(255,255,255,0.7)',
+              textDecoration: 'none',
+              transition: 'color var(--t-base)',
+            }}
+            onMouseEnter={(e) => e.currentTarget.style.color = '#fff'}
+            onMouseLeave={(e) => e.currentTarget.style.color = 'rgba(255,255,255,0.7)'}>
+              {lang === 'en' ? 'Terms' : '利用規約'}
+            </a>
+            <a href="#/contact" style={{
+              color: 'rgba(255,255,255,0.7)',
+              textDecoration: 'none',
+              transition: 'color var(--t-base)',
+            }}
+            onMouseEnter={(e) => e.currentTarget.style.color = '#fff'}
+            onMouseLeave={(e) => e.currentTarget.style.color = 'rgba(255,255,255,0.7)'}>
+              {lang === 'en' ? 'Contact' : 'お問い合わせ'}
+            </a>
+          </div>
           <div style={{ letterSpacing: '0.1em' }}>EST. 2018 · TOKYO · JP</div>
         </div>
       </div>
@@ -14516,6 +16469,8 @@ function App() {
   let pageTitle = '';
   const isHome = route === '/';
   const matchEvent = route.match(/^\/events\/(.+)/);
+  const matchEventRegister = route.match(/^\/events\/([^\/]+)\/register$/);
+  const matchEventRegisterComplete = route.match(/^\/events\/([^\/]+)\/register\/complete/);
   const matchNews = route.match(/^\/news\/(.+)/);
   const matchTicket = route.match(/^\/ticket\/(.+)/);  // (Step D)
 
@@ -14523,6 +16478,12 @@ function App() {
     Page = <PageHome lang={lang} t={t} events={events} ads={ads} heroSlides={heroSlides} loading={loading} siteSettings={siteSettings} frontNews={frontNews} />;
   } else if (route === '/events') {
     Page = <PageEvents lang={lang} t={t} events={events} loading={loading} siteSettings={siteSettings} />;
+  } else if (matchEventRegisterComplete) {
+    // (Part C) 申込完了画面 (QRアニメーション)
+    Page = <PageEventRegisterComplete lang={lang} t={t} eventId={matchEventRegisterComplete[1]} events={events} />;
+  } else if (matchEventRegister) {
+    // (Part B) 申込画面 (新ページ)
+    Page = <PageEventRegister lang={lang} t={t} eventId={matchEventRegister[1]} events={events} loading={loading} siteSettings={siteSettings} />;
   } else if (matchEvent) {
     Page = <PageEventDetail lang={lang} t={t} eventId={matchEvent[1]} />;
   } else if (route === '/about') {
@@ -14534,6 +16495,10 @@ function App() {
     Page = <PageNewsDetail lang={lang} t={t} newsId={matchNews[1]} frontNews={frontNews} loading={loading} />;
   } else if (route === '/contact') {
     Page = <PageContact lang={lang} t={t} />;
+  } else if (route === '/privacy') {
+    Page = <PagePolicyDoc lang={lang} t={t} kind="privacy" siteSettings={siteSettings} />;
+  } else if (route === '/terms') {
+    Page = <PagePolicyDoc lang={lang} t={t} kind="terms" siteSettings={siteSettings} />;
   } else if (route === '/login') {
     Page = <PageLogin lang={lang} t={t} />;
   } else if (route === '/signup') {
@@ -14560,13 +16525,94 @@ function App() {
       {/* (Phase 6.11) Nav と Footer は常にマウント (ベース画面は0秒から描画される)。
           オープニングは「上に被さる蓋」。オープニング中も裏でベース画面は完成している。 */}
       <Nav lang={lang} setLang={setLang} t={t} transparent={isHome} />
-      <main>{Page}</main>
+      <main id="main-content" tabIndex={-1}>{Page}</main>
       <Footer lang={lang} t={t} />
+      {/* (L10) Cookie同意バナー */}
+      <CookieConsent lang={lang} />
       {/* オープニング画面 (上下カーテン)。最後に描画 = 一番手前 */}
       {openingPhase !== 'gone' && (
         <OpeningCurtain phase={openingPhase} settings={siteSettings} />
       )}
     </React.Fragment>
+  );
+}
+
+// (L10) Cookie同意バナー — 大手企業基準のGDPR/個人情報保護準拠
+function CookieConsent({ lang }) {
+  const [visible, setVisible] = useState(false);
+  useEffect(() => {
+    try {
+      const consent = localStorage.getItem('connecta_cookie_consent');
+      if (!consent) {
+        // 1秒遅延後に表示 (Hero閲覧を妨げない)
+        const t = setTimeout(() => setVisible(true), 1500);
+        return () => clearTimeout(t);
+      }
+    } catch (e) {}
+  }, []);
+  function accept() {
+    try { localStorage.setItem('connecta_cookie_consent', JSON.stringify({ accepted: true, date: new Date().toISOString() })); } catch(e) {}
+    setVisible(false);
+  }
+  if (!visible) return null;
+  return (
+    <div role="dialog" aria-label={lang === 'en' ? 'Cookie consent' : 'Cookie同意'} style={{
+      position: 'fixed',
+      left: 16, right: 16, bottom: 16,
+      maxWidth: 480,
+      margin: '0 auto',
+      background: 'var(--brand-navy)',
+      color: '#fff',
+      padding: 'var(--space-5) var(--space-5)',
+      zIndex: 9999,
+      boxShadow: '0 12px 40px rgba(0,0,0,0.25)',
+      borderRadius: 4,
+      animation: 'heroOvSlideUp 0.5s cubic-bezier(0.2,0.8,0.2,1) both',
+    }}>
+      <div style={{
+        fontSize: 'var(--font-label)', letterSpacing: 'var(--ls-mono-l)',
+        fontFamily: 'var(--mono)',
+        opacity: 0.7,
+        marginBottom: 'var(--space-2)',
+      }}>COOKIES</div>
+      <p style={{
+        fontSize: 'var(--font-body-sm)', lineHeight: 'var(--lh-normal)',
+        margin: '0 0 var(--space-4)',
+        fontFamily: 'var(--jp)',
+      }}>
+        {lang === 'en'
+          ? 'We use cookies to improve your experience. By using this site, you accept our use of cookies.'
+          : lang === 'easy'
+          ? 'このサイトは、Cookie を つかいます。サイトを つかうと、どういしたことに なります。'
+          : '当サイトでは、サービス向上のためCookieを使用しています。続行することで、Cookieの使用に同意したものとみなされます。'}
+      </p>
+      <div style={{ display: 'flex', gap: 'var(--space-3)', alignItems: 'center', flexWrap: 'wrap' }}>
+        <button onClick={accept} style={{
+          padding: 'var(--space-2) var(--space-5)',
+          background: '#fff',
+          color: 'var(--brand-navy)',
+          border: 'none',
+          fontSize: 'var(--font-body-sm)',
+          fontWeight: 600,
+          fontFamily: 'var(--jp)',
+          letterSpacing: 'var(--ls-wide)',
+          cursor: 'pointer',
+          transition: 'all var(--t-base)',
+        }}
+        onMouseEnter={(e) => e.currentTarget.style.background = '#e8eef8'}
+        onMouseLeave={(e) => e.currentTarget.style.background = '#fff'}>
+          {lang === 'en' ? 'Accept' : '同意する'}
+        </button>
+        <a href="#/privacy" style={{
+          fontSize: 'var(--font-body-sm)',
+          color: 'rgba(255,255,255,0.7)',
+          textDecoration: 'underline',
+          fontFamily: 'var(--jp)',
+        }}>
+          {lang === 'en' ? 'Privacy Policy' : 'プライバシーポリシー'}
+        </a>
+      </div>
+    </div>
   );
 }
 
