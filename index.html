@@ -3497,8 +3497,10 @@ function HeroSlideshow({ lang, t, events, heroSlides, loading, frontNews, siteSe
     });
 
   // ② Adminで管理するヒーロースライド (有効、かつ 画像 or 背景色 のいずれか)
+  // (Phase 15) デスクトップ Hero: device='mobile' は除外、空 or 'desktop' のみ表示
   const adminSlides = (heroSlides || [])
     .filter(s => s.enabled && (s.imageUrl || s.bgColor))
+    .filter(s => !s.device || s.device === 'desktop' || s.device === 'all')
     .sort((a, b) => a.order - b.order)
     .map(s => {
       // (Phase 7.6) overlay: JSON文字列または配列
@@ -7124,12 +7126,17 @@ function PageHomeMobile({ lang, t, events, ads, heroSlides, loading, siteSetting
   };
 
   // === Hero スライドショー用 ===
+  // (Phase 15) モバイル Hero: device='desktop' は除外、空 or 'mobile' のみ表示
   const slides = React.useMemo(() => {
-    const base = (heroSlides || []).filter(x => x && x.imageUrl).map(x => ({
-      img: normalizeHomeImg(x.imageUrl),
-      eyebrow: x.eyebrow || '',
-      caption: x.titleEm || x.titleEn || x.sub || '',
-    }));
+    const base = (heroSlides || [])
+      .filter(x => x && x.imageUrl && (x.enabled !== false))
+      .filter(x => !x.device || x.device === 'mobile' || x.device === 'all')
+      .sort((a, b) => (a.order || 0) - (b.order || 0))
+      .map(x => ({
+        img: normalizeHomeImg(x.imageUrl),
+        eyebrow: x.eyebrow || '',
+        caption: x.titleEm || x.titleEn || x.sub || '',
+      }));
     if (base.length > 0) return base;
     const evs = (events || []).slice(0, 3).filter(e => e.heroImageUrl || e.posterUrl);
     return evs.map(e => ({
