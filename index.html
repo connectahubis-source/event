@@ -30,11 +30,19 @@
 <meta property="og:locale" content="ja_JP">
 <meta property="og:locale:alternate" content="en_US">
 <meta property="og:url" content="https://connectahubis-source.github.io/event/">
+<!-- (Phase 15.S9 新G) OGP image — シェア時のプレビュー画像 -->
+<meta property="og:image" content="https://connectahubis-source.github.io/event/ogp.jpg">
+<meta property="og:image:width" content="1200">
+<meta property="og:image:height" content="630">
+<meta property="og:image:alt" content="connec+a — 在日外国人留学生×日本人国際交流コミュニティ">
 
 <!-- (L9) Twitter Cards -->
 <meta name="twitter:card" content="summary_large_image">
 <meta name="twitter:title" content="connec+a — 出会いが、まちを変えていく。">
 <meta name="twitter:description" content="在日外国人留学生と日本人をつなぐ、参加型の国際交流プラットフォーム。">
+<!-- (Phase 15.S9 新G) Twitter image -->
+<meta name="twitter:image" content="https://connectahubis-source.github.io/event/ogp.jpg">
+<meta name="twitter:image:alt" content="connec+a — 在日外国人留学生×日本人国際交流コミュニティ">
 
 <!-- (L9) Schema.org JSON-LD (検索エンジン対応) -->
 <script type="application/ld+json">
@@ -287,12 +295,39 @@ button { font-family: inherit; cursor: pointer; }
   0%   { transform: translateY(40px); opacity: 0; }
   100% { transform: translateY(0); opacity: 1; }
 }
+/* (Phase 15.S8) ソフトフェードイン (透明度のみ) */
+@keyframes cca-fade-in-soft {
+  0%   { opacity: 0; }
+  100% { opacity: 1; }
+}
 
 /* (Phase 15.S6) Hero モバイル: dvh サポート時はアドレスバー考慮の動的高さに */
+/* (Phase 15.S8 #5) 大型端末対応: maxHeight を撤廃、 100dvh フルブリード */
 @supports (height: 100dvh) {
   section[data-mobile-hero="true"] {
     height: 100dvh !important;
-    max-height: min(820px, 100dvh) !important;
+    max-height: 100dvh !important;
+  }
+}
+
+/* (Phase 15.S8 #17) prefers-reduced-motion 配慮 — アニメーションを最小限に */
+@media (prefers-reduced-motion: reduce) {
+  *, *::before, *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+    scroll-behavior: auto !important;
+  }
+  /* ただし不透明度のフェードは残す (急に出現するのを避ける) */
+  .build-in {
+    opacity: 1 !important;
+    transform: none !important;
+    filter: none !important;
+  }
+  /* Hero の Ken Burns、 Zoom out などは無効化 */
+  section[data-mobile-hero="true"] img {
+    animation: none !important;
+    transform: none !important;
   }
 }
 
@@ -1584,6 +1619,46 @@ function useDialog() {
   return React.useContext(DialogContext);
 }
 
+// (Phase 15.S9 #25) sessionStorage 軽量キャッシュ — stale-while-revalidate パターン
+// 同セッション中は API 呼出を最小化、 古いデータがあれば即時返しつつ裏で更新
+const _swrCache = {};   // メモリ上の最新データ (sessionStorage の高速版)
+const SWR_TTL = 90 * 1000;   // 90秒 - これを過ぎたら背景で再取得
+
+function getSwrCached(key) {
+  // 1. メモリキャッシュ
+  if (_swrCache[key]) {
+    return _swrCache[key].data;
+  }
+  // 2. sessionStorage
+  try {
+    const raw = sessionStorage.getItem('cca_swr_' + key);
+    if (!raw) return null;
+    const parsed = JSON.parse(raw);
+    if (!parsed || !parsed.t || !parsed.data) return null;
+    // 1時間以上古いものは破棄
+    if (Date.now() - parsed.t > 60 * 60 * 1000) {
+      sessionStorage.removeItem('cca_swr_' + key);
+      return null;
+    }
+    _swrCache[key] = parsed;
+    return parsed.data;
+  } catch (e) { return null; }
+}
+
+function setSwrCache(key, data) {
+  const entry = { t: Date.now(), data };
+  _swrCache[key] = entry;
+  try {
+    sessionStorage.setItem('cca_swr_' + key, JSON.stringify(entry));
+  } catch (e) { /* quota exceeded などは無視 */ }
+}
+
+function isSwrFresh(key) {
+  const entry = _swrCache[key];
+  if (!entry) return false;
+  return (Date.now() - entry.t) < SWR_TTL;
+}
+
 
 async function fetchEvents() {
   // 15秒タイムアウト: GAS応答が極端に遅い場合でも永久loadingを防ぐ
@@ -2321,7 +2396,10 @@ function Nav({ lang, setLang, t, transparent }) {
     <React.Fragment>
       <nav style={{
         position: 'fixed', top: 0, left: 0, right: 0, zIndex: 100,
-        background: (transparent && !scrolled) ? 'transparent' : '#ffffff',
+        // (Phase 15.S8 #15) 透過時は薄い上→下の暗グラデで視認性確保 (Hero オーバーレイが Nav と重なっても文字が読める)
+        background: (transparent && !scrolled)
+          ? 'linear-gradient(180deg, rgba(0,0,0,0.35) 0%, rgba(0,0,0,0.15) 60%, transparent 100%)'
+          : '#ffffff',
         borderBottom: scrolled ? '1px solid #e5e7eb' : '1px solid transparent',
         transition: 'all .4s cubic-bezier(0.2, 0.8, 0.2, 1)',
       }}>
@@ -2449,60 +2527,217 @@ function Nav({ lang, setLang, t, transparent }) {
       </nav>
 
       {/* Mobile menu drawer */}
+      {/* (Phase 15.S9 新E) Aman 風モバイルメニュー — 全画面オーバーレイ + セリフ大文字 */}
       {menuOpen && (
         <div style={{
           position: 'fixed', inset: 0, zIndex: 200,
-          background: 'rgba(0,0,0,0.5)',
+          background: 'rgba(10, 22, 40, 0.92)',
+          backdropFilter: 'blur(20px)',
+          animation: 'cca-fade-in-soft 0.3s ease-out forwards',
         }} onClick={() => setMenuOpen(false)}>
           <div style={{
-            position: 'absolute', top: 0, right: 0, bottom: 0,
-            width: '85%', maxWidth: 360,
-            background: 'var(--paper)',
-            padding: '24px',
-            display: 'flex', flexDirection: 'column', gap: 20,
-            animation: 'cca-slide-left .3s reverse',
+            position: 'absolute', inset: 0,
+            display: 'flex', flexDirection: 'column',
+            padding: 'max(env(safe-area-inset-top, 24px), 24px) 24px max(env(safe-area-inset-bottom, 24px), 24px)',
+            color: '#fff',
+            overflowY: 'auto',
           }} onClick={(e) => e.stopPropagation()}>
-            <button onClick={() => setMenuOpen(false)} style={{
-              alignSelf: 'flex-end', background: 'transparent', border: 0, fontSize: 22, color: 'var(--ink)',
-            }}>×</button>
-            {[
-              { href: '#/events', label: t.nav.events },
-              { href: '#/about', label: t.nav.about },
-              { href: '#/news', label: t.nav.news },
-              { href: '#/contact', label: t.nav.contact },
-            ].map(item => (
-              <a key={item.href} href={item.href} onClick={() => setMenuOpen(false)} style={{
-                fontSize: 22, fontWeight: 700, color: 'var(--ink)', padding: '8px 0',
-                fontFamily: 'var(--jp)',
-              }}>{item.label}</a>
-            ))}
-            <div style={{ height: 1, background: 'var(--line)', margin: '16px 0' }} />
-            <LangPicker lang={lang} setLang={setLang} t={t} transparent={false} mobile />
-            <div style={{ marginTop: 16, display: 'flex', flexDirection: 'column', gap: 10 }}>
+            {/* === ヘッダー (閉じるボタン + ブランド) === */}
+            <div style={{
+              display: 'flex', alignItems: 'center', justifyContent: 'space-between',
+              marginBottom: 'var(--space-9, 56px)',
+            }}>
+              <div>
+                <div style={{
+                  fontFamily: 'var(--mono, monospace)',
+                  fontSize: 9,
+                  letterSpacing: '0.22em',
+                  color: 'rgba(255,255,255,0.5)',
+                  fontWeight: 600,
+                  marginBottom: 4,
+                }}>MENU</div>
+                <div style={{
+                  fontFamily: 'var(--sans)',
+                  fontSize: 20,
+                  fontWeight: 800,
+                  letterSpacing: '0.06em',
+                  color: '#fff',
+                }}>connec+a</div>
+              </div>
+              <button
+                onClick={() => setMenuOpen(false)}
+                aria-label="メニューを閉じる"
+                style={{
+                  width: 44, height: 44,
+                  background: 'rgba(255,255,255,0.08)',
+                  border: '1px solid rgba(255,255,255,0.15)',
+                  borderRadius: '50%',
+                  color: '#fff',
+                  fontSize: 22,
+                  cursor: 'pointer',
+                  display: 'flex', alignItems: 'center', justifyContent: 'center',
+                  transition: 'all .2s',
+                }}>×</button>
+            </div>
+
+            {/* === メインナビゲーション (大セリフ) === */}
+            <nav style={{
+              flex: 1,
+              display: 'flex', flexDirection: 'column',
+              gap: 0,
+            }}>
+              {[
+                { href: '#/events',  ja: 'イベント',     en: 'Events',      easy: 'イベント',       eyebrow: '01' },
+                { href: '#/about',   ja: '私たちのこと', en: 'About',       easy: 'わたしたち',     eyebrow: '02' },
+                { href: '#/news',    ja: 'ニュース',     en: 'News',        easy: 'ニュース',       eyebrow: '03' },
+                { href: '#/contact', ja: 'お問い合わせ', en: 'Contact',     easy: 'おといあわせ',   eyebrow: '04' },
+              ].map((item, idx) => {
+                const label = lang === 'en' ? item.en : lang === 'easy' ? item.easy : item.ja;
+                return (
+                  <a key={item.href} href={item.href}
+                    onClick={() => setMenuOpen(false)}
+                    style={{
+                      display: 'flex',
+                      alignItems: 'center',
+                      justifyContent: 'space-between',
+                      padding: '20px 0',
+                      borderBottom: '1px solid rgba(255,255,255,0.1)',
+                      color: '#fff',
+                      textDecoration: 'none',
+                      transition: 'all .2s',
+                      opacity: 0,
+                      animation: `cca-flow-up 0.6s cubic-bezier(0.2,0.8,0.2,1) ${0.1 + idx * 0.08}s forwards`,
+                    }}
+                    onTouchStart={(e) => { e.currentTarget.style.paddingLeft = '8px'; }}
+                    onTouchEnd={(e) => { e.currentTarget.style.paddingLeft = '0'; }}>
+                    <div style={{
+                      display: 'flex', alignItems: 'baseline', gap: 16,
+                    }}>
+                      <span style={{
+                        fontFamily: 'var(--mono, monospace)',
+                        fontSize: 11,
+                        letterSpacing: '0.18em',
+                        color: 'rgba(255,255,255,0.4)',
+                        fontWeight: 600,
+                      }}>{item.eyebrow}</span>
+                      <span style={{
+                        fontFamily: 'var(--serif)',
+                        fontSize: 32,
+                        fontWeight: 300,
+                        letterSpacing: '-0.01em',
+                        lineHeight: 1.1,
+                      }}>{label}</span>
+                    </div>
+                    <span style={{
+                      fontSize: 18,
+                      color: 'rgba(255,255,255,0.4)',
+                    }}>→</span>
+                  </a>
+                );
+              })}
+            </nav>
+
+            {/* === 言語切替 === */}
+            <div style={{
+              padding: '24px 0',
+              borderTop: '1px solid rgba(255,255,255,0.15)',
+              borderBottom: '1px solid rgba(255,255,255,0.15)',
+              margin: '24px 0',
+              display: 'flex', alignItems: 'center', gap: 12,
+            }}>
+              <div style={{
+                fontFamily: 'var(--mono, monospace)',
+                fontSize: 9,
+                letterSpacing: '0.22em',
+                color: 'rgba(255,255,255,0.4)',
+                fontWeight: 600,
+                marginRight: 8,
+              }}>LANGUAGE</div>
+              {[
+                { code: 'ja', label: '日本語' },
+                { code: 'easy', label: 'やさしい' },
+                { code: 'en', label: 'English' },
+              ].map(opt => (
+                <button key={opt.code}
+                  onClick={() => { setLang(opt.code); }}
+                  style={{
+                    padding: '8px 14px',
+                    fontSize: 12, fontWeight: 500,
+                    background: lang === opt.code ? '#fff' : 'transparent',
+                    color: lang === opt.code ? '#0a1628' : 'rgba(255,255,255,0.85)',
+                    border: lang === opt.code ? '1px solid #fff' : '1px solid rgba(255,255,255,0.25)',
+                    borderRadius: 999,
+                    cursor: 'pointer',
+                    fontFamily: 'var(--jp)',
+                    letterSpacing: '0.04em',
+                    transition: 'all .2s',
+                  }}>{opt.label}</button>
+              ))}
+            </div>
+
+            {/* === Auth エリア === */}
+            <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
               {auth.user ? (
                 <>
                   <a href="#/mypage" onClick={() => setMenuOpen(false)} style={{
-                    padding: '12px 20px', textAlign: 'center',
-                    border: '1px solid var(--line)', borderRadius: 999, fontSize: 14,
+                    padding: '14px 20px', textAlign: 'center',
+                    border: '1px solid rgba(255,255,255,0.3)',
+                    color: '#fff',
+                    fontSize: 14, fontWeight: 500,
+                    fontFamily: 'var(--jp)',
+                    textDecoration: 'none',
+                    letterSpacing: '0.04em',
                   }}>{lang === 'en' ? 'My Page' : 'マイページ'}</a>
                   <button onClick={() => { setMenuOpen(false); handleLogout(); }} style={{
-                    padding: '12px 20px', textAlign: 'center',
-                    background: '#0a2960', color: '#fff', border: 'none', borderRadius: 999,
-                    fontSize: 14, fontWeight: 600, fontFamily: 'var(--jp)', cursor: 'pointer',
+                    padding: '14px 20px', textAlign: 'center',
+                    background: 'transparent', color: 'rgba(255,255,255,0.6)',
+                    border: 'none',
+                    fontSize: 12, fontFamily: 'var(--jp)', cursor: 'pointer',
+                    letterSpacing: '0.04em',
                   }}>{lang === 'en' ? 'Log Out' : 'ログアウト'}</button>
                 </>
               ) : (
                 <>
                   <a href="#/login" onClick={() => setMenuOpen(false)} style={{
-                    padding: '12px 20px', textAlign: 'center',
-                    border: '1px solid var(--line)', borderRadius: 999, fontSize: 14,
-                  }}>{t.nav.login}</a>
+                    padding: '14px 20px', textAlign: 'center',
+                    border: '1px solid rgba(255,255,255,0.3)',
+                    color: '#fff',
+                    fontSize: 14, fontWeight: 500,
+                    fontFamily: 'var(--jp)',
+                    textDecoration: 'none',
+                    letterSpacing: '0.04em',
+                  }}>{lang === 'en' ? 'Log In' : 'ログイン'}</a>
                   <a href="#/signup" onClick={() => setMenuOpen(false)} style={{
-                    padding: '12px 20px', textAlign: 'center',
-                    background: 'var(--coral)', color: '#fff', borderRadius: 999, fontSize: 14, fontWeight: 600,
-                  }}>{t.nav.signup}</a>
+                    padding: '14px 20px', textAlign: 'center',
+                    background: '#fff', color: '#0a1628',
+                    fontSize: 14, fontWeight: 600,
+                    fontFamily: 'var(--jp)',
+                    textDecoration: 'none',
+                    letterSpacing: '0.04em',
+                  }}>{lang === 'en' ? 'Become a Member' : '会員登録'}</a>
                 </>
               )}
+            </div>
+
+            {/* === Footer 装飾 === */}
+            <div style={{
+              marginTop: 'var(--space-7, 32px)',
+              paddingTop: 'var(--space-5, 20px)',
+              borderTop: '1px solid rgba(255,255,255,0.08)',
+              textAlign: 'center',
+            }}>
+              <div style={{
+                width: 24, height: 1,
+                background: 'rgba(255,255,255,0.3)',
+                margin: '0 auto 8px',
+              }}/>
+              <div style={{
+                fontFamily: 'var(--mono, monospace)',
+                fontSize: 9,
+                letterSpacing: '0.22em',
+                color: 'rgba(255,255,255,0.35)',
+                fontWeight: 500,
+              }}>EST. 2018 · TOKYO · JP</div>
             </div>
           </div>
         </div>
@@ -7250,11 +7485,58 @@ function PageHomeMobile({ lang, t, events, ads, heroSlides, heroSlidesMobile, lo
       });
   }, [heroSlidesMobile]);
   const [slideIdx, setSlideIdx] = React.useState(0);
+  // (Phase 15.S8 #1) 自動切替を一時停止する時刻 (ms unix)。 ユーザー操作後 8秒は自動切替を停止
+  const [autoPauseUntil, setAutoPauseUntil] = React.useState(0);
   React.useEffect(() => {
     if (heroMobileSlides.length <= 1) return;
-    const id = setInterval(() => setSlideIdx(i => (i + 1) % heroMobileSlides.length), 5500);
+    const id = setInterval(() => {
+      // 一時停止中はスキップ
+      if (Date.now() < autoPauseUntil) return;
+      setSlideIdx(i => (i + 1) % heroMobileSlides.length);
+    }, 5500);
     return () => clearInterval(id);
+  }, [heroMobileSlides.length, autoPauseUntil]);
+
+  // (Phase 15.S8 #1) スワイプ操作の状態
+  const touchStartXRef = React.useRef(null);
+  const touchStartYRef = React.useRef(null);
+  const touchStartTimeRef = React.useRef(0);
+  const goToSlide = React.useCallback((newIdx) => {
+    if (heroMobileSlides.length === 0) return;
+    const wrapped = ((newIdx % heroMobileSlides.length) + heroMobileSlides.length) % heroMobileSlides.length;
+    setSlideIdx(wrapped);
+    setAutoPauseUntil(Date.now() + 8000);  // 8秒間は自動切替を停止
   }, [heroMobileSlides.length]);
+  const goNext = React.useCallback(() => goToSlide(slideIdx + 1), [goToSlide, slideIdx]);
+  const goPrev = React.useCallback(() => goToSlide(slideIdx - 1), [goToSlide, slideIdx]);
+  const handleTouchStart = (e) => {
+    if (e.touches && e.touches[0]) {
+      touchStartXRef.current = e.touches[0].clientX;
+      touchStartYRef.current = e.touches[0].clientY;
+      touchStartTimeRef.current = Date.now();
+    }
+  };
+  const handleTouchEnd = (e) => {
+    if (touchStartXRef.current === null) return;
+    const endX = (e.changedTouches && e.changedTouches[0]) ? e.changedTouches[0].clientX : 0;
+    const endY = (e.changedTouches && e.changedTouches[0]) ? e.changedTouches[0].clientY : 0;
+    const dx = endX - touchStartXRef.current;
+    const dy = endY - touchStartYRef.current;
+    const dt = Date.now() - touchStartTimeRef.current;
+    touchStartXRef.current = null;
+    touchStartYRef.current = null;
+    // 横スワイプ判定: 横移動 > 縦移動 × 1.5、 横移動 > 50px、 0.7秒以内
+    if (Math.abs(dx) > Math.abs(dy) * 1.5 && Math.abs(dx) > 50 && dt < 700) {
+      if (dx > 0) goPrev();
+      else goNext();
+    }
+  };
+
+  // (Phase 15.S8 #3) 画像ロードエラー追跡 — エラー時はフォールバック表示
+  const [imgErrors, setImgErrors] = React.useState({});  // { [slideId]: true }
+  const handleImgError = (slideId) => {
+    setImgErrors(prev => ({ ...prev, [slideId]: true }));
+  };
 
   // === Featured イベント ===
   const featuredEventId = sx('home_featured_eventId');
@@ -7295,16 +7577,39 @@ function PageHomeMobile({ lang, t, events, ads, heroSlides, heroSlidesMobile, lo
       {/* SECTION 1: HERO — Admin で作ったスライドそのままを表示 (Phase 15.S7) */}
       {/* スライド画像 + オーバーレイ (テキスト/図形/画像) + アニメーション すべてそのまま */}
       {/* ============================================================ */}
-      <section data-mobile-hero="true" style={{
-        position: 'relative',
-        width: '100%',
-        height: '100vh',
-        minHeight: 540,
-        maxHeight: 'min(820px, 100dvh)',
-        marginTop: 0,
-        background: 'linear-gradient(135deg, #0a1628 0%, #1a3a7a 50%, #0a2960 100%)',
-        overflow: 'hidden',
-      }}>
+      {/* (Phase 15.S8 #18) Admin で Hero アスペクト比を切替可能 */}
+      {/* siteSettings.home_hero_mobile_aspect: 'full' (デフォルト 100vh) / '4-5' / '16-9' / 'square' */}
+      {(() => {
+        const aspectMode = sx('home_hero_mobile_aspect', 'full');
+        const heroStyle = {
+          position: 'relative',
+          width: '100%',
+          minHeight: 380,
+          marginTop: 0,
+          background: 'linear-gradient(135deg, #0a1628 0%, #1a3a7a 50%, #0a2960 100%)',
+          overflow: 'hidden',
+          touchAction: 'pan-y',
+        };
+        if (aspectMode === '4-5') {
+          heroStyle.aspectRatio = '4 / 5';
+          heroStyle.height = 'auto';
+        } else if (aspectMode === '16-9') {
+          heroStyle.aspectRatio = '16 / 9';
+          heroStyle.height = 'auto';
+        } else if (aspectMode === 'square') {
+          heroStyle.aspectRatio = '1 / 1';
+          heroStyle.height = 'auto';
+        } else {
+          // 'full' = 100vh (デフォルト)
+          heroStyle.height = '100vh';
+          heroStyle.minHeight = 480;
+        }
+        return (
+      <section
+        data-mobile-hero={aspectMode === 'full' ? 'true' : 'false'}
+        onTouchStart={handleTouchStart}
+        onTouchEnd={handleTouchEnd}
+        style={heroStyle}>
         {/* ロード中スケルトン */}
         {heroMobileSlides.length === 0 && loading && (
           <>
@@ -7327,19 +7632,80 @@ function PageHomeMobile({ lang, t, events, ads, heroSlides, heroSlidesMobile, lo
           </>
         )}
 
+        {/* (Phase 15.S8 #6) 初期状態: ロード完了 + スライド 0 枚のときのウェルカム */}
+        {heroMobileSlides.length === 0 && !loading && (
+          <div style={{
+            position: 'absolute', inset: 0,
+            display: 'flex', flexDirection: 'column',
+            alignItems: 'center', justifyContent: 'center',
+            padding: '0 var(--space-7)',
+            textAlign: 'center',
+            color: '#fff',
+          }}>
+            {/* 細い水平線 */}
+            <div style={{
+              width: 32, height: 1,
+              background: 'rgba(255,255,255,0.5)',
+              marginBottom: 'var(--space-5)',
+              opacity: 0,
+              animation: 'cca-line-grow 1.0s cubic-bezier(0.2,0.8,0.2,1) 0.4s forwards, cca-fade-in-soft 1.0s ease-out 0.4s forwards',
+              ['--line-w']: '32px',
+            }}/>
+            <div style={{
+              fontSize: 'var(--font-micro)',
+              letterSpacing: 'var(--ls-mono-xxl)',
+              fontFamily: 'var(--mono)',
+              color: 'rgba(255,255,255,0.7)',
+              fontWeight: 500,
+              marginBottom: 'var(--space-4)',
+              opacity: 0,
+              animation: 'cca-flow-up 1.0s cubic-bezier(0.2,0.8,0.2,1) 0.7s forwards',
+            }}>EST. 2018 · TOKYO · JP</div>
+            <h1 style={{
+              fontFamily: 'var(--serif)',
+              fontSize: 'clamp(36px, 11vw, 56px)',
+              lineHeight: 1.0,
+              fontWeight: 300,
+              letterSpacing: 'var(--ls-tightest)',
+              color: '#fff',
+              margin: '0 0 var(--space-5)',
+              opacity: 0,
+              animation: 'cca-char-rise 1.2s cubic-bezier(0.2,0.8,0.2,1) 1.0s forwards',
+            }}>connec+a</h1>
+            <div style={{
+              fontSize: 'var(--font-body-sm)',
+              fontFamily: 'var(--jp)',
+              color: 'rgba(255,255,255,0.65)',
+              letterSpacing: 'var(--ls-relaxed)',
+              maxWidth: 280,
+              lineHeight: 'var(--lh-relaxed)',
+              opacity: 0,
+              animation: 'cca-flow-up 1.0s cubic-bezier(0.2,0.8,0.2,1) 1.5s forwards',
+            }}>{lang === 'en'
+              ? 'Where strangers become friends.'
+              : '出会いから、はじまる東京。'}</div>
+          </div>
+        )}
+
         {/* スライド一覧 (画像 or 背景色) */}
         {heroMobileSlides.map((sl, i) => {
           const isActive = i === slideIdx;
-          // 背景: 画像 or 背景色のフォールバックパレット
-          const bgValue = sl.imageUrl ? null
-            : sl.bgColor === 'navy' ? '#0a2960'
+          const isAdjacent = Math.abs(i - slideIdx) <= 1
+            || (i === 0 && slideIdx === heroMobileSlides.length - 1)
+            || (i === heroMobileSlides.length - 1 && slideIdx === 0);
+          const hasImageError = imgErrors[sl.id];
+          // 背景: 画像 or 背景色のフォールバックパレット (画像エラー時もフォールバックへ)
+          const useBg = !sl.imageUrl || hasImageError;
+          const bgValue = useBg ? (
+            sl.bgColor === 'navy' ? '#0a2960'
             : sl.bgColor === 'white' ? '#ffffff'
             : sl.bgColor === 'beige' ? '#f5f0e8'
             : sl.bgColor === 'gradient-blue' ? 'linear-gradient(135deg, #1c89e8 0%, #0a2960 100%)'
             : sl.bgColor === 'gradient-navy' ? 'linear-gradient(135deg, #1a3661 0%, #0a2960 100%)'
             : sl.bgColor === 'gradient-sky' ? 'linear-gradient(180deg, #7cb9f0 0%, #ffffff 100%)'
             : sl.bgColor === 'gradient-warm' ? 'linear-gradient(135deg, #f5f0e8 0%, #ffffff 100%)'
-            : '#0a2960';
+            : 'linear-gradient(135deg, #0a1628 0%, #1a3a7a 100%)'  // デフォルトもグラデにする (真っ黒回避)
+          ) : null;
           return (
             <div key={sl.id || i} style={{
               position: 'absolute', inset: 0,
@@ -7348,14 +7714,32 @@ function PageHomeMobile({ lang, t, events, ads, heroSlides, heroSlidesMobile, lo
               pointerEvents: isActive ? 'auto' : 'none',
               ...(bgValue ? { background: bgValue } : {}),
             }}>
-              {/* 背景画像 */}
-              {sl.imageUrl && (
-                <img src={sl.imageUrl} alt="" loading={i === 0 ? 'eager' : 'lazy'} style={{
+              {/* 背景画像 (エラー時は表示しない) */}
+              {sl.imageUrl && !hasImageError && (
+                <img src={sl.imageUrl} alt=""
+                  loading={isAdjacent ? 'eager' : 'lazy'}
+                  onError={() => handleImgError(sl.id)}
+                  style={{
+                    position: 'absolute', inset: 0,
+                    width: '100%', height: '100%',
+                    objectFit: 'cover',
+                    display: 'block',
+                    animation: isActive ? 'cca-hero-zoom-out 8s cubic-bezier(0.25, 0.1, 0.25, 1) forwards, cca-ken-burns 18s ease-out 8s forwards' : 'none',
+                }}/>
+              )}
+
+              {/* (Phase 15.S8 #20) トーンオーバーレイ (warm/night/city) — テキスト視認性向上 */}
+              {sl.imageUrl && !hasImageError && (
+                <div style={{
                   position: 'absolute', inset: 0,
-                  width: '100%', height: '100%',
-                  objectFit: 'cover',
-                  display: 'block',
-                  animation: isActive ? 'cca-hero-zoom-out 8s cubic-bezier(0.25, 0.1, 0.25, 1) forwards, cca-ken-burns 18s ease-out 8s forwards' : 'none',
+                  pointerEvents: 'none',
+                  background: sl.tone === 'night'
+                    ? 'linear-gradient(180deg, rgba(10,22,40,0.4) 0%, rgba(10,22,40,0.7) 100%)'
+                    : sl.tone === 'city'
+                    ? 'linear-gradient(180deg, rgba(0,0,0,0.15) 0%, rgba(0,0,0,0.5) 100%)'
+                    : sl.tone === 'warm'
+                    ? 'linear-gradient(180deg, rgba(120,60,20,0.1) 0%, rgba(40,20,10,0.45) 100%)'
+                    : 'linear-gradient(180deg, rgba(0,0,0,0.1) 0%, rgba(0,0,0,0.35) 100%)',
                 }}/>
               )}
 
@@ -7376,6 +7760,7 @@ function PageHomeMobile({ lang, t, events, ads, heroSlides, heroSlidesMobile, lo
                   position: 'absolute',
                   left: item.x + '%', top: item.y + '%',
                   width: item.w + '%', height: item.h + '%',
+                  '--rot': `${item.rotation || 0}deg`,
                   transform: `rotate(${item.rotation || 0}deg)`,
                   opacity: item.opacity ?? 1,
                   boxSizing: 'border-box',
@@ -7436,24 +7821,61 @@ function PageHomeMobile({ lang, t, events, ads, heroSlides, heroSlidesMobile, lo
           );
         })}
 
-        {/* スライドインジケータ (右下、控えめ) */}
+        {/* (Phase 15.S8 #4) スライドインジケータ + 操作 (大型化、タップ可能) */}
         {heroMobileSlides.length > 1 && (
-          <div style={{
-            position: 'absolute', right: 16, bottom: 16,
-            display: 'flex', gap: 6,
-            fontFamily: 'var(--mono)',
-            fontSize: 'var(--font-micro)',
-            color: '#fff',
-            letterSpacing: 'var(--ls-mono-l)',
-            padding: '6px 10px',
-            background: 'rgba(0,0,0,0.4)',
-            backdropFilter: 'blur(8px)',
-          }}>
-            <span>{String(slideIdx + 1).padStart(2, '0')}</span>
-            <span style={{ opacity: 0.6 }}>/ {String(heroMobileSlides.length).padStart(2, '0')}</span>
-          </div>
+          <>
+            {/* ドットインジケータ (中央下、 タップ可能) */}
+            <div style={{
+              position: 'absolute',
+              left: '50%', bottom: 24,
+              transform: 'translateX(-50%)',
+              display: 'flex', gap: 10,
+              padding: '10px 14px',
+              background: 'rgba(0,0,0,0.35)',
+              backdropFilter: 'blur(10px)',
+              borderRadius: 999,
+              zIndex: 5,
+            }}>
+              {heroMobileSlides.map((sl, i) => (
+                <button key={sl.id || i}
+                  type="button"
+                  onClick={() => goToSlide(i)}
+                  aria-label={`スライド ${i + 1} へ`}
+                  style={{
+                    width: i === slideIdx ? 28 : 8,
+                    height: 8,
+                    padding: 0,
+                    border: 'none',
+                    borderRadius: 999,
+                    background: i === slideIdx ? '#fff' : 'rgba(255,255,255,0.45)',
+                    cursor: 'pointer',
+                    transition: 'all .4s cubic-bezier(0.2,0.8,0.2,1)',
+                  }}/>
+              ))}
+            </div>
+
+            {/* 番号インジケータ (右下、 控えめ) */}
+            <div style={{
+              position: 'absolute', right: 16, bottom: 24,
+              display: 'flex', gap: 6,
+              fontFamily: 'var(--mono)',
+              fontSize: 'var(--font-micro)',
+              color: 'rgba(255,255,255,0.85)',
+              letterSpacing: 'var(--ls-mono-l)',
+              padding: '6px 10px',
+              background: 'rgba(0,0,0,0.35)',
+              backdropFilter: 'blur(10px)',
+              borderRadius: 4,
+              fontWeight: 600,
+            }}>
+              <span>{String(slideIdx + 1).padStart(2, '0')}</span>
+              <span style={{ opacity: 0.6 }}>/ {String(heroMobileSlides.length).padStart(2, '0')}</span>
+            </div>
+          </>
         )}
       </section>
+        );
+      })()}
 
       {/* SECTION 3: NAV (4分割) */}
       {/* ============================================================ */}
@@ -7558,16 +7980,17 @@ function PageHomeMobile({ lang, t, events, ads, heroSlides, heroSlidesMobile, lo
       </section>
 
       {/* ============================================================ */}
-      {/* SECTION 4: FEATURED */}
+      {/* SECTION 4: FEATURED (Phase 15.S9 新A: 写真先行・高級雑誌風) */}
       {/* ============================================================ */}
       {featuredEvent && (
         <section style={{
-          padding: 'var(--space-9) var(--space-6) var(--space-8)',
+          padding: 'var(--space-9) 0 var(--space-8)',
           background: 'var(--paper-1)',
           borderTop: '1px solid var(--brand-line)',
+          overflow: 'hidden',
         }}>
           <Reveal y={20} blur={false}>
-            <div style={{ textAlign: 'center', marginBottom: 'var(--space-7)' }}>
+            <div style={{ textAlign: 'center', marginBottom: 'var(--space-7)', padding: '0 var(--space-6)' }}>
               <div style={{
                 fontSize: 'var(--font-micro)',
                 letterSpacing: 'var(--ls-mono-xl)',
@@ -7588,133 +8011,202 @@ function PageHomeMobile({ lang, t, events, ads, heroSlides, heroSlidesMobile, lo
             </div>
           </Reveal>
 
+          {/* === Hero スタイル写真ブロック (フルブリード、 写真上に情報) === */}
           <Reveal y={30} blur={false} delay={150}>
             <a href={`#/events/${featuredEvent.id}`} style={{
               display: 'block',
-              background: 'var(--paper-2)',
-              border: '1px solid var(--brand-line)',
+              position: 'relative',
+              width: '100%',
+              aspectRatio: '4 / 5',
+              overflow: 'hidden',
+              background: '#0a1628',
               textDecoration: 'none',
-              color: 'var(--ink-1)',
-              transition: 'all var(--t-base)',
-              marginBottom: 'var(--space-5)',
+              color: '#fff',
+              marginBottom: 'var(--space-6)',
             }}
-            onTouchStart={(e) => { e.currentTarget.style.transform = 'scale(0.99)'; }}
-            onTouchEnd={(e) => { e.currentTarget.style.transform = 'scale(1)'; }}>
-              <div style={{
-                aspectRatio: '4 / 3',
-                background: 'var(--paper-3)',
-                position: 'relative',
-                overflow: 'hidden',
-              }}>
-                {(featuredEvent.heroImageUrl || featuredEvent.posterUrl) && (
-                  <img src={normalizeHomeImg(featuredEvent.heroImageUrl || featuredEvent.posterUrl)} alt=""
-                    loading="lazy" style={{
-                      position: 'absolute', inset: 0,
-                      width: '100%', height: '100%', objectFit: 'cover',
-                    }}/>
-                )}
-              </div>
-              <div style={{ padding: 'var(--space-5)' }}>
+            onTouchStart={(e) => { e.currentTarget.style.opacity = '0.92'; }}
+            onTouchEnd={(e) => { e.currentTarget.style.opacity = '1'; }}>
+              {/* 写真 */}
+              {(featuredEvent.heroImageUrl || featuredEvent.posterUrl) ? (
+                <img src={normalizeHomeImg(featuredEvent.heroImageUrl || featuredEvent.posterUrl)} alt=""
+                  loading="lazy" style={{
+                    position: 'absolute', inset: 0,
+                    width: '100%', height: '100%', objectFit: 'cover',
+                    display: 'block',
+                  }}/>
+              ) : (
                 <div style={{
-                  display: 'flex', gap: 'var(--space-3)',
+                  position: 'absolute', inset: 0,
+                  background: 'linear-gradient(135deg, #1a3a7a 0%, #0a2960 100%)',
+                }}/>
+              )}
+              {/* 暗グラデオーバーレイ (テキスト視認性) */}
+              <div style={{
+                position: 'absolute', inset: 0,
+                background: 'linear-gradient(180deg, rgba(10,22,40,0.15) 0%, rgba(10,22,40,0.45) 50%, rgba(10,22,40,0.92) 100%)',
+              }}/>
+              {/* 写真上のテキスト (下部寄せ) */}
+              <div style={{
+                position: 'absolute',
+                left: 0, right: 0, bottom: 0,
+                padding: 'var(--space-7) var(--space-6) var(--space-7)',
+                color: '#fff',
+              }}>
+                {/* メタ情報 (ライン区切り) */}
+                <div style={{
+                  display: 'flex', alignItems: 'center', gap: 'var(--space-3)',
                   fontSize: 'var(--font-micro)',
                   letterSpacing: 'var(--ls-mono-l)',
                   fontFamily: 'var(--mono)',
-                  color: 'var(--ink-4)',
+                  color: 'rgba(255,255,255,0.85)',
                   fontWeight: 600,
-                  marginBottom: 'var(--space-3)',
+                  marginBottom: 'var(--space-4)',
                   flexWrap: 'wrap',
                 }}>
                   {featuredEvent.date && <span>{featuredEvent.date}</span>}
-                  {featuredEvent.area && <span>· {featuredEvent.area}</span>}
-                  {featuredEvent.feeType === 'free' && <span style={{ color: 'var(--brand-blue)' }}>· FREE</span>}
+                  {featuredEvent.area && (
+                    <>
+                      <span style={{ width: 4, height: 4, borderRadius: '50%', background: 'rgba(255,255,255,0.5)' }}/>
+                      <span>{featuredEvent.area}</span>
+                    </>
+                  )}
+                  {featuredEvent.feeType === 'free' && (
+                    <>
+                      <span style={{ width: 4, height: 4, borderRadius: '50%', background: 'rgba(255,255,255,0.5)' }}/>
+                      <span style={{ color: '#9bd0ff' }}>FREE</span>
+                    </>
+                  )}
                 </div>
+                {/* タイトル (大セリフ) */}
                 <div style={{
                   fontFamily: 'var(--serif)',
-                  fontSize: 'var(--font-h2)',
-                  lineHeight: 'var(--lh-snug)',
-                  fontWeight: 400,
+                  fontSize: 'clamp(28px, 7.5vw, 38px)',
+                  lineHeight: 1.1,
+                  fontWeight: 300,
                   letterSpacing: 'var(--ls-tight)',
-                  color: 'var(--ink-1)',
-                  marginBottom: 'var(--space-3)',
+                  color: '#fff',
+                  marginBottom: 'var(--space-4)',
+                  textShadow: '0 2px 16px rgba(0,0,0,0.3)',
                 }}>{featuredEvent.title}</div>
+                {/* 概要 (短めに、 詳細は次画面で) */}
                 {featuredEvent.summary && (
                   <p style={{
                     fontSize: 'var(--font-body-sm)',
                     lineHeight: 'var(--lh-relaxed)',
-                    color: 'var(--ink-3)',
+                    color: 'rgba(255,255,255,0.85)',
                     fontFamily: 'var(--jp)',
-                    margin: 0,
+                    margin: '0 0 var(--space-5)',
                     letterSpacing: 'var(--ls-normal)',
                     display: '-webkit-box',
-                    WebkitLineClamp: 3,
+                    WebkitLineClamp: 2,
                     WebkitBoxOrient: 'vertical',
                     overflow: 'hidden',
                   }}>{featuredEvent.summary}</p>
                 )}
+                {/* 詳細リンク (Aman 風 アンダーライン) */}
+                <div style={{
+                  display: 'inline-flex', alignItems: 'center', gap: 8,
+                  fontSize: 'var(--font-micro)',
+                  letterSpacing: 'var(--ls-mono-xl)',
+                  fontFamily: 'var(--mono)',
+                  fontWeight: 600,
+                  paddingBottom: 4,
+                  borderBottom: '1px solid rgba(255,255,255,0.5)',
+                  color: '#fff',
+                }}>
+                  <span>{tx('home_featured_cta_label', lang === 'en' ? 'VIEW EVENT' : 'イベント詳細')}</span>
+                  <span>→</span>
+                </div>
               </div>
-            </a>
-          </Reveal>
-
-          <Reveal y={15} blur={false} delay={300}>
-            <a href={`#/events/${featuredEvent.id}`} style={{
-              display: 'flex', alignItems: 'center', justifyContent: 'space-between',
-              padding: 'var(--space-5) var(--space-6)',
-              background: 'var(--brand-navy)',
-              color: '#fff', textDecoration: 'none',
-              fontSize: 'var(--font-body)', fontWeight: 500,
-              fontFamily: 'var(--jp)', letterSpacing: 'var(--ls-wide)',
-              maxWidth: 360, margin: '0 auto',
-              transition: 'all var(--t-base)',
-            }}
-            onTouchStart={(e) => { e.currentTarget.style.background = 'var(--brand-navy-deep)'; e.currentTarget.style.transform = 'scale(0.98)'; }}
-            onTouchEnd={(e) => { e.currentTarget.style.background = 'var(--brand-navy)'; e.currentTarget.style.transform = 'scale(1)'; }}>
-              <span>{tx('home_featured_cta_label', lang === 'en' ? 'View this event' : '詳細を見る')}</span>
-              <Icon name="arrow-right" size={16} />
             </a>
           </Reveal>
         </section>
       )}
 
       {/* ============================================================ */}
-      {/* SECTION 5: CONCEPT (詩的) */}
+      {/* SECTION 5: CONCEPT (Phase 15.S9 新B: ビジュアル装飾追加) */}
       {/* ============================================================ */}
       <section style={{
-        padding: 'var(--space-10) var(--space-6) var(--space-9)',
+        padding: 'var(--space-12) var(--space-6) var(--space-11)',
         background: 'var(--paper-2)',
         borderTop: '1px solid var(--brand-line)',
         textAlign: 'center',
+        position: 'relative',
       }}>
-        <Reveal y={20} blur={false}>
+        {/* 上部装飾: CHAPTER 番号 + 細い水平線 */}
+        <Reveal y={15} blur={false}>
+          <div style={{
+            display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 12,
+            marginBottom: 'var(--space-7)',
+          }}>
+            <div style={{
+              width: 32, height: 1,
+              background: 'var(--brand-blue)',
+            }}/>
+            <div style={{
+              fontSize: 'var(--font-micro)',
+              letterSpacing: 'var(--ls-mono-xxl)',
+              fontFamily: 'var(--mono)',
+              color: 'var(--brand-blue)',
+              fontWeight: 600,
+            }}>CHAPTER 01</div>
+            <div style={{
+              width: 32, height: 1,
+              background: 'var(--brand-blue)',
+            }}/>
+          </div>
+        </Reveal>
+        <Reveal y={20} blur={false} delay={120}>
           <div style={{
             fontSize: 'var(--font-micro)',
             letterSpacing: 'var(--ls-mono-xl)',
             fontFamily: 'var(--mono)',
-            color: 'var(--brand-blue)',
+            color: 'var(--ink-3)',
             fontWeight: 600,
-            marginBottom: 'var(--space-2)',
+            marginBottom: 'var(--space-5)',
           }}>{tx('concept_label', 'CONCEPT')}</div>
         </Reveal>
-        <Reveal y={30} blur={false} delay={150}>
+        <Reveal y={30} blur={false} delay={250}>
+          {/* 大きな引用符 (上) */}
+          <div style={{
+            fontFamily: 'var(--serif)',
+            fontSize: 56,
+            lineHeight: 1,
+            color: 'var(--brand-blue)',
+            opacity: 0.25,
+            margin: '0 auto var(--space-3)',
+            letterSpacing: '-0.05em',
+          }}>“</div>
           <h2 style={{
             fontFamily: 'var(--serif)',
-            fontSize: 'var(--font-h1)',
-            lineHeight: 'var(--lh-tight)',
+            fontSize: 'clamp(28px, 8vw, 42px)',
+            lineHeight: 1.15,
             fontWeight: 300,
             letterSpacing: 'var(--ls-tight)',
             color: 'var(--ink-1)',
-            margin: '0 0 var(--space-7)',
+            margin: '0 0 var(--space-3)',
             whiteSpace: 'pre-line',
           }}>{tx('concept_main',
                 lang === 'en' ? 'Make Tokyo home.' : '東京を、もうひとつのふるさとに。')}</h2>
+          {/* 大きな引用符 (下) */}
+          <div style={{
+            fontFamily: 'var(--serif)',
+            fontSize: 56,
+            lineHeight: 1,
+            color: 'var(--brand-blue)',
+            opacity: 0.25,
+            margin: '0 auto var(--space-7)',
+            letterSpacing: '-0.05em',
+            transform: 'rotate(180deg)',
+          }}>“</div>
         </Reveal>
-        <Reveal y={20} blur={false} delay={300}>
+        <Reveal y={20} blur={false} delay={400}>
           <p style={{
             fontFamily: 'var(--jp)',
             fontSize: 'var(--font-body)',
             lineHeight: 'var(--lh-loose)',
             color: 'var(--ink-2)',
-            margin: '0 auto',
+            margin: '0 auto var(--space-7)',
             maxWidth: 380,
             letterSpacing: 'var(--ls-relaxed)',
             whiteSpace: 'pre-line',
@@ -7723,86 +8215,195 @@ function PageHomeMobile({ lang, t, events, ads, heroSlides, heroSlidesMobile, lo
                   ? 'For international students arriving in Tokyo,\nwe offer a space to meet,\nnot just join.'
                   : 'イベントではなく、出会いを。\n一夜限りでなく、日常のなかで。\n東京を、もうひとつのふるさとに。')}</p>
         </Reveal>
+
+        {/* 下部装飾: 数字+EST */}
+        <Reveal y={15} blur={false} delay={550}>
+          <div style={{
+            display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 12,
+            paddingTop: 'var(--space-7)',
+            borderTop: '1px solid rgba(28, 137, 232, 0.15)',
+            maxWidth: 240,
+            margin: '0 auto',
+          }}>
+            <div style={{
+              fontFamily: 'var(--mono)',
+              fontSize: 'var(--font-micro)',
+              letterSpacing: 'var(--ls-mono-xxl)',
+              color: 'var(--ink-4)',
+              fontWeight: 500,
+            }}>EST. 2018</div>
+            <div style={{ width: 4, height: 4, borderRadius: '50%', background: 'var(--ink-5)' }}/>
+            <div style={{
+              fontFamily: 'var(--mono)',
+              fontSize: 'var(--font-micro)',
+              letterSpacing: 'var(--ls-mono-xxl)',
+              color: 'var(--ink-4)',
+              fontWeight: 500,
+            }}>TOKYO · JP</div>
+          </div>
+        </Reveal>
       </section>
 
       {/* ============================================================ */}
-      {/* SECTION 6: NEWS */}
+      {/* SECTION 6: NEWS (Phase 15.S9 新C: リスト表示) */}
       {/* ============================================================ */}
-      {topNews && (
+      {topNews && (() => {
+        const newsItems = (frontNews || []).slice(0, 4);
+        return (
         <section style={{
-          padding: 'var(--space-9) var(--space-6) var(--space-8)',
+          padding: 'var(--space-10) var(--space-6) var(--space-9)',
           background: 'var(--paper-1)',
           borderTop: '1px solid var(--brand-line)',
         }}>
           <Reveal y={20} blur={false}>
-            <div style={{ textAlign: 'center', marginBottom: 'var(--space-7)' }}>
-              <div style={{
-                fontSize: 'var(--font-micro)',
-                letterSpacing: 'var(--ls-mono-xl)',
-                fontFamily: 'var(--mono)',
-                color: 'var(--brand-blue)',
-                fontWeight: 600,
-                marginBottom: 'var(--space-2)',
-              }}>{tx('home_news_label', 'NEWS')}</div>
-              <h2 style={{
-                fontFamily: 'var(--serif)',
-                fontSize: 'var(--font-h1)',
-                lineHeight: 'var(--lh-tight)',
-                fontWeight: 300,
-                letterSpacing: 'var(--ls-tight)',
-                color: 'var(--ink-1)',
-                margin: 0,
-              }}>{tx('home_news_title', lang === 'en' ? 'What\'s happening' : '最近の動き')}</h2>
-            </div>
-          </Reveal>
-
-          <Reveal y={20} blur={false} delay={150}>
-            <a href={`#/news/${topNews.id}`} style={{
-              display: 'block',
-              padding: 'var(--space-6) var(--space-5)',
-              background: 'var(--paper-2)',
-              border: '1px solid var(--brand-line)',
-              textDecoration: 'none',
-              color: 'var(--ink-1)',
-              marginBottom: 'var(--space-5)',
+            <div style={{
+              display: 'flex', alignItems: 'baseline', justifyContent: 'space-between',
+              marginBottom: 'var(--space-7)',
             }}>
-              <div style={{
+              <div>
+                <div style={{
+                  fontSize: 'var(--font-micro)',
+                  letterSpacing: 'var(--ls-mono-xl)',
+                  fontFamily: 'var(--mono)',
+                  color: 'var(--brand-blue)',
+                  fontWeight: 600,
+                  marginBottom: 'var(--space-2)',
+                }}>{tx('home_news_label', 'NEWS')}</div>
+                <h2 style={{
+                  fontFamily: 'var(--serif)',
+                  fontSize: 'var(--font-h2)',
+                  lineHeight: 'var(--lh-tight)',
+                  fontWeight: 300,
+                  letterSpacing: 'var(--ls-tight)',
+                  color: 'var(--ink-1)',
+                  margin: 0,
+                }}>{tx('home_news_title', lang === 'en' ? 'Recent updates' : '最近の動き')}</h2>
+              </div>
+              <a href="#/news" style={{
                 fontSize: 'var(--font-micro)',
                 letterSpacing: 'var(--ls-mono-l)',
                 fontFamily: 'var(--mono)',
-                color: 'var(--ink-4)',
                 fontWeight: 600,
-                marginBottom: 'var(--space-3)',
-              }}>{topNews.publishedAt || ''}{topNews.category ? ' · ' + topNews.category : ''}</div>
-              <div style={{
-                fontFamily: 'var(--jp)',
-                fontSize: 'var(--font-h3)',
-                lineHeight: 'var(--lh-snug)',
-                fontWeight: 600,
-                color: 'var(--ink-1)',
-                letterSpacing: 'var(--ls-normal)',
-              }}>{topNews.title || ''}</div>
-            </a>
+                color: 'var(--brand-blue)',
+                textDecoration: 'none',
+                paddingBottom: 4,
+                borderBottom: '1px solid var(--brand-blue)',
+                whiteSpace: 'nowrap',
+              }}>{lang === 'en' ? 'ALL →' : 'すべて →'}</a>
+            </div>
           </Reveal>
 
-          <Reveal y={15} blur={false} delay={250}>
-            <a href="#/news" style={{
-              display: 'flex', alignItems: 'center', justifyContent: 'space-between',
-              padding: 'var(--space-5) var(--space-6)',
-              background: 'transparent',
-              color: 'var(--ink-1)', textDecoration: 'none',
-              fontSize: 'var(--font-body-sm)', fontWeight: 500,
-              fontFamily: 'var(--jp)', letterSpacing: 'var(--ls-wide)',
-              border: '1px solid var(--ink-6)',
-              maxWidth: 360, margin: '0 auto',
-              transition: 'all var(--t-base)',
-            }}>
-              <span>{tx('home_news_cta_label', lang === 'en' ? 'Read all news' : 'すべてのニュースを見る')}</span>
-              <Icon name="arrow-right" size={14} />
-            </a>
-          </Reveal>
+          {/* === 1記事目 (ビジュアル強調、 画像があれば表示) === */}
+          {newsItems[0] && (
+            <Reveal y={20} blur={false} delay={100}>
+              <a href={`#/news/${newsItems[0].id}`} style={{
+                display: 'block',
+                marginBottom: 'var(--space-6)',
+                textDecoration: 'none',
+                color: 'var(--ink-1)',
+              }}>
+                {newsItems[0].imageUrl && (
+                  <div style={{
+                    aspectRatio: '16 / 9',
+                    background: 'var(--paper-3)',
+                    overflow: 'hidden',
+                    marginBottom: 'var(--space-4)',
+                    position: 'relative',
+                  }}>
+                    <img src={normalizeHomeImg(newsItems[0].imageUrl)} alt=""
+                      loading="lazy" style={{
+                        position: 'absolute', inset: 0,
+                        width: '100%', height: '100%', objectFit: 'cover',
+                        display: 'block',
+                      }}/>
+                  </div>
+                )}
+                <div style={{
+                  display: 'flex', alignItems: 'center', gap: 'var(--space-3)',
+                  fontSize: 'var(--font-micro)',
+                  letterSpacing: 'var(--ls-mono-l)',
+                  fontFamily: 'var(--mono)',
+                  color: 'var(--ink-4)',
+                  fontWeight: 600,
+                  marginBottom: 'var(--space-3)',
+                }}>
+                  {newsItems[0].publishedAt && <span>{newsItems[0].publishedAt}</span>}
+                  {newsItems[0].category && (
+                    <>
+                      <span style={{ width: 4, height: 4, borderRadius: '50%', background: 'var(--ink-5)' }}/>
+                      <span style={{ color: 'var(--brand-blue)' }}>{newsItems[0].category}</span>
+                    </>
+                  )}
+                </div>
+                <div style={{
+                  fontFamily: 'var(--serif)',
+                  fontSize: 'var(--font-h3)',
+                  lineHeight: 'var(--lh-snug)',
+                  fontWeight: 400,
+                  color: 'var(--ink-1)',
+                  letterSpacing: 'var(--ls-tight)',
+                }}>{newsItems[0].title || ''}</div>
+              </a>
+            </Reveal>
+          )}
+
+          {/* === 2記事目以降 (シンプルリスト形式) === */}
+          {newsItems.length > 1 && (
+            <Reveal y={20} blur={false} delay={200}>
+              <div style={{
+                borderTop: '1px solid var(--brand-line)',
+              }}>
+                {newsItems.slice(1).map((news, idx) => (
+                  <a key={news.id || idx} href={`#/news/${news.id}`} style={{
+                    display: 'flex',
+                    alignItems: 'flex-start',
+                    gap: 'var(--space-4)',
+                    padding: 'var(--space-5) 0',
+                    borderBottom: '1px solid var(--brand-line)',
+                    textDecoration: 'none',
+                    color: 'var(--ink-1)',
+                    transition: 'all var(--t-base)',
+                  }}>
+                    {/* 日付・カテゴリ (左) */}
+                    <div style={{
+                      flexShrink: 0,
+                      width: 88,
+                      fontSize: 'var(--font-micro)',
+                      letterSpacing: 'var(--ls-mono-l)',
+                      fontFamily: 'var(--mono)',
+                      color: 'var(--ink-4)',
+                      fontWeight: 600,
+                      lineHeight: 'var(--lh-relaxed)',
+                    }}>
+                      <div>{news.publishedAt || ''}</div>
+                      {news.category && (
+                        <div style={{
+                          color: 'var(--brand-blue)',
+                          marginTop: 2,
+                        }}>{news.category}</div>
+                      )}
+                    </div>
+                    {/* タイトル (右) */}
+                    <div style={{
+                      flex: 1,
+                      fontSize: 'var(--font-body-sm)',
+                      fontFamily: 'var(--jp)',
+                      lineHeight: 'var(--lh-snug)',
+                      color: 'var(--ink-2)',
+                      letterSpacing: 'var(--ls-normal)',
+                      display: '-webkit-box',
+                      WebkitLineClamp: 2,
+                      WebkitBoxOrient: 'vertical',
+                      overflow: 'hidden',
+                    }}>{news.title || ''}</div>
+                  </a>
+                ))}
+              </div>
+            </Reveal>
+          )}
         </section>
-      )}
+        );
+      })()}
 
       {/* ============================================================ */}
       {/* SECTION 7: CONTACT */}
@@ -17079,85 +17680,227 @@ function ContactInput({ label, type, value, onChange, placeholder, required, err
 // FOOTER
 // ============================================================================
 function Footer({ lang, t }) {
+  // (Phase 15.S9 新D) モバイル対応 Aman 風 Footer
   return (
     <footer style={{
-      background: 'var(--navy)',
+      background: '#0a1628',
       color: 'rgba(255,255,255,0.85)',
-      padding: '80px 24px 40px',
+      padding: 'var(--space-12, 80px) var(--space-6, 24px) var(--space-7, 32px)',
+      position: 'relative',
     }}>
       <div style={{ maxWidth: 1280, margin: '0 auto' }}>
+
+        {/* === ブランド & ステートメント === */}
+        <div style={{
+          textAlign: 'center',
+          marginBottom: 'var(--space-9, 48px)',
+          paddingBottom: 'var(--space-7, 32px)',
+          borderBottom: '1px solid rgba(255,255,255,0.1)',
+        }}>
+          <div style={{
+            width: 32, height: 1,
+            background: 'rgba(255,255,255,0.4)',
+            margin: '0 auto var(--space-4, 16px)',
+          }}/>
+          <div style={{
+            fontFamily: 'var(--sans)',
+            fontSize: 28, fontWeight: 800,
+            color: '#fff',
+            letterSpacing: '0.08em',
+            marginBottom: 'var(--space-3, 12px)',
+          }}>connec+a</div>
+          <div style={{
+            fontFamily: 'var(--mono, monospace)',
+            fontSize: 9,
+            letterSpacing: '0.22em',
+            color: 'rgba(255,255,255,0.4)',
+            fontWeight: 600,
+            marginBottom: 'var(--space-4, 16px)',
+          }}>EST. 2018 · TOKYO · JP</div>
+          <p style={{
+            fontFamily: 'var(--jp)',
+            fontSize: 13,
+            lineHeight: 1.8,
+            color: 'rgba(255,255,255,0.65)',
+            margin: '0 auto',
+            maxWidth: 320,
+            letterSpacing: '0.04em',
+          }}>
+            {lang === 'en'
+              ? 'Where strangers become friends.\nA community for international students and locals in Tokyo.'
+              : lang === 'easy'
+              ? 'であいから、はじまる とうきょう。\nりゅうがくせいと とうきょうのひとが\nつながる ばしょ。'
+              : '出会いから、はじまる東京。\n在日外国人留学生と日本人を\nつなぐコミュニティです。'}
+          </p>
+        </div>
+
+        {/* === ナビゲーションリンク (グリッド) === */}
         <div style={{
           display: 'grid',
-          gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))',
-          gap: 48,
-          marginBottom: 60,
+          gridTemplateColumns: 'repeat(2, 1fr)',
+          gap: 'var(--space-6, 24px) var(--space-5, 20px)',
+          marginBottom: 'var(--space-9, 48px)',
         }}>
+          {/* COLUMN 1: EXPLORE */}
           <div>
             <div style={{
-              fontSize: 24, fontWeight: 800,
-              color: '#fff',
-              marginBottom: 16,
-              letterSpacing: '-0.02em',
-            }}>connec+a</div>
-            <p style={{ fontSize: 13, lineHeight: 1.7, opacity: 0.7, margin: 0, fontFamily: 'var(--jp)' }}>
-              {lang === 'en' ? 'Connecting cultures, building community.' : lang === 'easy' ? 'ぶんかと ぶんかを つなぐ。' : '文化と文化をつなぐ、コミュニティづくり。'}
-            </p>
+              fontFamily: 'var(--mono, monospace)',
+              fontSize: 9,
+              letterSpacing: '0.22em',
+              color: 'rgba(255,255,255,0.4)',
+              fontWeight: 600,
+              marginBottom: 'var(--space-3, 12px)',
+            }}>EXPLORE</div>
+            <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
+              {[
+                { href: '#/events',  ja: 'イベント',     en: 'Events',   easy: 'イベント' },
+                { href: '#/news',    ja: 'ニュース',     en: 'News',     easy: 'ニュース' },
+                { href: '#/about',   ja: '私たちのこと', en: 'About us', easy: 'わたしたち' },
+              ].map(item => (
+                <a key={item.href} href={item.href} style={{
+                  fontSize: 14,
+                  fontFamily: 'var(--jp)',
+                  color: 'rgba(255,255,255,0.85)',
+                  textDecoration: 'none',
+                  letterSpacing: '0.04em',
+                }}>{lang === 'en' ? item.en : lang === 'easy' ? item.easy : item.ja}</a>
+              ))}
+            </div>
           </div>
-          <FooterCol title={t.nav.events} items={[
-            { href: '#/events', label: t.sections.allEvents },
-            { href: '#/news', label: t.nav.news },
-          ]}/>
-          <FooterCol title={lang === 'en' ? 'Organization' : lang === 'easy' ? 'だんたい' : '団体'} items={[
-            { href: '#/about', label: t.nav.about },
-            { href: '#/contact', label: t.nav.contact },
-          ]}/>
-          <FooterCol title={t.nav.signup} items={[
-            { href: '#/signup', label: t.nav.signup },
-            { href: '#/login', label: t.nav.login },
-          ]}/>
+
+          {/* COLUMN 2: ACCOUNT */}
+          <div>
+            <div style={{
+              fontFamily: 'var(--mono, monospace)',
+              fontSize: 9,
+              letterSpacing: '0.22em',
+              color: 'rgba(255,255,255,0.4)',
+              fontWeight: 600,
+              marginBottom: 'var(--space-3, 12px)',
+            }}>ACCOUNT</div>
+            <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
+              {[
+                { href: '#/signup',  ja: '会員登録',   en: 'Become a Member', easy: 'かいいんとうろく' },
+                { href: '#/login',   ja: 'ログイン',   en: 'Log In',          easy: 'ろぐいん' },
+                { href: '#/contact', ja: 'お問い合わせ', en: 'Contact',       easy: 'おといあわせ' },
+              ].map(item => (
+                <a key={item.href} href={item.href} style={{
+                  fontSize: 14,
+                  fontFamily: 'var(--jp)',
+                  color: 'rgba(255,255,255,0.85)',
+                  textDecoration: 'none',
+                  letterSpacing: '0.04em',
+                }}>{lang === 'en' ? item.en : lang === 'easy' ? item.easy : item.ja}</a>
+              ))}
+            </div>
+          </div>
         </div>
+
+        {/* === SNS リンク === */}
         <div style={{
-          paddingTop: 32,
-          borderTop: '1px solid rgba(255,255,255,0.15)',
-          display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap',
-          gap: 16,
-          fontSize: 12, fontFamily: 'var(--mono)', opacity: 0.6,
+          textAlign: 'center',
+          marginBottom: 'var(--space-9, 48px)',
         }}>
-          <div>{t.footer.rights}</div>
-          {/* (L10) エンタープライズリンク: プライバシー・利用規約・特商法 */}
           <div style={{
-            display: 'flex', flexWrap: 'wrap', gap: 16,
-            alignItems: 'center',
+            fontFamily: 'var(--mono, monospace)',
+            fontSize: 9,
+            letterSpacing: '0.22em',
+            color: 'rgba(255,255,255,0.4)',
+            fontWeight: 600,
+            marginBottom: 'var(--space-4, 16px)',
+          }}>FOLLOW US</div>
+          <div style={{
+            display: 'flex', justifyContent: 'center', gap: 12,
           }}>
-            <a href="#/privacy" style={{
-              color: 'rgba(255,255,255,0.7)',
-              textDecoration: 'none',
-              transition: 'color var(--t-base)',
-            }}
-            onMouseEnter={(e) => e.currentTarget.style.color = '#fff'}
-            onMouseLeave={(e) => e.currentTarget.style.color = 'rgba(255,255,255,0.7)'}>
-              {lang === 'en' ? 'Privacy' : 'プライバシーポリシー'}
-            </a>
-            <a href="#/terms" style={{
-              color: 'rgba(255,255,255,0.7)',
-              textDecoration: 'none',
-              transition: 'color var(--t-base)',
-            }}
-            onMouseEnter={(e) => e.currentTarget.style.color = '#fff'}
-            onMouseLeave={(e) => e.currentTarget.style.color = 'rgba(255,255,255,0.7)'}>
-              {lang === 'en' ? 'Terms' : '利用規約'}
-            </a>
-            <a href="#/contact" style={{
-              color: 'rgba(255,255,255,0.7)',
-              textDecoration: 'none',
-              transition: 'color var(--t-base)',
-            }}
-            onMouseEnter={(e) => e.currentTarget.style.color = '#fff'}
-            onMouseLeave={(e) => e.currentTarget.style.color = 'rgba(255,255,255,0.7)'}>
-              {lang === 'en' ? 'Contact' : 'お問い合わせ'}
-            </a>
+            {[
+              { href: 'https://www.instagram.com/connecta_official/', label: 'Instagram', short: 'IG' },
+              { href: 'https://twitter.com/connecta_jp', label: 'X (Twitter)', short: 'X' },
+              { href: 'https://www.facebook.com/connectaofficial', label: 'Facebook', short: 'FB' },
+              { href: 'https://www.linkedin.com/company/connecta-jp', label: 'LinkedIn', short: 'IN' },
+            ].map(sns => (
+              <a key={sns.label} href={sns.href} target="_blank" rel="noopener noreferrer"
+                aria-label={sns.label}
+                style={{
+                  width: 44, height: 44,
+                  display: 'flex', alignItems: 'center', justifyContent: 'center',
+                  background: 'rgba(255,255,255,0.06)',
+                  border: '1px solid rgba(255,255,255,0.15)',
+                  borderRadius: '50%',
+                  color: 'rgba(255,255,255,0.85)',
+                  fontFamily: 'var(--mono, monospace)',
+                  fontSize: 11,
+                  letterSpacing: '0.05em',
+                  fontWeight: 700,
+                  textDecoration: 'none',
+                  transition: 'all .2s',
+                }}
+                onMouseEnter={(e) => { e.currentTarget.style.background = 'rgba(255,255,255,0.15)'; }}
+                onMouseLeave={(e) => { e.currentTarget.style.background = 'rgba(255,255,255,0.06)'; }}>
+                {sns.short}
+              </a>
+            ))}
           </div>
-          <div style={{ letterSpacing: '0.1em' }}>EST. 2018 · TOKYO · JP</div>
+        </div>
+
+        {/* === 法人情報 === */}
+        <div style={{
+          textAlign: 'center',
+          marginBottom: 'var(--space-7, 32px)',
+          padding: 'var(--space-5, 20px) 0',
+          borderTop: '1px solid rgba(255,255,255,0.1)',
+          borderBottom: '1px solid rgba(255,255,255,0.1)',
+        }}>
+          <div style={{
+            fontFamily: 'var(--jp)',
+            fontSize: 12,
+            color: 'rgba(255,255,255,0.7)',
+            lineHeight: 1.8,
+            letterSpacing: '0.04em',
+          }}>
+            {lang === 'en' ? (
+              <>
+                <div>General Incorporated Association connec+a</div>
+                <div style={{ opacity: 0.7, marginTop: 4 }}>Tokyo, Japan</div>
+              </>
+            ) : (
+              <>
+                <div>一般社団法人 connec+a</div>
+                <div style={{ opacity: 0.7, marginTop: 4 }}>東京都</div>
+              </>
+            )}
+          </div>
+        </div>
+
+        {/* === ポリシーリンク === */}
+        <div style={{
+          display: 'flex', flexWrap: 'wrap', justifyContent: 'center', gap: 16,
+          marginBottom: 'var(--space-5, 20px)',
+        }}>
+          {[
+            { href: '#/privacy', ja: 'プライバシーポリシー', en: 'Privacy', easy: 'プライバシー' },
+            { href: '#/terms',   ja: '利用規約',           en: 'Terms',   easy: 'りようきやく' },
+            { href: '#/contact', ja: 'お問い合わせ',        en: 'Contact', easy: 'おといあわせ' },
+          ].map(item => (
+            <a key={item.href} href={item.href} style={{
+              fontSize: 11,
+              fontFamily: 'var(--jp)',
+              color: 'rgba(255,255,255,0.6)',
+              textDecoration: 'none',
+              letterSpacing: '0.04em',
+            }}>{lang === 'en' ? item.en : lang === 'easy' ? item.easy : item.ja}</a>
+          ))}
+        </div>
+
+        {/* === コピーライト === */}
+        <div style={{
+          textAlign: 'center',
+          fontFamily: 'var(--mono, monospace)',
+          fontSize: 9,
+          letterSpacing: '0.18em',
+          color: 'rgba(255,255,255,0.35)',
+          fontWeight: 500,
+        }}>
+          © 2018-{new Date().getFullYear()} CONNEC+A · ALL RIGHTS RESERVED
         </div>
       </div>
     </footer>
@@ -17308,6 +18051,65 @@ function OpeningCurtain({ phase, settings }) {
   );
 }
 
+// (Phase 15.S9 新H) ErrorBoundary — 子セクションが落ちても全体が死なない
+// 使い方: <ErrorBoundary fallback="該当セクション読込失敗"><Section/></ErrorBoundary>
+class ErrorBoundary extends React.Component {
+  constructor(props) {
+    super(props);
+    this.state = { hasError: false, error: null };
+  }
+  static getDerivedStateFromError(error) {
+    return { hasError: true, error };
+  }
+  componentDidCatch(error, info) {
+    console.error('[ErrorBoundary] caught:', error, info);
+  }
+  render() {
+    if (this.state.hasError) {
+      // フォールバック表示 — props.fallback があればそれを、 なければデフォルト
+      if (typeof this.props.fallback === 'function') {
+        return this.props.fallback(this.state.error);
+      }
+      return (
+        <div style={{
+          padding: '40px 24px',
+          textAlign: 'center',
+          color: 'var(--ink-3, #6b7280)',
+          background: 'var(--paper-2, #fafbfc)',
+          borderTop: '1px solid var(--brand-line, #e5e7eb)',
+          borderBottom: '1px solid var(--brand-line, #e5e7eb)',
+          fontFamily: 'var(--jp, sans-serif)',
+        }}>
+          <div style={{
+            fontSize: 11,
+            letterSpacing: '0.18em',
+            fontFamily: 'var(--mono, monospace)',
+            color: 'var(--ink-4, #9ca3af)',
+            marginBottom: 8,
+          }}>SECTION ERROR</div>
+          <div style={{ fontSize: 14, marginBottom: 16 }}>
+            {this.props.label || 'このセクションを読み込めませんでした'}
+          </div>
+          <button
+            onClick={() => this.setState({ hasError: false, error: null })}
+            style={{
+              padding: '8px 16px',
+              fontSize: 12,
+              background: 'transparent',
+              color: 'var(--ink-2, #4b5563)',
+              border: '1px solid var(--ink-6, #d1d5db)',
+              borderRadius: 6,
+              cursor: 'pointer',
+            }}>
+            再試行
+          </button>
+        </div>
+      );
+    }
+    return this.props.children;
+  }
+}
+
 function App() {
   const [lang, setLang] = useLang();
   const route = useRoute();
@@ -17359,25 +18161,53 @@ function App() {
   }, []);
 
   // イベント + 広告 + ヒーロースライド + Settings + News (並列)
+  // (Phase 15.S9 #25) SWR キャッシュ: sessionStorage の古いデータを即時表示、 裏で fresh 取得
   useEffect(() => {
     let cancelled = false;
     async function load() {
-      setLoading(true);
+      // === Step 1: キャッシュから即時復元 (loading を即解除) ===
+      const cachedEvents = getSwrCached('events');
+      const cachedAds = getSwrCached('ads');
+      const cachedHero = getSwrCached('hero');
+      const cachedHeroMobile = getSwrCached('heroMobile');
+      const cachedSettings = getSwrCached('settings');
+      const cachedNews = getSwrCached('news');
+      // 全てキャッシュがあれば即時表示
+      const allCached = cachedEvents && cachedAds && cachedHero !== null && cachedHeroMobile !== null && cachedSettings && cachedNews !== null;
+      if (allCached && !cancelled) {
+        setEvents(cachedEvents);
+        setAds(cachedAds);
+        setHeroSlides(cachedHero);
+        setHeroSlidesMobile(cachedHeroMobile);
+        setSiteSettings(cachedSettings);
+        setFrontNews(cachedNews);
+        setLoading(false);
+        // キャッシュが fresh ならネットワーク呼出スキップ
+        const allFresh = isSwrFresh('events') && isSwrFresh('ads') && isSwrFresh('hero')
+                      && isSwrFresh('heroMobile') && isSwrFresh('settings') && isSwrFresh('news');
+        if (allFresh) return;
+      } else {
+        setLoading(true);
+      }
+
+      // === Step 2: 並列フェッチ (キャッシュより新しいか確認) ===
       const [eventData, adData, heroData, heroMobileData, settingsData, newsData] = await Promise.all([
         fetchEvents(),
         fetchAds(),
         fetchHeroSlides(),
-        fetchHeroSlidesMobile(),  // (Phase 15.S7) モバイル Hero
+        fetchHeroSlidesMobile(),
         fetchSiteSettings(),
         fetchFrontNews(),
       ]);
+
+      // === Step 3: state とキャッシュを更新 ===
       if (!cancelled) {
-        setEvents(eventData);
-        setAds(adData);
-        setHeroSlides(heroData);
-        setHeroSlidesMobile(heroMobileData);
-        setSiteSettings(settingsData);
-        setFrontNews(newsData);
+        setEvents(eventData);            setSwrCache('events', eventData);
+        setAds(adData);                  setSwrCache('ads', adData);
+        setHeroSlides(heroData);         setSwrCache('hero', heroData);
+        setHeroSlidesMobile(heroMobileData); setSwrCache('heroMobile', heroMobileData);
+        setSiteSettings(settingsData);   setSwrCache('settings', settingsData);
+        setFrontNews(newsData);          setSwrCache('news', newsData);
         setLoading(false);
       }
     }
@@ -17446,8 +18276,14 @@ function App() {
       {/* (Phase 6.11) Nav と Footer は常にマウント (ベース画面は0秒から描画される)。
           オープニングは「上に被さる蓋」。オープニング中も裏でベース画面は完成している。 */}
       <Nav lang={lang} setLang={setLang} t={t} transparent={isHome} />
-      <main id="main-content" tabIndex={-1}>{Page}</main>
-      <Footer lang={lang} t={t} />
+      <main id="main-content" tabIndex={-1}>
+        <ErrorBoundary label={lang === 'en' ? 'This page failed to load.' : 'このページを読み込めませんでした。'}>
+          {Page}
+        </ErrorBoundary>
+      </main>
+      <ErrorBoundary label="">
+        <Footer lang={lang} t={t} />
+      </ErrorBoundary>
       {/* (L10) Cookie同意バナー */}
       <CookieConsent lang={lang} />
       {/* オープニング画面 (上下カーテン)。最後に描画 = 一番手前 */}
