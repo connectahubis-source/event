@@ -2513,14 +2513,22 @@ function Nav({ lang, setLang, t, transparent, menuOpen: externalMenuOpen, setMen
     <React.Fragment>
       <nav style={{
         position: 'fixed', top: 0, left: 0, right: 0, zIndex: 100,
-        // (Phase 15.S13) Frosted Glass — Aman 風の上品な半透明
+        // (Phase 15.S14) iOS 26 Liquid Glass — より透明 + 強い blur + 飽和ブースト + 微発光
         background: (transparent && !scrolled)
           ? 'linear-gradient(180deg, rgba(0,0,0,0.35) 0%, rgba(0,0,0,0.15) 60%, transparent 100%)'
-          : 'rgba(255, 255, 255, 0.72)',
-        backdropFilter: (transparent && !scrolled) ? 'blur(0px)' : 'blur(20px) saturate(180%)',
-        WebkitBackdropFilter: (transparent && !scrolled) ? 'blur(0px)' : 'blur(20px) saturate(180%)',
+          : 'rgba(255, 255, 255, 0.55)',
+        backdropFilter: (transparent && !scrolled)
+          ? 'blur(0px)'
+          : 'blur(40px) saturate(200%) brightness(1.05)',
+        WebkitBackdropFilter: (transparent && !scrolled)
+          ? 'blur(0px)'
+          : 'blur(40px) saturate(200%) brightness(1.05)',
+        // 上下に光の屈折ハイライト風の細線
         borderBottom: scrolled ? '1px solid rgba(10, 22, 40, 0.06)' : '1px solid transparent',
-        transition: 'background .4s cubic-bezier(0.2, 0.8, 0.2, 1), backdrop-filter .4s, border-color .4s',
+        boxShadow: scrolled
+          ? 'inset 0 1px 0 rgba(255, 255, 255, 0.6), 0 1px 24px rgba(10, 22, 40, 0.04)'
+          : 'none',
+        transition: 'background .4s cubic-bezier(0.2, 0.8, 0.2, 1), backdrop-filter .4s, border-color .4s, box-shadow .4s',
         paddingTop: 'env(safe-area-inset-top, 0px)',
       }}>
         <div style={{
@@ -2875,8 +2883,17 @@ function BottomNav({ lang, t, currentRoute, onMenuOpen }) {
   // モバイル以外では表示しない
   if (!vp.isMobile) return null;
 
-  // ルート判定 — currentRoute は '#/events' 形式 (route 直接でも OK)
+  // (Phase 15.S14) Sticky CTA がある画面では非表示 (申込ボタンを隠さないため)
   const route = currentRoute || (typeof window !== 'undefined' ? window.location.hash.slice(1) || '/' : '/');
+  // - /events/[id]            → イベント詳細 (Sticky 申込CTA あり)
+  // - /events/[id]/register   → 申込画面 (Sticky 確認ボタン あり)
+  // - /events/[id]/register/complete → 申込完了 (CTA 多数)
+  const hideOnRoutes = [
+    /^\/events\/[^\/]+$/,                       // イベント詳細
+    /^\/events\/[^\/]+\/register/,              // 申込関連すべて
+  ];
+  if (hideOnRoutes.some(re => re.test(route))) return null;
+
   const isActive = (path) => {
     if (path === '/') return route === '/' || route === '';
     if (path === '/events') return route.startsWith('/events') && !route.includes('/register');
@@ -2952,12 +2969,14 @@ function BottomNav({ lang, t, currentRoute, onMenuOpen }) {
         bottom: 0,
         left: 0,
         right: 0,
-        zIndex: 90,  // Nav (100) より下、 モーダル (200+) より下
-        // (Phase 15.S13) Frosted Glass
-        background: 'rgba(255, 255, 255, 0.78)',
-        backdropFilter: 'blur(24px) saturate(180%)',
-        WebkitBackdropFilter: 'blur(24px) saturate(180%)',
+        zIndex: 90,  // Nav (100) より下、 モーダル (200+) より下、 Sticky CTA (50) より上
+        // (Phase 15.S14) iOS 26 Liquid Glass
+        background: 'rgba(255, 255, 255, 0.55)',
+        backdropFilter: 'blur(40px) saturate(200%) brightness(1.05)',
+        WebkitBackdropFilter: 'blur(40px) saturate(200%) brightness(1.05)',
+        // 上端に光の反射、 下端は safe-area に溶け込む
         borderTop: '1px solid rgba(10, 22, 40, 0.06)',
+        boxShadow: 'inset 0 1px 0 rgba(255, 255, 255, 0.6), 0 -1px 24px rgba(10, 22, 40, 0.04)',
         // safe-area-inset-bottom 対応 (iPhone home indicator)
         paddingBottom: 'env(safe-area-inset-bottom, 0px)',
       }}>
@@ -11221,12 +11240,15 @@ function PageEventDetail({ lang, t, eventId }) {
       <div style={{
         position: 'fixed',
         bottom: 0, left: 0, right: 0,
-        background: 'rgba(252,250,245,0.96)',
-        backdropFilter: 'blur(20px)',
-        WebkitBackdropFilter: 'blur(20px)',
-        borderTop: '1px solid var(--line)',
+        // (Phase 15.S14) iOS 26 Liquid Glass — Nav と統一
+        background: 'rgba(252, 250, 245, 0.55)',
+        backdropFilter: 'blur(40px) saturate(200%) brightness(1.05)',
+        WebkitBackdropFilter: 'blur(40px) saturate(200%) brightness(1.05)',
+        borderTop: '1px solid rgba(10, 22, 40, 0.06)',
+        boxShadow: 'inset 0 1px 0 rgba(255, 255, 255, 0.6), 0 -1px 24px rgba(10, 22, 40, 0.04)',
         padding: '20px 24px',
-        zIndex: 50,
+        paddingBottom: 'calc(20px + env(safe-area-inset-bottom, 0px))',  // safe-area
+        zIndex: 95,  // BottomNav (90) より上、 Nav (100) より下
       }}>
         <div style={{
           maxWidth: 920,
@@ -19350,7 +19372,9 @@ function App() {
       <Nav lang={lang} setLang={setLang} t={t} transparent={isHome}
            menuOpen={globalMenuOpen} setMenuOpen={setGlobalMenuOpen} />
       <main id="main-content" tabIndex={-1} style={{
-        // (Phase 15.S13) モバイル時 BottomNav (56px + safe-area) 分の余白を本文下に
+        // (Phase 15.S13/S14) モバイル時 BottomNav 分の余白を本文下に (BottomNav 非表示画面では不要)
+        // BottomNav が非表示の画面でも、 既存の Sticky CTA があるので余白は別途必要 → 0 だと CTA に隠れる
+        // 安全側: BottomNav 非表示でも Sticky CTA 用に 96px 余白を確保
         paddingBottom: 'calc(56px + env(safe-area-inset-bottom, 0px))',
       }}>
         <ErrorBoundary label={lang === 'en' ? 'This page failed to load.' : 'このページを読み込めませんでした。'}>
