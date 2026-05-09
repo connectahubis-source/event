@@ -221,6 +221,111 @@
   --t-base:   0.25s cubic-bezier(0.4, 0, 0.2, 1);
   --t-slow:   0.5s cubic-bezier(0.2, 0.8, 0.2, 1);
   --t-reveal: 0.7s cubic-bezier(0.2, 0.8, 0.2, 1);
+
+  /* (Phase 15.S13) モバイル芸術品質 拡張トークン */
+  /* === タッチターゲット (44px iOS HIG / 48dp Material 推奨) === */
+  --tap-min:       44px;
+  --tap-comfort:   48px;
+
+  /* === 角丸 (Aman 風: 控えめ、 ほぼ rect) === */
+  --radius-0:      0px;            /* 完全直線 (Aman の本流) */
+  --radius-1:      2px;            /* 微細な角取り */
+  --radius-2:      4px;            /* バッジ */
+  --radius-3:      8px;            /* カード */
+  --radius-4:      12px;           /* モーダル */
+  --radius-pill:   999px;          /* ピル形 */
+
+  /* === 影 (Aman: ほぼ無し、 必要な時だけ) === */
+  --shadow-0:      none;
+  --shadow-1:      0 1px 2px rgba(10, 22, 40, 0.04);                                          /* 微細 */
+  --shadow-2:      0 4px 12px -4px rgba(10, 22, 40, 0.08);                                    /* カード */
+  --shadow-3:      0 8px 24px -8px rgba(10, 22, 40, 0.12), 0 2px 6px -2px rgba(10, 22, 40, 0.06); /* 浮遊 */
+  --shadow-nav:    0 1px 0 rgba(10, 22, 40, 0.04);                                            /* Nav 用 (細線) */
+
+  /* === タップフィードバック === */
+  --press-scale:   0.97;
+  --press-opacity: 0.85;
+
+  /* === safe-area === */
+  --safe-top:      env(safe-area-inset-top, 0px);
+  --safe-bottom:   env(safe-area-inset-bottom, 0px);
+  --safe-left:     env(safe-area-inset-left, 0px);
+  --safe-right:    env(safe-area-inset-right, 0px);
+
+  /* === モバイル特化タイポ (clamp で 320px-768px 対応) === */
+  --font-mega-mob:    clamp(40px, 11vw, 64px);    /* Hero */
+  --font-display-mob: clamp(32px, 8.5vw, 48px);   /* 大セリフ */
+  --font-h1-mob:      clamp(26px, 7vw, 36px);
+  --font-h2-mob:      clamp(22px, 5.5vw, 30px);
+  --font-h3-mob:      clamp(18px, 4.5vw, 22px);
+  --font-lead-mob:    clamp(15px, 3.8vw, 17px);
+  --font-body-mob:    clamp(14px, 3.5vw, 15px);
+
+  /* === 数字専用フォント (タビュラ figure) === */
+  --num: 'Inter', 'JetBrains Mono', system-ui, -apple-system, sans-serif;
+  /* font-feature-settings: "tnum" (タビュラ) を組み合わせて使う */
+}
+
+/* (Phase 15.S13) モバイル芸術品質 — グローバル UX */
+
+/* タップハイライト (iOS) — 完全に消す (代わりに :active で制御) */
+* {
+  -webkit-tap-highlight-color: transparent;
+}
+
+/* テキスト選択時の色を上品に */
+::selection {
+  background: rgba(28, 137, 232, 0.15);
+  color: var(--ink-1);
+}
+
+/* スクロールバー (デスクトップ) */
+::-webkit-scrollbar { width: 6px; height: 6px; }
+::-webkit-scrollbar-track { background: transparent; }
+::-webkit-scrollbar-thumb {
+  background: rgba(10, 22, 40, 0.15);
+  border-radius: 999px;
+}
+::-webkit-scrollbar-thumb:hover { background: rgba(10, 22, 40, 0.3); }
+
+/* タッチデバイスでの :active 演出 (transform で押した感) */
+@media (hover: none) and (pointer: coarse) {
+  a, button, [role="button"], [data-tap], [data-card] {
+    transition: transform var(--t-fast), opacity var(--t-fast), background-color var(--t-base);
+  }
+  a:active:not([data-no-press]),
+  button:active:not([data-no-press]),
+  [role="button"]:active:not([data-no-press]),
+  [data-tap]:active,
+  [data-card]:active {
+    transform: scale(var(--press-scale));
+    opacity: var(--press-opacity);
+  }
+}
+
+/* iOS のフォントサイズ自動調整を無効化 */
+html { -webkit-text-size-adjust: 100%; }
+
+/* iOS で input フォーカス時にズームしない (font-size 16px 以上) */
+input, select, textarea {
+  font-size: 16px;
+}
+
+/* リンクのフォーカスリング (キーボード操作時のみ) */
+a:focus-visible, button:focus-visible {
+  outline: 2px solid var(--brand-blue);
+  outline-offset: 2px;
+}
+a:focus:not(:focus-visible), button:focus:not(:focus-visible) {
+  outline: none;
+}
+
+/* 画像のドラッグ無効化 (モバイルで誤操作回避) */
+img { -webkit-user-drag: none; user-select: none; }
+
+/* オーバースクロール挙動 (Pull-to-refresh を制御) */
+body {
+  overscroll-behavior-y: none;
 }
 
 * { box-sizing: border-box; }
@@ -2371,8 +2476,11 @@ function CountUpInline({ to, suffix = '', duration = 1400, style = {} }) {
 // ============================================================================
 // NAV
 // ============================================================================
-function Nav({ lang, setLang, t, transparent }) {
-  const [menuOpen, setMenuOpen] = useState(false);
+function Nav({ lang, setLang, t, transparent, menuOpen: externalMenuOpen, setMenuOpen: externalSetMenuOpen }) {
+  // (Phase 15.S13) menuOpen は外部 state があればそれを使う、 なければ内部 state
+  const [internalMenuOpen, setInternalMenuOpen] = useState(false);
+  const menuOpen = externalMenuOpen !== undefined ? externalMenuOpen : internalMenuOpen;
+  const setMenuOpen = externalSetMenuOpen || setInternalMenuOpen;
   const [scrolled, setScrolled] = useState(false);
   // (Phase 7.7) 認証状態
   const auth = useAuth();
@@ -2405,12 +2513,15 @@ function Nav({ lang, setLang, t, transparent }) {
     <React.Fragment>
       <nav style={{
         position: 'fixed', top: 0, left: 0, right: 0, zIndex: 100,
-        // (Phase 15.S8 #15) 透過時は薄い上→下の暗グラデで視認性確保 (Hero オーバーレイが Nav と重なっても文字が読める)
+        // (Phase 15.S13) Frosted Glass — Aman 風の上品な半透明
         background: (transparent && !scrolled)
           ? 'linear-gradient(180deg, rgba(0,0,0,0.35) 0%, rgba(0,0,0,0.15) 60%, transparent 100%)'
-          : '#ffffff',
-        borderBottom: scrolled ? '1px solid #e5e7eb' : '1px solid transparent',
-        transition: 'all .4s cubic-bezier(0.2, 0.8, 0.2, 1)',
+          : 'rgba(255, 255, 255, 0.72)',
+        backdropFilter: (transparent && !scrolled) ? 'blur(0px)' : 'blur(20px) saturate(180%)',
+        WebkitBackdropFilter: (transparent && !scrolled) ? 'blur(0px)' : 'blur(20px) saturate(180%)',
+        borderBottom: scrolled ? '1px solid rgba(10, 22, 40, 0.06)' : '1px solid transparent',
+        transition: 'background .4s cubic-bezier(0.2, 0.8, 0.2, 1), backdrop-filter .4s, border-color .4s',
+        paddingTop: 'env(safe-area-inset-top, 0px)',
       }}>
         <div style={{
           maxWidth: 1600, margin: '0 auto',
@@ -2754,6 +2865,183 @@ function Nav({ lang, setLang, t, transparent }) {
     </React.Fragment>
   );
 }
+
+// (Phase 15.S13) 下部クイックアクセス (BottomNav) — Frosted Glass + safe-area
+// モバイルのみ表示、 全ページに固定
+function BottomNav({ lang, t, currentRoute, onMenuOpen }) {
+  const auth = useAuth();
+  const vp = useViewport();
+
+  // モバイル以外では表示しない
+  if (!vp.isMobile) return null;
+
+  // ルート判定 — currentRoute は '#/events' 形式 (route 直接でも OK)
+  const route = currentRoute || (typeof window !== 'undefined' ? window.location.hash.slice(1) || '/' : '/');
+  const isActive = (path) => {
+    if (path === '/') return route === '/' || route === '';
+    if (path === '/events') return route.startsWith('/events') && !route.includes('/register');
+    if (path === '/mypage') return route.startsWith('/mypage') || route.startsWith('/ticket');
+    return route.startsWith(path);
+  };
+
+  const items = [
+    {
+      key: 'home',
+      href: '#/',
+      label: lang === 'en' ? 'Home' : lang === 'easy' ? 'ホーム' : 'ホーム',
+      active: isActive('/'),
+      icon: (
+        <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
+          <path d="M3 12l9-9 9 9"/>
+          <path d="M5 10v10a1 1 0 0 0 1 1h4v-7h4v7h4a1 1 0 0 0 1-1V10"/>
+        </svg>
+      ),
+    },
+    {
+      key: 'events',
+      href: '#/events',
+      label: lang === 'en' ? 'Events' : lang === 'easy' ? 'イベント' : 'イベント',
+      active: isActive('/events'),
+      icon: (
+        <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
+          <rect x="3" y="5" width="18" height="16" rx="2"/>
+          <path d="M3 9h18"/>
+          <path d="M8 3v4M16 3v4"/>
+        </svg>
+      ),
+    },
+    {
+      key: 'mypage',
+      href: auth.user ? '#/mypage' : '#/login',
+      label: auth.user ? (lang === 'en' ? 'My Page' : 'マイページ') : (lang === 'en' ? 'Log In' : 'ログイン'),
+      active: isActive('/mypage'),
+      icon: auth.user ? (
+        <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
+          <circle cx="12" cy="8" r="4"/>
+          <path d="M4 21c0-4 4-7 8-7s8 3 8 7"/>
+        </svg>
+      ) : (
+        <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
+          <path d="M15 3h4a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2h-4"/>
+          <path d="M10 17l5-5-5-5"/>
+          <path d="M15 12H3"/>
+        </svg>
+      ),
+    },
+    {
+      key: 'menu',
+      onClick: () => { if (onMenuOpen) onMenuOpen(); },
+      label: lang === 'en' ? 'Menu' : 'メニュー',
+      active: false,
+      icon: (
+        <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
+          <path d="M4 6h16"/>
+          <path d="M4 12h16"/>
+          <path d="M4 18h16"/>
+        </svg>
+      ),
+    },
+  ];
+
+  return (
+    <nav
+      role="navigation"
+      aria-label="ボトムナビゲーション"
+      style={{
+        position: 'fixed',
+        bottom: 0,
+        left: 0,
+        right: 0,
+        zIndex: 90,  // Nav (100) より下、 モーダル (200+) より下
+        // (Phase 15.S13) Frosted Glass
+        background: 'rgba(255, 255, 255, 0.78)',
+        backdropFilter: 'blur(24px) saturate(180%)',
+        WebkitBackdropFilter: 'blur(24px) saturate(180%)',
+        borderTop: '1px solid rgba(10, 22, 40, 0.06)',
+        // safe-area-inset-bottom 対応 (iPhone home indicator)
+        paddingBottom: 'env(safe-area-inset-bottom, 0px)',
+      }}>
+      <div style={{
+        display: 'grid',
+        gridTemplateColumns: `repeat(${items.length}, 1fr)`,
+        height: 56,
+        maxWidth: 600,
+        margin: '0 auto',
+      }}>
+        {items.map((item) => {
+          const commonStyle = {
+            position: 'relative',
+            display: 'flex',
+            flexDirection: 'column',
+            alignItems: 'center',
+            justifyContent: 'center',
+            gap: 3,
+            padding: '8px 4px 6px',
+            color: item.active ? 'var(--brand-navy)' : 'var(--ink-4)',
+            background: 'transparent',
+            border: 'none',
+            cursor: 'pointer',
+            textDecoration: 'none',
+            transition: 'color .25s, transform .15s',
+            fontFamily: 'var(--jp)',
+            // タップ領域 (44px 以上)
+            minHeight: 44,
+            WebkitTapHighlightColor: 'transparent',
+          };
+          const labelEl = (
+            <span style={{
+              fontSize: 10,
+              fontWeight: item.active ? 600 : 500,
+              letterSpacing: '0.04em',
+              lineHeight: 1.2,
+              transition: 'font-weight .25s',
+            }}>{item.label}</span>
+          );
+          // アクティブインジケータ (上部の細い線)
+          const indicator = item.active ? (
+            <span style={{
+              position: 'absolute',
+              top: 0,
+              left: '50%',
+              transform: 'translateX(-50%)',
+              width: 24,
+              height: 2,
+              background: 'var(--brand-navy)',
+              borderRadius: '0 0 2px 2px',
+            }}/>
+          ) : null;
+
+          if (item.onClick) {
+            return (
+              <button
+                key={item.key}
+                onClick={item.onClick}
+                aria-label={item.label}
+                style={commonStyle}>
+                {indicator}
+                {item.icon}
+                {labelEl}
+              </button>
+            );
+          }
+          return (
+            <a
+              key={item.key}
+              href={item.href}
+              aria-label={item.label}
+              aria-current={item.active ? 'page' : undefined}
+              style={commonStyle}>
+              {indicator}
+              {item.icon}
+              {labelEl}
+            </a>
+          );
+        })}
+      </div>
+    </nav>
+  );
+}
+
 
 function LangPicker({ lang, setLang, t, transparent, mobile }) {
   const [open, setOpen] = useState(false);
@@ -10493,6 +10781,32 @@ function PageEventDetail({ lang, t, eventId }) {
                     )}
                   </>
                 )}
+                {/* (Phase 15.S11 B2) エリアバッジ — フィルターと同じ判定 */}
+                {(() => {
+                  const area = detectEventArea(ev);
+                  if (!area || area === '') return null;
+                  const label = area === 'web' ? (lang === 'en' ? 'WEB' : 'オンライン')
+                              : area === 'multi' ? (lang === 'en' ? 'KANTO + KANSAI' : '関東+関西')
+                              : area;
+                  const color = area === 'web' ? '#7c3aed'
+                              : area === '関東' ? '#2563eb'
+                              : area === '関西' ? '#dc2626'
+                              : area === 'multi' ? '#6366f1'
+                              : '#6b7280';
+                  return (
+                    <span style={{
+                      marginLeft: 12,
+                      padding: '2px 8px',
+                      fontSize: 10,
+                      fontFamily: 'var(--mono)',
+                      letterSpacing: '0.12em',
+                      fontWeight: 700,
+                      color: '#fff',
+                      background: color,
+                      borderRadius: 3,
+                    }}>{label}</span>
+                  );
+                })()}
               </InfoLine>
 
               {/* 定員行 */}
@@ -11539,7 +11853,283 @@ function MultiSessionInfo({ sessions, lang, t }) {
   );
 }
 
+// (Phase 15.S12 B7) About / Mission ページ — connec+a の story を伝える
+function PageAbout({ lang, t, siteSettings }) {
+  const settings = siteSettings || {};
+  const sx = (key, fallback) => settings[key] || fallback || '';
 
+  // 多言語選択ヘルパ
+  const localized = (baseKey, fallbacks) => {
+    const langKey = lang === 'en' ? '_en' : lang === 'easy' ? '_easy' : '';
+    return settings[baseKey + langKey] || settings[baseKey] || fallbacks[lang] || fallbacks.ja || '';
+  };
+
+  return (
+    <div style={{ background: 'var(--paper-1)', overflow: 'hidden' }}>
+
+      {/* === HERO === */}
+      <section style={{
+        position: 'relative',
+        minHeight: '60vh',
+        background: 'linear-gradient(135deg, #0a1628 0%, #1a3a7a 50%, #0a2960 100%)',
+        color: '#fff',
+        padding: 'clamp(120px, 18vh, 200px) clamp(24px, 6vw, 80px) clamp(80px, 14vh, 140px)',
+        display: 'flex', alignItems: 'flex-end',
+      }}>
+        <div style={{ maxWidth: 800 }}>
+          <div style={{
+            fontFamily: 'var(--mono)',
+            fontSize: 11,
+            letterSpacing: '0.22em',
+            color: 'rgba(255,255,255,0.6)',
+            fontWeight: 600,
+            marginBottom: 'var(--space-4)',
+          }}>{lang === 'en' ? 'ABOUT US · CHAPTER 02' : 'わたしたちのこと · CHAPTER 02'}</div>
+          <h1 style={{
+            fontFamily: 'var(--serif)',
+            fontSize: 'clamp(36px, 7vw, 72px)',
+            lineHeight: 1.05,
+            fontWeight: 300,
+            letterSpacing: '-0.02em',
+            margin: '0 0 var(--space-5)',
+            color: '#fff',
+          }}>{localized('about_hero_title', {
+            ja: '東京を、もうひとつのふるさとに。',
+            easy: 'とうきょうを、もうひとつの ふるさとに。',
+            en: 'Make Tokyo home.',
+          })}</h1>
+          <p style={{
+            fontFamily: 'var(--jp)',
+            fontSize: 'clamp(15px, 2vw, 18px)',
+            lineHeight: 1.8,
+            color: 'rgba(255,255,255,0.85)',
+            margin: 0,
+            maxWidth: 600,
+            letterSpacing: '0.02em',
+          }}>{localized('about_hero_lead', {
+            ja: 'connec+a (コネクタ) は、 在日外国人留学生と日本人をつなぐコミュニティです。\nイベントではなく、 出会いを。 一夜限りでなく、 日常のなかで。',
+            easy: 'connec+a (コネクタ) は、 にほんに すんでいる がいこくじん りゅうがくせいと にほんじんが であう ばしょです。',
+            en: 'connec+a is a community where international students and Japanese locals meet, not just at events, but in everyday life.',
+          })}</p>
+        </div>
+      </section>
+
+      {/* === MISSION === */}
+      <section style={{
+        padding: 'clamp(80px, 14vh, 140px) clamp(24px, 6vw, 80px)',
+        borderTop: '1px solid var(--brand-line)',
+      }}>
+        <div style={{ maxWidth: 800, margin: '0 auto', textAlign: 'center' }}>
+          <div style={{
+            display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 12,
+            marginBottom: 'var(--space-7)',
+          }}>
+            <div style={{ width: 32, height: 1, background: 'var(--brand-blue)' }}/>
+            <div style={{
+              fontFamily: 'var(--mono)',
+              fontSize: 11,
+              letterSpacing: '0.22em',
+              color: 'var(--brand-blue)',
+              fontWeight: 600,
+            }}>MISSION</div>
+            <div style={{ width: 32, height: 1, background: 'var(--brand-blue)' }}/>
+          </div>
+          <h2 style={{
+            fontFamily: 'var(--serif)',
+            fontSize: 'clamp(28px, 5vw, 44px)',
+            lineHeight: 1.2,
+            fontWeight: 300,
+            color: 'var(--ink-1)',
+            margin: '0 0 var(--space-7)',
+            letterSpacing: '-0.01em',
+          }}>{localized('about_mission_title', {
+            ja: '出会いから、はじまる東京を。',
+            easy: 'であいから、はじまる とうきょうを。',
+            en: 'A Tokyo that begins with encounters.',
+          })}</h2>
+          <p style={{
+            fontFamily: 'var(--jp)',
+            fontSize: 'clamp(15px, 1.8vw, 17px)',
+            lineHeight: 2.0,
+            color: 'var(--ink-2)',
+            margin: 0,
+            letterSpacing: '0.02em',
+            textAlign: 'left',
+          }}>{localized('about_mission_body', {
+            ja: '東京は、 多くの留学生・若い在日外国人にとって最初の日本との出会いの場です。\n\nしかし、 言語の壁や文化の違い、 そして「観光客でも住人でもない」あいまいな立場のなかで、 本当の意味でこの街と関係をもてている人は多くありません。\n\nconnec+a は、 一夜限りのイベントではなく、 日常のなかで続く出会いを設計します。 国籍も、 学年も、 業界も超えて、 同じ街に生きる仲間として、 ゆるやかに、 でも確かに。',
+            easy: 'とうきょうは、 おおくの りゅうがくせいに とって、 はじめての にほん との であいの ばしょです。\n\nでも、 ことば や ぶんかの ちがい、 そして 「かんこうきゃく でも すんでいる ひと でもない」 あいまいな たちば の なかで、 ほんとうに この まち と かかわれている ひと は おおくありません。\n\nconnec+a は、 1かい だけの イベント では なく、 まいにちの なかで つづく であい を つくります。',
+            en: 'Tokyo is, for many international students, their first encounter with Japan.\n\nBut between language barriers, cultural differences, and the awkward position of being "neither tourist nor resident," few are able to truly connect with this city.\n\nconnec+a is not just one-night events. We design encounters that continue in everyday life — across nationalities, grade levels, and industries — as fellow residents of the same city.',
+          })}</p>
+        </div>
+      </section>
+
+      {/* === STORY (沿革・数字) === */}
+      <section style={{
+        padding: 'clamp(80px, 14vh, 140px) clamp(24px, 6vw, 80px)',
+        background: 'var(--paper-2)',
+        borderTop: '1px solid var(--brand-line)',
+      }}>
+        <div style={{ maxWidth: 1000, margin: '0 auto' }}>
+          <div style={{
+            display: 'flex', alignItems: 'center', gap: 12, marginBottom: 'var(--space-7)',
+          }}>
+            <div style={{
+              fontFamily: 'var(--mono)',
+              fontSize: 11,
+              letterSpacing: '0.22em',
+              color: 'var(--brand-blue)',
+              fontWeight: 600,
+            }}>STORY</div>
+            <div style={{ flex: 1, height: 1, background: 'rgba(28, 137, 232, 0.2)' }}/>
+          </div>
+          <h2 style={{
+            fontFamily: 'var(--serif)',
+            fontSize: 'clamp(24px, 4vw, 36px)',
+            lineHeight: 1.3,
+            fontWeight: 300,
+            color: 'var(--ink-1)',
+            margin: '0 0 var(--space-7)',
+            letterSpacing: '-0.01em',
+          }}>{localized('about_story_title', {
+            ja: '2018 年、 一人の学生の素朴な疑問から。',
+            easy: '2018 ねん、 ひとりの がくせいの しつもんから。',
+            en: 'It started in 2018, with a simple question.',
+          })}</h2>
+
+          {/* 数字グリッド */}
+          <div style={{
+            display: 'grid',
+            gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))',
+            gap: 'var(--space-6)',
+            marginTop: 'var(--space-7)',
+          }}>
+            {[
+              { num: '2018', labelJa: '設立', labelEasy: 'せつりつ', labelEn: 'Founded' },
+              { num: '40+', labelJa: 'メンバー', labelEasy: 'メンバー', labelEn: 'Members' },
+              { num: '300+', labelJa: '最大イベント参加者数', labelEasy: 'いちばん おおい イベント の さんかしゃ', labelEn: 'Largest event' },
+              { num: '60%+', labelJa: 'リピート参加率', labelEasy: 'もういちど さんかする ひとの わりあい', labelEn: 'Return rate' },
+            ].map((stat, idx) => (
+              <div key={idx} style={{
+                padding: 'var(--space-5)',
+                background: '#fff',
+                border: '1px solid var(--brand-line)',
+              }}>
+                <div style={{
+                  fontFamily: 'var(--serif)',
+                  fontSize: 'clamp(36px, 5vw, 48px)',
+                  fontWeight: 300,
+                  color: 'var(--brand-blue)',
+                  letterSpacing: '-0.02em',
+                  lineHeight: 1,
+                  marginBottom: 'var(--space-2)',
+                }}>{stat.num}</div>
+                <div style={{
+                  fontFamily: 'var(--jp)',
+                  fontSize: 12,
+                  color: 'var(--ink-3)',
+                  letterSpacing: '0.04em',
+                }}>{lang === 'en' ? stat.labelEn : lang === 'easy' ? stat.labelEasy : stat.labelJa}</div>
+              </div>
+            ))}
+          </div>
+        </div>
+      </section>
+
+      {/* === ORGANIZATION === */}
+      <section style={{
+        padding: 'clamp(80px, 14vh, 140px) clamp(24px, 6vw, 80px)',
+        borderTop: '1px solid var(--brand-line)',
+      }}>
+        <div style={{ maxWidth: 800, margin: '0 auto' }}>
+          <div style={{
+            fontFamily: 'var(--mono)',
+            fontSize: 11,
+            letterSpacing: '0.22em',
+            color: 'var(--brand-blue)',
+            fontWeight: 600,
+            marginBottom: 'var(--space-5)',
+          }}>ORGANIZATION</div>
+          <h2 style={{
+            fontFamily: 'var(--serif)',
+            fontSize: 'clamp(24px, 4vw, 32px)',
+            fontWeight: 300,
+            color: 'var(--ink-1)',
+            margin: '0 0 var(--space-6)',
+            letterSpacing: '-0.01em',
+          }}>{lang === 'en' ? 'General Incorporated Association connec+a' : '一般社団法人 connec+a'}</h2>
+          <dl style={{
+            display: 'grid',
+            gridTemplateColumns: 'auto 1fr',
+            gap: 'var(--space-4) var(--space-5)',
+            margin: 0,
+            fontFamily: 'var(--jp)',
+            fontSize: 14,
+            lineHeight: 1.6,
+          }}>
+            {[
+              { k: lang === 'en' ? 'Established' : '設立', v: '2018' },
+              { k: lang === 'en' ? 'Location'    : '所在地', v: lang === 'en' ? 'Tokyo, Japan' : '東京都' },
+              { k: lang === 'en' ? 'Type'        : '法人種別', v: lang === 'en' ? 'General Incorporated Association' : '一般社団法人' },
+              { k: lang === 'en' ? 'Members'     : 'メンバー', v: '40+' },
+            ].map((row, idx) => (
+              <React.Fragment key={idx}>
+                <dt style={{
+                  fontFamily: 'var(--mono)',
+                  fontSize: 11,
+                  letterSpacing: '0.16em',
+                  color: 'var(--ink-4)',
+                  fontWeight: 600,
+                  paddingTop: 4,
+                }}>{row.k.toUpperCase()}</dt>
+                <dd style={{ margin: 0, color: 'var(--ink-2)' }}>{row.v}</dd>
+              </React.Fragment>
+            ))}
+          </dl>
+        </div>
+      </section>
+
+      {/* === CTA === */}
+      <section style={{
+        padding: 'clamp(60px, 10vh, 100px) clamp(24px, 6vw, 80px) clamp(80px, 14vh, 140px)',
+        background: 'var(--paper-2)',
+        borderTop: '1px solid var(--brand-line)',
+        textAlign: 'center',
+      }}>
+        <h2 style={{
+          fontFamily: 'var(--serif)',
+          fontSize: 'clamp(24px, 3.5vw, 32px)',
+          fontWeight: 300,
+          color: 'var(--ink-1)',
+          margin: '0 0 var(--space-6)',
+          letterSpacing: '-0.01em',
+        }}>{localized('about_cta_title', {
+          ja: '次のイベントで、 お会いしましょう。',
+          easy: 'つぎの イベントで あいましょう。',
+          en: 'See you at the next event.',
+        })}</h2>
+        <a href="#/events" style={{
+          display: 'inline-flex',
+          alignItems: 'center',
+          gap: 12,
+          padding: '16px 32px',
+          background: '#0a2960',
+          color: '#fff',
+          fontFamily: 'var(--jp)',
+          fontSize: 14,
+          fontWeight: 600,
+          textDecoration: 'none',
+          letterSpacing: '0.04em',
+          transition: 'all .25s',
+        }}>
+          <span>{lang === 'en' ? 'View events' : 'イベントを見る'}</span>
+          <span>→</span>
+        </a>
+      </section>
+    </div>
+  );
+}
+
+// PageStub — 未実装ページ用 (404 等)
 function PageStub({ lang, t, title }) {
   return (
     <div style={{
@@ -14847,7 +15437,12 @@ function PageMyPage({ lang, t, events }) {
       setMyRegistrations(refreshed.registrations || []);
       await dialog.success({
         title: at.cancelDone,
-        message: at.cancelDoneMsg,
+        message: (at.cancelDoneMsg || 'キャンセルしました')
+          + (lang === 'en'
+            ? '\n\nYou can re-register from the event page if seats are still available.'
+            : lang === 'easy'
+            ? '\n\nまだ せきが あれば、 もういちど もうしこみ できます。'
+            : '\n\n空きがあればイベントページから再申込いただけます。'),
       });
     } catch (err) {
       await dialog.error({
@@ -15000,6 +15595,18 @@ function PageMyPage({ lang, t, events }) {
     return result.slice(0, 3);
   })();
 
+  // (Phase 15.S11 A2) 未決済の申込を抽出 (status='未決済' + キャンセルでない + 今日以降のイベント)
+  const unpaidRegistrations = React.useMemo(() => {
+    return allRegsWithEvent.filter(function(r) {
+      if (r.status !== '未決済') return false;
+      const endStr = r.event.endDate || r.event.date;
+      if (!endStr) return true;
+      const endDate = new Date(String(endStr) + 'T23:59:59');
+      if (isNaN(endDate.getTime())) return true;
+      return endDate >= todayStart;
+    });
+  }, [allRegsWithEvent, todayStart]);
+
   return (
     <section style={{
       minHeight: 'calc(100vh - 130px)',
@@ -15010,6 +15617,94 @@ function PageMyPage({ lang, t, events }) {
       <div style={{
         maxWidth: 1100,
         margin: '0 auto',
+      }}>
+        {/* (Phase 15.S11 A2) 未決済アラート — マイページの最上部に目立つ警告 */}
+        {unpaidRegistrations.length > 0 && (
+          <div style={{
+            background: 'linear-gradient(135deg, #fef3c7 0%, #fef9e7 100%)',
+            border: '1px solid #fbbf24',
+            padding: vp.isMobile ? '16px 18px' : '20px 24px',
+            marginBottom: 24,
+            display: 'flex',
+            alignItems: vp.isMobile ? 'flex-start' : 'center',
+            gap: 14,
+            flexDirection: vp.isMobile ? 'column' : 'row',
+          }}>
+            <div style={{
+              flexShrink: 0,
+              width: 40, height: 40,
+              background: '#f59e0b',
+              color: '#fff',
+              fontSize: 22,
+              borderRadius: '50%',
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+            }}>!</div>
+            <div style={{ flex: 1, minWidth: 0 }}>
+              <div style={{
+                fontFamily: 'var(--jp)',
+                fontSize: 14,
+                fontWeight: 700,
+                color: '#92400e',
+                marginBottom: 4,
+                letterSpacing: '0.04em',
+              }}>
+                {lang === 'en'
+                  ? `${unpaidRegistrations.length} registration${unpaidRegistrations.length > 1 ? 's' : ''} pending payment`
+                  : lang === 'easy'
+                  ? `${unpaidRegistrations.length}けんの しはらい が おわっていません`
+                  : `${unpaidRegistrations.length}件の未決済の申込があります`}
+              </div>
+              <div style={{
+                fontFamily: 'var(--jp)',
+                fontSize: 12,
+                color: '#92400e',
+                lineHeight: 1.6,
+                opacity: 0.85,
+              }}>
+                {lang === 'en'
+                  ? 'Please complete payment to confirm your registration. Click on individual events below.'
+                  : lang === 'easy'
+                  ? 'さんかするには しはらいが ひつようです。 したの 「しはらう」 ボタンを おしてください。'
+                  : '申込を確定するには、決済が必要です。 下記の各申込から「決済する」ボタンを押してください。'}
+              </div>
+              {/* 未決済の最初のイベント名 */}
+              {unpaidRegistrations.slice(0, 3).map((r, i) => (
+                <div key={r.regId} style={{
+                  fontFamily: 'var(--jp)',
+                  fontSize: 11,
+                  color: '#78350f',
+                  marginTop: i === 0 ? 8 : 4,
+                  display: 'flex',
+                  alignItems: 'center',
+                  gap: 6,
+                }}>
+                  <span style={{ opacity: 0.6 }}>•</span>
+                  <span style={{ fontWeight: 600 }}>{r.event.title}</span>
+                  {r.amount > 0 && (
+                    <span style={{ marginLeft: 'auto', fontFamily: 'var(--mono)' }}>
+                      ¥{r.amount.toLocaleString()}
+                    </span>
+                  )}
+                </div>
+              ))}
+              {unpaidRegistrations.length > 3 && (
+                <div style={{
+                  fontFamily: 'var(--jp)',
+                  fontSize: 11,
+                  color: '#92400e',
+                  marginTop: 6,
+                  opacity: 0.7,
+                }}>
+                  {lang === 'en' ? `... and ${unpaidRegistrations.length - 3} more` : `他 ${unpaidRegistrations.length - 3} 件`}
+                </div>
+              )}
+            </div>
+          </div>
+        )}
+
+      <div style={{
         display: 'grid',
         gridTemplateColumns: vp.isMobile ? '1fr' : 'minmax(280px, 360px) 1fr',
         gap: vp.isMobile ? 24 : 40,
@@ -15516,6 +16211,7 @@ function PageMyPage({ lang, t, events }) {
           )}
         </main>
       </div>
+      </div>{/* (Phase 15.S11 A2) maxWidth=1100 wrapper closing */}
 
       {/* 編集モーダル */}
       {editing && (
@@ -15677,6 +16373,32 @@ function MyEventCard({ registration, past, onCancel, lang }) {
           <div style={{
             fontSize: 11, color: '#6b7280', fontFamily: 'var(--jp)',
           }}>{event.date}{event.time && ` ${event.time}`}{event.venue && ` · ${event.venue}`}</div>
+
+          {/* (Phase 15.S11 B1) 複数日イベント: 参加セッション情報を表示 */}
+          {event.sessionCount > 1 && (
+            <div style={{
+              fontSize: 10,
+              color: '#0a2960',
+              fontFamily: 'var(--mono)',
+              letterSpacing: '0.08em',
+              fontWeight: 600,
+              marginTop: 2,
+              display: 'inline-flex',
+              alignItems: 'center',
+              gap: 4,
+              padding: '2px 8px',
+              background: 'rgba(28, 137, 232, 0.08)',
+              borderRadius: 3,
+              alignSelf: 'flex-start',
+            }}>
+              <span style={{ opacity: 0.7 }}>📅</span>
+              <span>
+                {registration.sessionId
+                  ? (lang === 'en' ? `1 / ${event.sessionCount} sessions` : `${event.sessionCount}日中 1日参加`)
+                  : (lang === 'en' ? `All ${event.sessionCount} sessions` : `全${event.sessionCount}日参加`)}
+              </span>
+            </div>
+          )}
 
           {/* ステータス + 金額バッジ */}
           <div style={{ display: 'flex', gap: 6, marginTop: 2, flexWrap: 'wrap', alignItems: 'center' }}>
@@ -16210,11 +16932,32 @@ function PageTicket({ regId, lang }) {
     }
   }, [auth.loading, auth.user]);
 
-  // 自分の登録一覧から該当regIdを取得
+  // (Phase 15.S12 B6) チケット情報を localStorage キャッシュ (オフライン対応)
+  // キャッシュキー: cca_ticket_{regId}, 30日間有効
+  const TICKET_CACHE_KEY = `cca_ticket_${regId}`;
+  const TICKET_CACHE_TTL_MS = 30 * 24 * 60 * 60 * 1000;  // 30 日
+
+  const [isOffline, setIsOffline] = React.useState(false);
+
+  // 自分の登録一覧から該当regIdを取得 (オフラインフォールバック付き)
   React.useEffect(() => {
     if (!auth.user || !regId) return;
     let cancelled = false;
     (async () => {
+      // 1. キャッシュから即時表示 (offline でも動く)
+      try {
+        const cachedRaw = localStorage.getItem(TICKET_CACHE_KEY);
+        if (cachedRaw) {
+          const cached = JSON.parse(cachedRaw);
+          if (cached && cached.t && (Date.now() - cached.t) < TICKET_CACHE_TTL_MS && cached.reg) {
+            if (!cancelled) {
+              setReg(cached.reg);
+              setLoading(false);
+            }
+          }
+        }
+      } catch (e) { /* ignore */ }
+
       try {
         const token = authStore.getToken();
         if (!token) {
@@ -16230,13 +16973,24 @@ function PageTicket({ regId, lang }) {
             setError(at.ticketCancelledErr);
           } else {
             setReg(found);
+            // 成功時はキャッシュ更新
+            try {
+              localStorage.setItem(TICKET_CACHE_KEY, JSON.stringify({ t: Date.now(), reg: found }));
+            } catch (e) { /* quota exceeded ignore */ }
+            setIsOffline(false);
           }
           setLoading(false);
         }
       } catch (err) {
         console.error('PageTicket fetch failed:', err);
         if (!cancelled) {
-          setError(at.ticketLoadFailed);
+          // (Phase 15.S12 B6) ネットワークエラー時、キャッシュがあれば成功扱い + オフライン表示
+          // (上のキャッシュチェックで既に reg が set されてる可能性)
+          if (reg) {
+            setIsOffline(true);
+          } else {
+            setError(at.ticketLoadFailed);
+          }
           setLoading(false);
         }
       }
@@ -16380,6 +17134,32 @@ function PageTicket({ regId, lang }) {
           fontSize: 13, color: '#6b7280', fontFamily: 'var(--jp)',
           textDecoration: 'none',
         }}>{at.ticketBackToMyPage}</a>
+
+        {/* (Phase 15.S12 B6) オフライン表示バナー */}
+        {isOffline && (
+          <div style={{
+            marginBottom: 16,
+            padding: '10px 14px',
+            background: '#fffbeb',
+            border: '1px solid #fde68a',
+            display: 'flex',
+            alignItems: 'center',
+            gap: 10,
+            fontFamily: 'var(--jp)',
+            fontSize: 12,
+            color: '#92400e',
+          }}>
+            <span style={{ fontSize: 16 }}>📵</span>
+            <div style={{ flex: 1, lineHeight: 1.5 }}>
+              <strong>{lang === 'en' ? 'Offline mode' : 'オフライン表示'}</strong>
+              <div style={{ fontSize: 10, opacity: 0.85, marginTop: 2 }}>
+                {lang === 'en'
+                  ? 'Showing cached ticket. QR code is still valid for check-in.'
+                  : 'キャッシュからチケットを表示中です。 QRコードは有効です。'}
+              </div>
+            </div>
+          </div>
+        )}
 
         {/* チケットカード */}
         <div style={{
@@ -16727,6 +17507,43 @@ function ProfileEditModal({ user, onClose, onSaved }) {
           <AuthInput label="フリガナ" value={kana} onChange={setKana} placeholder="任意 (名前がローマ字なら省略可)" />
           <AuthInput label="ニックネーム" value={nickname} onChange={setNickname} required />
           <AuthInput label="生年月日" type="date" value={birthdate} onChange={setBirthdate} required />
+
+          {/* (Phase 15.S12 B5) メールアドレス: 表示のみ + 変更ガイド */}
+          <div>
+            <label style={{
+              display: 'block',
+              fontFamily: 'var(--jp)',
+              fontSize: 13,
+              fontWeight: 600,
+              color: '#374151',
+              marginBottom: 6,
+            }}>メールアドレス</label>
+            <div style={{
+              padding: '10px 14px',
+              background: '#f9fafb',
+              border: '1px solid #e5e7eb',
+              fontFamily: 'var(--mono)',
+              fontSize: 13,
+              color: '#374151',
+              letterSpacing: '0.02em',
+              wordBreak: 'break-all',
+            }}>{user.email || '—'}</div>
+            <a href="#/contact" onClick={onClose} style={{
+              display: 'inline-block',
+              marginTop: 6,
+              fontSize: 11,
+              color: '#2c89e8',
+              textDecoration: 'underline',
+              fontFamily: 'var(--jp)',
+            }}>メールアドレスを変更したい場合 →</a>
+            <div style={{
+              fontSize: 10,
+              color: '#9ca3af',
+              fontFamily: 'var(--jp)',
+              marginTop: 4,
+              lineHeight: 1.5,
+            }}>セキュリティ確認のため、 メールアドレスの変更は運営対応となります。 変更希望の旨と新しいメールアドレスをお問い合わせフォームからご連絡ください。</div>
+          </div>
 
           <AuthSelect label="在留ステータス" value={residencyStatus} onChange={setResidencyStatus} required
             options={[
@@ -18385,6 +19202,8 @@ function App() {
       return 'showing';
     }
   });
+  // (Phase 15.S13) ハンバーガーメニュー state — Nav/BottomNav 両方から制御可能
+  const [globalMenuOpen, setGlobalMenuOpen] = useState(false);
   const t = I18N[lang] || I18N.ja;
 
   // (Phase 15.S6) オープニングタイマー: 2.4s でフェードアウト開始 → 1.0s で完全終了 (合計3.4s)
@@ -18492,8 +19311,7 @@ function App() {
   } else if (matchEvent) {
     Page = <PageEventDetail lang={lang} t={t} eventId={matchEvent[1]} />;
   } else if (route === '/about') {
-    pageTitle = t.nav.about;
-    Page = <PageStub lang={lang} t={t} title={pageTitle} />;
+    Page = <PageAbout lang={lang} t={t} siteSettings={siteSettings} />;
   } else if (route === '/news') {
     Page = <PageNewsList lang={lang} t={t} frontNews={frontNews} loading={loading} siteSettings={siteSettings} />;
   } else if (matchNews) {
@@ -18529,8 +19347,12 @@ function App() {
     <React.Fragment>
       {/* (Phase 6.11) Nav と Footer は常にマウント (ベース画面は0秒から描画される)。
           オープニングは「上に被さる蓋」。オープニング中も裏でベース画面は完成している。 */}
-      <Nav lang={lang} setLang={setLang} t={t} transparent={isHome} />
-      <main id="main-content" tabIndex={-1}>
+      <Nav lang={lang} setLang={setLang} t={t} transparent={isHome}
+           menuOpen={globalMenuOpen} setMenuOpen={setGlobalMenuOpen} />
+      <main id="main-content" tabIndex={-1} style={{
+        // (Phase 15.S13) モバイル時 BottomNav (56px + safe-area) 分の余白を本文下に
+        paddingBottom: 'calc(56px + env(safe-area-inset-bottom, 0px))',
+      }}>
         <ErrorBoundary label={lang === 'en' ? 'This page failed to load.' : 'このページを読み込めませんでした。'}>
           {Page}
         </ErrorBoundary>
@@ -18538,6 +19360,9 @@ function App() {
       <ErrorBoundary label="">
         <Footer lang={lang} t={t} />
       </ErrorBoundary>
+      {/* (Phase 15.S13) モバイル下部クイックアクセス */}
+      <BottomNav lang={lang} t={t} currentRoute={route}
+                 onMenuOpen={() => setGlobalMenuOpen(true)} />
       {/* (L10) Cookie同意バナー */}
       <CookieConsent lang={lang} />
       {/* オープニング画面 (上下カーテン)。最後に描画 = 一番手前 */}
