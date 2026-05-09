@@ -1941,31 +1941,40 @@ function fmtTimeRange(start, end) {
 // =============================================================================
 
 // イベントのエリアを判定 (admin で設定された area フィールド優先、なければ online フラグ → location から推測)
-// 戻り値: '関東' | '関西' | 'web' | '' (不明)
+// 戻り値: '関東' | '関西' | 'web' | 'multi' (関東+関西両方) | '' (不明)
 function detectEventArea(ev) {
   if (!ev) return '';
   // adminで明示的にareaが設定されている場合 (Phase 7.4で追加された area フィールド)
   if (ev.area) {
     const a = String(ev.area).toLowerCase();
     if (a === 'web' || a.includes('オンライン') || a.includes('online')) return 'web';
+    if (a === 'multi') return 'multi';  // (Phase 15.S10 #3) 関東+関西両方
     if (a.includes('関東') || a === 'kanto') return '関東';
     if (a.includes('関西') || a === 'kansai') return '関西';
   }
   // online フラグが立っていれば Web 開催として扱う (area が空でも判定できる)
   if (ev.online === true || ev.online === 'true' || ev.online === 'TRUE') return 'web';
-  // フォールバック: location から推測 (旧データ互換)
-  const loc = String(ev.location || '').toLowerCase();
-  if (!loc) return '';
-  if (loc.includes('オンライン') || loc.includes('online') || loc.includes('zoom') || loc.includes('web')) return 'web';
+
+  // (Phase 15.S10 #3) フォールバック対象を拡張: location, venue, venues, address すべて
+  // multi イベントの場合 venue/venues がセッションから集約されている
+  const candidates = [
+    ev.location || '',
+    ev.venue || '',
+    ev.address || '',
+    Array.isArray(ev.venues) ? ev.venues.join(' ') : '',
+  ].join(' ');
+  const text = candidates.toLowerCase();
+  if (!text.trim()) return '';
+  if (text.includes('オンライン') || text.includes('online') || text.includes('zoom') || text.includes('web')) return 'web';
   // 関東: 東京/神奈川/千葉/埼玉/茨城/栃木/群馬
   const kanto = ['関東', '東京', '神奈川', '横浜', '川崎', '千葉', '埼玉', '茨城', '栃木', '群馬'];
   for (const k of kanto) {
-    if (loc.includes(k.toLowerCase()) || (ev.location || '').includes(k)) return '関東';
+    if (text.includes(k.toLowerCase()) || candidates.includes(k)) return '関東';
   }
   // 関西: 大阪/京都/兵庫/奈良/滋賀/和歌山
   const kansai = ['関西', '大阪', '京都', '兵庫', '神戸', '奈良', '滋賀', '和歌山'];
   for (const k of kansai) {
-    if (loc.includes(k.toLowerCase()) || (ev.location || '').includes(k)) return '関西';
+    if (text.includes(k.toLowerCase()) || candidates.includes(k)) return '関西';
   }
   return '';
 }
@@ -9536,10 +9545,12 @@ function PageEvents({ lang, t, events, loading, siteSettings }) {
     let filtered = visibleEvents;
 
     // エリアフィルタ (関東/関西選択時、Web開催は両方に表示)
+    // (Phase 15.S10 #3) 'multi' (関東+関西両方の複数日イベント) も両エリアでマッチ
     if (selectedAreas.size > 0) {
       filtered = filtered.filter(ev => {
         const area = detectEventArea(ev);
         if (area === 'web') return true;  // Web開催はエリア問わず表示
+        if (area === 'multi') return true;  // 両エリアの複数日イベントは両方で表示
         return selectedAreas.has(area);
       });
     }
@@ -10264,9 +10275,9 @@ function PageEventDetail({ lang, t, eventId }) {
       // 自分の申込一覧を更新
       const refreshed = await authApi.getMyRegistrations(token);
       setMyRegistrations(refreshed.registrations || []);
-      // 事前決済なら決済URLにリダイレクト
-      if (paymentMethod === '事前決済' && result.paymentUrl) {
-        if (result.paymentUrl === 'TODO_PAYMENT_URL') {
+      // (Phase 15.S10 #2) 決済URLが返ってきた場合は遷移 (事前決済系の判定は GAS 側に移動)
+      if (result.paymentUrl) {
+        if (result.paymentUrl === 'TODO_PAYMENT_URL' || result.paymentUrl === '') {
           await dialog.error({
             title: '決済リンク未設定',
             message: '決済リンクがまだ設定されていません。\n運営にお問い合わせください。',
@@ -10498,12 +10509,64 @@ function PageEventDetail({ lang, t, eventId }) {
               </InfoLine>
 
               {/* 参加費行 */}
+              {/* (Phase 15.S10 #4) multi イベントは料金パターンを詳細表示 */}
               <InfoLine label={t.detail.tags.fee}>
-                {ev.fee && ev.fee > 0 ? (
+                {isMulti ? (() => {
+                  // セッションの料金分析
+                  const fees = sessions.map(s => Number(s.fee) || 0);
+                  const uniqueFees = Array.from(new Set(fees));
+                  const minFee = Math.min(...fees);
+                  const maxFee = Math.max(...fees);
+                  const allFree = fees.every(f => f === 0);
+                  const allSame = uniqueFees.length === 1;
+                  const parentFee = Number(ev.fee) || 0;
+
+                  if (allFree) {
+                    return <strong style={{ ...editorialBold, color: 'var(--coral)' }}>{t.detail.free}</strong>;
+                  }
+                  if (parentFee > 0 && fees.every(f => f === 0)) {
+                    // 親イベントに料金が設定されているがセッションに料金が無い = イベント全体で1料金
+                    return (
+                      <div>
+                        <strong style={editorialBold}>¥{parentFee.toLocaleString()}</strong>
+                        <span style={{ fontSize: 12, color: 'var(--ink-3)', marginLeft: 8, fontFamily: 'var(--jp)' }}>
+                          ({lang === 'en' ? 'flat rate · all sessions' : '一律 · 全セッション参加可'})
+                        </span>
+                      </div>
+                    );
+                  }
+                  if (allSame && minFee > 0) {
+                    return (
+                      <div>
+                        <strong style={editorialBold}>¥{minFee.toLocaleString()}</strong>
+                        <span style={{ fontSize: 12, color: 'var(--ink-3)', marginLeft: 8, fontFamily: 'var(--jp)' }}>
+                          / {lang === 'en' ? 'per session' : 'セッション毎'}
+                        </span>
+                        <div style={{ fontSize: 11, color: 'var(--ink-4)', marginTop: 4, fontFamily: 'var(--jp)' }}>
+                          {lang === 'en'
+                            ? `Same price per session, regardless of how many you attend (¥${minFee.toLocaleString()} × selected)`
+                            : `1日でもセッション毎に¥${minFee.toLocaleString()} (選択数 × ¥${minFee.toLocaleString()})`}
+                        </div>
+                      </div>
+                    );
+                  }
+                  // セッション毎に異なる料金
+                  if (minFee === maxFee) {
+                    return <strong style={editorialBold}>¥{minFee.toLocaleString()}</strong>;
+                  }
+                  return (
+                    <div>
+                      <strong style={editorialBold}>¥{minFee.toLocaleString()} 〜 ¥{maxFee.toLocaleString()}</strong>
+                      <div style={{ fontSize: 12, color: 'var(--ink-3)', marginTop: 4, fontFamily: 'var(--jp)' }}>
+                        {lang === 'en' ? 'Varies by session · See below for details' : 'セッション毎に異なる料金 · 下記参照'}
+                      </div>
+                    </div>
+                  );
+                })() : (ev.fee && ev.fee > 0 ? (
                   <strong style={editorialBold}>¥{ev.fee.toLocaleString()}</strong>
                 ) : (
                   <strong style={{ ...editorialBold, color: 'var(--coral)' }}>{t.detail.free}</strong>
-                )}
+                ))}
               </InfoLine>
             </div>
           </Reveal>
@@ -10598,9 +10661,37 @@ function PageEventDetail({ lang, t, eventId }) {
                 display: 'inline-flex',
                 alignItems: 'center',
                 gap: 8,
+                flexWrap: 'wrap',
               }}>
                 <span style={{ color: 'var(--coral)' }}>●</span>
                 {t.detail.sessionSelected}: {selectedSessionIds.length} / {sessions.length}
+                {/* (Phase 15.S10 #4) 選択中セッションの合計金額 */}
+                {selectedSessionIds.length > 0 && (() => {
+                  const selectedSessions = sessions.filter(s => selectedSessionIds.includes(s.id));
+                  const totalFee = selectedSessions.reduce((sum, s) => sum + (Number(s.fee) || 0), 0);
+                  // セッションに料金が無いが、 親イベントに料金がある場合 → 親料金を全体一律
+                  const useParentFee = totalFee === 0 && Number(ev.fee) > 0;
+                  const displayFee = useParentFee ? Number(ev.fee) : totalFee;
+                  if (displayFee === 0) {
+                    return (
+                      <>
+                        <span style={{ marginLeft: 8, opacity: 0.5 }}>·</span>
+                        <span style={{ color: 'var(--coral)' }}>{lang === 'en' ? 'FREE' : '無料'}</span>
+                      </>
+                    );
+                  }
+                  return (
+                    <>
+                      <span style={{ marginLeft: 8, opacity: 0.5 }}>·</span>
+                      <span>{lang === 'en' ? 'Total' : '合計'}: <strong>¥{displayFee.toLocaleString()}</strong></span>
+                      {useParentFee && (
+                        <span style={{ fontSize: 11, opacity: 0.7, fontWeight: 400 }}>
+                          ({lang === 'en' ? 'flat rate · participate any number of sessions' : '一律 · 何セッションでも同額'})
+                        </span>
+                      )}
+                    </>
+                  );
+                })()}
               </div>
             )}
 
@@ -10747,6 +10838,27 @@ function PageEventDetail({ lang, t, eventId }) {
                     }}>
                       {sFull ? t.card.full : `${s.registered || 0}/${s.capacity || '∞'}`}
                     </div>
+
+                    {/* (Phase 15.S10 #4) セッション毎の料金 (s.fee > 0 のみ表示) */}
+                    {Number(s.fee) > 0 && (
+                      <div style={{
+                        gridColumn: '1 / -1',
+                        marginTop: 8,
+                        paddingTop: 8,
+                        borderTop: '1px dashed var(--line)',
+                        display: 'flex',
+                        justifyContent: 'space-between',
+                        alignItems: 'center',
+                        fontFamily: 'var(--jp)',
+                        fontSize: 12,
+                        color: 'var(--ink-2)',
+                      }}>
+                        <span style={{ color: 'var(--ink-3)' }}>{lang === 'en' ? 'Fee' : '料金'}</span>
+                        <strong style={{ fontFamily: 'var(--mono)', fontWeight: 700, color: 'var(--ink-1)' }}>
+                          ¥{Number(s.fee).toLocaleString()}
+                        </strong>
+                      </div>
+                    )}
                   </div>
                 );
               })}
@@ -13801,8 +13913,16 @@ function PageEventRegister({ lang, t, eventId, events, loading: appLoading, site
   }
 
   // (Part B) イベントポリシー: Admin が ev.policy で設定。多言語対応
+  // (Phase 15.S10 #1) イベント未設定なら siteSettings.event_policy_default_* を フォールバック
   const langSuffix = lang === 'en' ? '_en' : lang === 'easy' ? '_easy' : '';
-  const policyText = ev['policy' + langSuffix] || ev.policy || '';
+  const langJaSuffix = '_ja';  // Settings 側は _ja サフィックス必須
+  const evtPolicy = ev['policy' + langSuffix] || ev.policy || '';
+  const settings = siteSettings || {};
+  const settingsKey = lang === 'en' ? 'event_policy_default_en'
+                    : lang === 'easy' ? 'event_policy_default_easy'
+                    : 'event_policy_default_ja';
+  const fallbackPolicy = settings[settingsKey] || settings.event_policy_default_ja || '';
+  const policyText = evtPolicy || fallbackPolicy || '';
   const hasPolicy = !!(policyText && String(policyText).trim());
 
   // 申込ボタンの活性化条件
@@ -13814,8 +13934,33 @@ function PageEventRegister({ lang, t, eventId, events, loading: appLoading, site
     try {
       const token = authStore.getToken();
       const result = await authApi.registerEvent(token, eventId, isPaid ? paymentMethod : '');
-      // (Part C) 完了画面へ遷移、 regId をクエリで渡す
       const regId = result && result.registrationId ? result.registrationId : '';
+
+      // (Phase 15.S10 #2) 事前決済系で paymentUrl が返ってきたら決済画面へ遷移
+      // 完了画面 URL は paymentUrl 遷移前に sessionStorage に保存
+      // (戻ってきた時に完了画面に飛ぶ仕様にする場合に備える)
+      if (result && result.paymentUrl) {
+        // paymentUrl が "TODO_PAYMENT_URL" やプレースホルダの場合は エラー表示
+        const url = String(result.paymentUrl).trim();
+        const isPlaceholder = (url === 'TODO_PAYMENT_URL' || url === '' || !/^https?:\/\//i.test(url));
+        if (isPlaceholder) {
+          setSubmitting(false);
+          await dialog.error({
+            title: lang === 'en' ? 'Payment link not set' : '決済リンク未設定',
+            message: lang === 'en'
+              ? 'Your registration was saved, but the payment link is not configured. Please contact the organizer.'
+              : '参加申込は受け付けました。\nしかし、決済リンクが設定されていません。\n運営にお問い合わせください。',
+          });
+          // 申込自体は成功しているので完了画面へ
+          window.location.hash = `/events/${eventId}/register/complete${regId ? '?regId=' + encodeURIComponent(regId) : ''}`;
+          return;
+        }
+        // 決済 URL に遷移 (新規タブではなく同じタブで、 戻る でこのページに戻れる)
+        window.location.href = url;
+        return;
+      }
+
+      // 無料 or 当日払い: 完了画面へ
       window.location.hash = `/events/${eventId}/register/complete${regId ? '?regId=' + encodeURIComponent(regId) : ''}`;
     } catch (err) {
       setSubmitting(false);
@@ -14537,6 +14682,61 @@ function PageEventRegisterComplete({ lang, t, eventId, events }) {
           transition: 'all 0.5s ease-out',
           display: 'grid', gap: 'var(--space-3)',
         }}>
+          {/* (Phase 15.S10) 未決済 + 事前決済系 + 決済URL あり = 決済ボタン (最優先) */}
+          {reg && reg.status === '未決済' && reg.paymentType === '事前決済'
+              && reg.event && reg.event.paymentUrl
+              && /^https?:\/\//i.test(reg.event.paymentUrl) && (
+            <a href={reg.event.paymentUrl}
+               target="_blank"
+               rel="noopener noreferrer"
+               style={{
+                 display: 'flex', alignItems: 'center', justifyContent: 'space-between',
+                 padding: 'var(--space-5) var(--space-5)',
+                 background: '#f59e0b',
+                 color: '#fff',
+                 fontSize: 'var(--font-body)',
+                 fontWeight: 700,
+                 fontFamily: 'var(--jp)',
+                 textDecoration: 'none',
+                 letterSpacing: 'var(--ls-wide)',
+                 boxShadow: '0 8px 20px -8px rgba(245, 158, 11, 0.5)',
+                 transition: 'all var(--t-base)',
+               }}
+               onTouchStart={(e) => { e.currentTarget.style.transform = 'scale(0.98)'; }}
+               onTouchEnd={(e) => { e.currentTarget.style.transform = 'scale(1)'; }}>
+              <span style={{ display: 'inline-flex', alignItems: 'center', gap: 8 }}>
+                <span style={{ fontSize: 18 }}>💳</span>
+                <span>{lang === 'en' ? `Pay now (¥${reg.amount ? reg.amount.toLocaleString() : ''})` : `今すぐ決済する${reg.amount ? ` (¥${reg.amount.toLocaleString()})` : ''}`}</span>
+              </span>
+              <Icon name="arrow-right" size={16} />
+            </a>
+          )}
+
+          {/* (Phase 15.S10) 未決済 + 事前決済系 だが 決済URL なしの 警告 */}
+          {reg && reg.status === '未決済' && reg.paymentType === '事前決済'
+              && (!reg.event || !reg.event.paymentUrl
+                  || !/^https?:\/\//i.test(reg.event.paymentUrl)) && (
+            <div style={{
+              padding: 'var(--space-4) var(--space-5)',
+              background: 'rgba(245, 158, 11, 0.15)',
+              border: '1px solid rgba(245, 158, 11, 0.4)',
+              color: '#fff',
+              fontSize: 'var(--font-body-sm)',
+              fontFamily: 'var(--jp)',
+              lineHeight: 1.6,
+              letterSpacing: 'var(--ls-wide)',
+            }}>
+              <strong style={{ display: 'block', marginBottom: 4, fontSize: 13 }}>
+                {lang === 'en' ? '⚠ Payment link not configured' : '⚠ 決済リンク未設定'}
+              </strong>
+              <span style={{ fontSize: 12, opacity: 0.85 }}>
+                {lang === 'en'
+                  ? 'Your registration is saved. Contact the organizer for payment instructions.'
+                  : '申込は受け付けています。\n運営に決済方法をお問い合わせください。'}
+              </span>
+            </div>
+          )}
+
           {regId && (
             <a href={`#/ticket/${regId}`} style={{
               display: 'flex', alignItems: 'center', justifyContent: 'space-between',
@@ -15494,6 +15694,60 @@ function MyEventCard({ registration, past, onCancel, lang }) {
             )}
           </div>
         </div>
+
+        {/* (Phase 15.S10) 未決済 + 事前決済系 + paymentUrl あり = 決済する ボタン */}
+        {!past && !isCancelled && registration.status === '未決済'
+            && registration.paymentType === '事前決済'
+            && event.paymentUrl
+            && /^https?:\/\//i.test(event.paymentUrl) && (
+          <a href={event.paymentUrl}
+             target="_blank"
+             rel="noopener noreferrer"
+             onClick={(e) => e.stopPropagation()}
+             style={{
+               flexShrink: 0,
+               padding: '8px 14px',
+               fontSize: 12,
+               fontWeight: 600,
+               fontFamily: 'var(--jp)',
+               color: '#fff',
+               background: '#0a2960',
+               border: '1px solid #0a2960',
+               borderRadius: 4,
+               textDecoration: 'none',
+               alignSelf: 'center',
+               letterSpacing: '0.04em',
+               whiteSpace: 'nowrap',
+               display: 'inline-flex',
+               alignItems: 'center',
+               gap: 6,
+             }}>
+            <span>{lang === 'en' ? 'Pay now' : '決済する'}</span>
+            <span>→</span>
+          </a>
+        )}
+
+        {/* (Phase 15.S10) 未決済 + 事前決済系だが決済URL未設定の場合のヘルプ */}
+        {!past && !isCancelled && registration.status === '未決済'
+            && registration.paymentType === '事前決済'
+            && (!event.paymentUrl || !/^https?:\/\//i.test(event.paymentUrl)) && (
+          <div style={{
+            flexShrink: 0,
+            padding: '6px 10px',
+            fontSize: 10,
+            fontFamily: 'var(--jp)',
+            color: '#92400e',
+            background: '#fef3c7',
+            border: '1px solid #fde68a',
+            borderRadius: 4,
+            alignSelf: 'center',
+            letterSpacing: '0.04em',
+            lineHeight: 1.4,
+            maxWidth: 140,
+          }}>
+            {lang === 'en' ? 'Contact organizer for payment' : '運営に連絡して決済'}
+          </div>
+        )}
 
         {/* キャンセル可能な場合のみ */}
         {!past && !isCancelled && onCancel && registration.status !== 'チェックイン済' && (
