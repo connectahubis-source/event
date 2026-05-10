@@ -3060,23 +3060,25 @@ function isRegistrationOpen(event) {
 }
 
 // 申込が締め切られた理由を文字列で返す (UI 表示用) Phase 6.2
-function getRegistrationStatus(event) {
+// (Phase 15.S55) lang 引数で表示文言を切り替え。 既存呼び出しは lang なしでも互換 (ja デフォルト)
+function getRegistrationStatus(event, lang) {
+  const st = STATUS_T[lang] || STATUS_T.ja;
   if (!event) return { open: false, reason: '不明', label: '' };
   // (Phase 15.S41) 中止/延期 を最優先で判定
-  if (event.status === '中止') return { open: false, reason: 'cancelled', label: '中止' };
-  if (event.status === '延期') return { open: false, reason: 'postponed', label: '延期' };
-  if (event.status === '満員') return { open: false, reason: 'full', label: '満員 (キャンセル待ち)' };
+  if (event.status === '中止') return { open: false, reason: 'cancelled', label: st.statusCancelled };
+  if (event.status === '延期') return { open: false, reason: 'postponed', label: st.statusPostponed };
+  if (event.status === '満員') return { open: false, reason: 'full', label: st.statusFull };
   const now = new Date();
   if (event.regOpenDate) {
     const open = new Date(String(event.regOpenDate) + 'T00:00:00');
     if (!isNaN(open.getTime()) && now < open) {
-      return { open: false, reason: 'before_open', label: `${event.regOpenDate} から申込開始` };
+      return { open: false, reason: 'before_open', label: (st.statusRegOpenSoon || '%date% から申込開始').replace('%date%', event.regOpenDate) };
     }
   }
   if (event.regCloseDate) {
     const close = new Date(String(event.regCloseDate) + 'T23:59:59');
     if (!isNaN(close.getTime()) && now > close) {
-      return { open: false, reason: 'closed', label: '申込受付終了' };
+      return { open: false, reason: 'closed', label: st.statusRegClosed };
     }
   }
   // イベント当日も過ぎていれば終了
@@ -3084,10 +3086,10 @@ function getRegistrationStatus(event) {
   if (eventEnd) {
     const end = new Date(String(eventEnd) + 'T23:59:59');
     if (!isNaN(end.getTime()) && now > end) {
-      return { open: false, reason: 'ended', label: 'イベント終了' };
+      return { open: false, reason: 'ended', label: st.statusEventEnded };
     }
   }
-  return { open: true, reason: 'open', label: '申込受付中' };
+  return { open: true, reason: 'open', label: st.statusRegOpen };
 }
 
 // ============================================================================
@@ -4411,8 +4413,9 @@ function EventCard({ ev, lang, t, big }) {
           borderTop: '1px solid var(--line)',
         }}>
           <div style={{ fontSize: 13, color: 'var(--ink-mute)' }}>
-            {isFull ? t.card.closed : (
-              <React.Fragment>{t.card.spots}: <b style={{ color: 'var(--ink)' }}>{spotsLeft}</b>/{cap || '∞'}</React.Fragment>
+            {/* (Phase 15.S56) 無制限 (capacity=0) の時は残席表示しない */}
+            {cap <= 0 ? null : isFull ? t.card.closed : (
+              <React.Fragment>{t.card.spots}: <b style={{ color: 'var(--ink)' }}>{spotsLeft}</b>/{cap}</React.Fragment>
             )}
           </div>
           <div style={{
@@ -4621,10 +4624,11 @@ function FeaturedEventCard({ ev, lang, t }) {
           marginTop: 4,
         }}>
           <div style={{ fontSize: 13, color: 'var(--sky-700)', fontFamily: 'var(--jp)' }}>
-            {isFull ? (
+            {/* (Phase 15.S56) 無制限 (capacity=0) の時は残席表示しない */}
+            {cap <= 0 ? null : isFull ? (
               <span style={{ color: 'var(--coral)', fontWeight: 700 }}>{t.card.closed}</span>
             ) : (
-              <span>{t.card.spots}: <b style={{ color: 'var(--sky-900)', fontSize: 16 }}>{spotsLeft}</b>/{cap || '∞'}</span>
+              <span>{t.card.spots}: <b style={{ color: 'var(--sky-900)', fontSize: 16 }}>{spotsLeft}</b>/{cap}</span>
             )}
           </div>
           <span style={{
@@ -4759,7 +4763,8 @@ function CompactEventCard({ ev, lang, t }) {
         }}>
           <span>{getI18nField(ev, 'venue', lang) ? (getI18nField(ev, 'venue', lang).length > 14 ? getI18nField(ev, 'venue', lang).slice(0, 14) + '…' : getI18nField(ev, 'venue', lang)) : '会場未定'}</span>
           <span style={{ color: 'var(--coral)', fontWeight: 700, whiteSpace: 'nowrap' }}>
-            {isFull ? '満員' : `残${spotsLeft}`} →
+            {/* (Phase 15.S56) 無制限 (capacity=0) の時は残席表示しない */}
+            {cap <= 0 ? '→' : isFull ? `${t.card.full || '満員'} →` : `${lang === 'en' ? 'left ' + spotsLeft : '残' + spotsLeft} →`}
           </span>
         </div>
       </div>
@@ -11197,6 +11202,7 @@ function PageNewsDetail({ lang, t, newsId, frontNews, loading }) {
 function PageEvents({ lang, t, events, loading, siteSettings }) {
   const settings = siteSettings || {};
   const bgImage = settings.events_section_bg_image || '';
+  const st = STATUS_T[lang] || STATUS_T.ja;  // (Phase 15.S55)
   // (Phase 13.4) モバイルビューポート
   const eventsPageVp = useViewport();
 
@@ -11527,7 +11533,7 @@ function PageEvents({ lang, t, events, loading, siteSettings }) {
                   flexBasis: 'clamp(64px, 12vw, 96px)',
                   textTransform: 'uppercase',
                 }}>FEE</span>
-                {[{key:'paid', label:'有料'}, {key:'free', label:'無料'}].map(f => {
+                {[{key:'paid', label: st.feePaid}, {key:'free', label: st.feeFree}].map(f => {
                   const active = selectedFees.has(f.key);
                   return (
                     <button
@@ -11689,10 +11695,10 @@ function PageEvents({ lang, t, events, loading, siteSettings }) {
                         const area = detectEventArea(ev);
                         const ft = detectEventFeeType(ev);
                         const tags = [];
-                        if (area === 'web') tags.push('オンライン');
+                        if (area === 'web') tags.push(lang === 'en' ? 'Online' : lang === 'easy' ? 'オンライン' : 'オンライン');
                         else if (area) tags.push(area);
-                        if (ft === 'paid') tags.push('有料');
-                        else if (ft === 'free') tags.push('無料');
+                        if (ft === 'paid') tags.push(st.feePaid);
+                        else if (ft === 'free') tags.push(st.feeFree);
                         if (tags.length === 0) return null;
                         return (
                           <span style={{
@@ -11959,7 +11965,7 @@ function PageEventDetail({ lang, t, eventId }) {
   const isMulti = ev.format === 'multi' && sessions.length > 0;
 
   // 申込受付ステータス (Phase 6.2): 満員・申込開始前・申込締切後・終了 を一元判定
-  const regStatus = getRegistrationStatus(ev);
+  const regStatus = getRegistrationStatus(ev, lang);
   const cantRegister = !regStatus.open;
 
   // 日付パース (YYYY-MM-DD → 各部品)
@@ -12051,12 +12057,12 @@ function PageEventDetail({ lang, t, eventId }) {
       }
     } catch (err) {
       setRegisterStatus('error');
-      setRegisterMessage(err.message || '申込に失敗しました');
+      setRegisterMessage(err.message || st.registrationFailed);
       // 無料イベントの場合 (モーダル外) はダイアログでエラー表示
       if (!paymentMethod) {
         await dialog.error({
-          title: '申込に失敗しました',
-          message: err.message || 'もう一度お試しください',
+          title: st.registrationFailed,
+          message: err.message || (lang === 'en' ? 'Please try again' : lang === 'easy' ? 'もういちど ためしてください' : 'もう一度お試しください'),
         });
         setRegisterStatus('');
       }
@@ -12067,10 +12073,10 @@ function PageEventDetail({ lang, t, eventId }) {
   const handleCancel = async () => {
     if (!myReg) return;
     const ok = await dialog.confirm({
-      title: '参加キャンセルの確認',
-      message: 'このイベントへの参加申込をキャンセルします。\nよろしいですか？',
-      confirmLabel: 'キャンセルする',
-      cancelLabel: '戻る',
+      title: st.cancelEventConfirmTitle,
+      message: st.cancelEventConfirmBody,
+      confirmLabel: lang === 'en' ? 'Cancel registration' : lang === 'easy' ? 'キャンセルする' : 'キャンセルする',
+      cancelLabel: lang === 'en' ? 'Back' : lang === 'easy' ? 'もどる' : '戻る',
     });
     if (!ok) return;
     try {
@@ -12079,13 +12085,13 @@ function PageEventDetail({ lang, t, eventId }) {
       const refreshed = await authApi.getMyRegistrations(token);
       setMyRegistrations(refreshed.registrations || []);
       await dialog.success({
-        title: 'キャンセル完了',
-        message: '参加申込をキャンセルしました',
+        title: st.cancelEventDone,
+        message: st.cancelEventDoneBody,
       });
     } catch (err) {
       await dialog.error({
-        title: 'キャンセル失敗',
-        message: err.message || 'もう一度お試しください',
+        title: st.cancelEventFailed,
+        message: err.message || (lang === 'en' ? 'Please try again' : lang === 'easy' ? 'もういちど ためしてください' : 'もう一度お試しください'),
       });
     }
   };
@@ -12276,18 +12282,61 @@ function PageEventDetail({ lang, t, eventId }) {
                 })()}
               </InfoLine>
 
-              {/* 定員行 */}
-              <InfoLine label={t.detail.tags.capacity}>
-                {ev.capacity ? (
-                  <>
-                    <strong style={editorialBold}>{ev.capacity}{t.detail.seats}</strong>
-                    <span style={{ color: 'var(--ink-mute)' }}>
-                      （{lang === 'en' ? 'currently' : '現在'} {ev.registered || 0}/{ev.capacity}{lang === 'ja' ? '、' : ', '}
-                      {lang === 'en' ? `${spotsLeft} ${t.detail.seatsRemaining}` : `${t.detail.seatsRemaining}${spotsLeft}${t.detail.seats}`}）
-                    </span>
-                  </>
-                ) : '—'}
-              </InfoLine>
+              {/* (Phase 15.S54) 定員行: 無制限 (capacity=0) は非表示 */}
+              {ev.capacity > 0 && (
+                <InfoLine label={t.detail.tags.capacity}>
+                  <strong style={editorialBold}>{ev.capacity}{t.detail.seats}</strong>
+                  <span style={{ color: 'var(--ink-mute)' }}>
+                    （{lang === 'en' ? 'currently' : '現在'} {ev.registered || 0}/{ev.capacity}{lang === 'ja' ? '、' : ', '}
+                    {lang === 'en' ? `${spotsLeft} ${t.detail.seatsRemaining}` : `${t.detail.seatsRemaining}${spotsLeft}${t.detail.seats}`}）
+                  </span>
+                </InfoLine>
+              )}
+
+              {/* (Phase 15.S54) 複数日: 選択中セッションの残席を個別表示 (無制限のセッションはスキップ) */}
+              {isMulti && selectedSessionIds.length > 0 && (() => {
+                const selectedSessions = sessions.filter(s => selectedSessionIds.includes(s.id));
+                // 全セッションが無制限なら何も表示しない
+                const hasCapacityInfo = selectedSessions.some(s => Number(s.capacity) > 0);
+                if (!hasCapacityInfo) return null;
+                return (
+                  <InfoLine label={lang === 'en' ? 'Selected sessions' : lang === 'easy' ? 'えらんだ セッション' : '選択セッションの残席'}>
+                    <div style={{ display: 'flex', flexDirection: 'column', gap: 4, fontSize: 13 }}>
+                      {selectedSessions.map((s, i) => {
+                        const cap = Number(s.capacity) || 0;
+                        const reg = Number(s.registered) || 0;
+                        const left = Math.max(0, cap - reg);
+                        const sName = (lang === 'easy' ? (s.name_easy || s.name) : lang === 'en' ? (s.name_en || s.name) : s.name) || `Session ${s.order || (i + 1)}`;
+                        if (cap <= 0) {
+                          // 無制限セッションは「無制限」と明示
+                          return (
+                            <div key={s.id} style={{ color: 'var(--ink-mute)' }}>
+                              <strong style={{ ...editorialBold, fontSize: 13 }}>{sName}</strong>
+                              <span style={{ marginLeft: 8 }}>{lang === 'en' ? 'No limit' : lang === 'easy' ? 'せいげん なし' : '無制限'}</span>
+                            </div>
+                          );
+                        }
+                        const isFull = left <= 0;
+                        const isLow = left > 0 && left <= 3;
+                        return (
+                          <div key={s.id}>
+                            <strong style={{ ...editorialBold, fontSize: 13 }}>{sName}</strong>
+                            <span style={{
+                              marginLeft: 8,
+                              color: isFull ? '#dc2626' : isLow ? '#f59e0b' : 'var(--ink-mute)',
+                              fontWeight: isFull || isLow ? 600 : 400,
+                            }}>
+                              {isFull
+                                ? (lang === 'en' ? 'Full' : lang === 'easy' ? 'まんいん' : '満員')
+                                : (lang === 'en' ? `${left} / ${cap} seats left` : lang === 'easy' ? `のこり ${left} / ${cap}` : `残席 ${left} / ${cap}`)}
+                            </span>
+                          </div>
+                        );
+                      })}
+                    </div>
+                  </InfoLine>
+                );
+              })()}
 
               {/* 参加費行 */}
               {/* (Phase 15.S10 #4) multi イベントは料金パターンを詳細表示 */}
@@ -12760,8 +12809,8 @@ function PageEventDetail({ lang, t, eventId }) {
           {alreadyRegistered ? (
             <button onClick={handleCancel} style={{
               background: 'transparent',
-              color: '#0a2960',
-              border: '2px solid #0a2960',
+              color: myReg.paid ? '#16a34a' : '#0a2960',  // (Phase 15.S54) 決済済みは緑
+              border: `2px solid ${myReg.paid ? '#16a34a' : '#0a2960'}`,
               padding: '14px 32px',
               fontFamily: 'var(--mono)',
               fontSize: 13,
@@ -12771,7 +12820,12 @@ function PageEventDetail({ lang, t, eventId }) {
               transition: 'all .25s',
               letterSpacing: '0.18em',
             }}>
-              {myReg.status === '確定' ? '申込済み' : '未決済'} · キャンセル
+              {/* (Phase 15.S54) paid フラグも判定: 決済済み > 申込済み (確定) > 未決済 */}
+              {myReg.paid
+                ? (st.paid || (lang === 'en' ? 'Paid' : '決済済み'))
+                : myReg.status === '確定'
+                  ? (st.registered || (lang === 'en' ? 'Registered' : '申込済み'))
+                  : (st.unpaid || (lang === 'en' ? 'Unpaid' : '未決済'))} · {st.cancel || 'キャンセル'}
             </button>
           ) : (
           <button onClick={handleRegister} disabled={cantRegister || (isMulti && selectedSessionIds.length === 0)}
@@ -13763,6 +13817,36 @@ const STATUS_T = {
     paypayNameEditFromProfile: 'いつでもプロフィールから変更できます',
     paypayOpenApp: 'PayPay を開いて確認',
     paypayOpenAppHelp: 'PayPay アプリを開いて、 自分の表示名を確認できます',
+    // (Phase 15.S55) 多言語化漏れ補完
+    statusCancelled: '中止',
+    statusPostponed: '延期',
+    statusFull: '満員 (キャンセル待ち)',
+    statusRegOpenSoon: '%date% から申込開始',
+    statusRegClosed: '申込受付終了',
+    statusEventEnded: 'イベント終了',
+    statusRegOpen: '申込受付中',
+    feeFree: '無料',
+    feePaid: '有料',
+    cancelEventConfirmTitle: '参加キャンセルの確認',
+    cancelEventConfirmBody: 'このイベントへの参加申込をキャンセルします。\nよろしいですか？',
+    cancelEventDone: 'キャンセル完了',
+    cancelEventDoneBody: '参加申込をキャンセルしました',
+    cancelEventFailed: 'キャンセル失敗',
+    registrationFailed: '申込に失敗しました',
+    profileForeignResident: '在留外国人',
+    profileJapanese: '日本人',
+    profileOther: 'その他',
+    profileLangJa: '日本語',
+    profileLangEasy: 'やさしいにほんご',
+    profileLangEn: 'English',
+    yes: 'はい',
+    no: 'いいえ',
+    jlptNone: '取得していない',
+    contactAnything: '何でも',
+    contactReplyTime: '通常2営業日以内にご返信いたします。',
+    contactMessageLabel: 'お問い合わせ内容',
+    contactMessageMin: 'メッセージを入力してください (10文字以上)',
+    contactSent: '送信完了しました',
   },
   easy: {
     cancel: 'キャンセル',
@@ -13809,6 +13893,36 @@ const STATUS_T = {
     paypayNameEditFromProfile: 'プロフィールから かえられます',
     paypayOpenApp: 'PayPay を ひらいて かくにん',
     paypayOpenAppHelp: 'PayPay アプリを ひらいて、 じぶんの なまえを かくにん できます',
+    // (Phase 15.S55) 多言語化漏れ補完
+    statusCancelled: 'ちゅうし',
+    statusPostponed: 'えんき',
+    statusFull: 'まんいん (キャンセルまち)',
+    statusRegOpenSoon: '%date% から もうしこみ かいし',
+    statusRegClosed: 'もうしこみ おわり',
+    statusEventEnded: 'イベント おわり',
+    statusRegOpen: 'もうしこみ できます',
+    feeFree: 'むりょう',
+    feePaid: 'おかね かかります',
+    cancelEventConfirmTitle: 'キャンセルの かくにん',
+    cancelEventConfirmBody: 'このイベントの もうしこみを キャンセル します。\nよろしいですか？',
+    cancelEventDone: 'キャンセル おわり',
+    cancelEventDoneBody: 'もうしこみを キャンセル しました',
+    cancelEventFailed: 'キャンセル できません でした',
+    registrationFailed: 'もうしこみが できません でした',
+    profileForeignResident: '日本に すんでいる がいこく人',
+    profileJapanese: '日本人',
+    profileOther: 'そのた',
+    profileLangJa: '日本語',
+    profileLangEasy: 'やさしい にほんご',
+    profileLangEn: 'English',
+    yes: 'はい',
+    no: 'いいえ',
+    jlptNone: 'もっていない',
+    contactAnything: 'なんでも',
+    contactReplyTime: '2えいぎょう日 いない に へんじ します。',
+    contactMessageLabel: 'メッセージ',
+    contactMessageMin: 'メッセージを かいて ください (10もじ いじょう)',
+    contactSent: 'おくりました',
   },
   en: {
     cancel: 'Cancel',
@@ -13855,6 +13969,36 @@ const STATUS_T = {
     paypayNameEditFromProfile: 'You can change it anytime from your profile',
     paypayOpenApp: 'Open PayPay to check',
     paypayOpenAppHelp: 'Open the PayPay app to check your display name',
+    // (Phase 15.S55) 多言語化漏れ補完
+    statusCancelled: 'Cancelled',
+    statusPostponed: 'Postponed',
+    statusFull: 'Full (waitlist)',
+    statusRegOpenSoon: 'Registration opens %date%',
+    statusRegClosed: 'Registration closed',
+    statusEventEnded: 'Event ended',
+    statusRegOpen: 'Open for registration',
+    feeFree: 'Free',
+    feePaid: 'Paid',
+    cancelEventConfirmTitle: 'Cancel registration?',
+    cancelEventConfirmBody: 'Cancel your registration for this event.\nAre you sure?',
+    cancelEventDone: 'Cancellation complete',
+    cancelEventDoneBody: 'Your registration has been cancelled',
+    cancelEventFailed: 'Cancellation failed',
+    registrationFailed: 'Registration failed',
+    profileForeignResident: 'Foreign resident in Japan',
+    profileJapanese: 'Japanese national',
+    profileOther: 'Other',
+    profileLangJa: '日本語',
+    profileLangEasy: 'やさしいにほんご',
+    profileLangEn: 'English',
+    yes: 'Yes',
+    no: 'No',
+    jlptNone: 'Not taken',
+    contactAnything: 'Anything',
+    contactReplyTime: 'We typically reply within 2 business days.',
+    contactMessageLabel: 'Your message',
+    contactMessageMin: 'Please enter your message (10 characters or more)',
+    contactSent: 'Message sent',
   },
 };
 
@@ -19976,6 +20120,7 @@ function ProfileEditModal({ user, onClose, onSaved, lang }) {
 const CONTACT_GAS_URL = 'https://script.google.com/macros/s/AKfycbxApwccYEPblBPtVHA4B2kw6xPrlxA07R31uHAt2iEb8pda26G83wuIK7ByEhYBAidxqQ/exec';
 
 // 15言語の i18n 辞書 (既存のお問い合わせフォームから移植)
+// (Phase 15.S55) easy (やさしい日本語) 追加
 const CONTACT_I18N = {
   ja: {
     tag:'お問い合わせ', title:'何でも', titleStrong:'お気軽に', titleSuffix:'ご連絡ください',
@@ -19996,6 +20141,26 @@ const CONTACT_I18N = {
     btn_back:'別の問い合わせをする',
     lang_hint:'返信メールの言語を選んでください',
     select:'選択してください',
+  },
+  easy: {
+    tag:'おといあわせ', title:'なんでも', titleStrong:'きがるに', titleSuffix:'れんらく ください',
+    subtitle:'2えいぎょう日 いない に へんじ します。',
+    step1:'おといあわせの しゅるい', step2:'れんらくさき', step3:'メッセージ',
+    type_event:'イベント', type_community:'コミュニティ', type_shopcard:'ショップカード',
+    type_general:'いっぱん', type_business:'きぎょう コラボ', type_other:'そのた',
+    label_email:'メールアドレス', label_name:'なまえ (なくても OK)', label_type:'こじん / きぎょう',
+    label_company:'かいしゃ名', label_website:'ウェブサイト', label_message:'メッセージ',
+    individual:'こじん', company:'きぎょう',
+    btn_send:'おくる', sending:'おくっています...',
+    err_type:'しゅるいを えらんで ください',
+    err_email:'ただしい メールアドレスを いれて ください',
+    err_userType:'こじん か きぎょう を えらんで ください',
+    err_message:'メッセージを かいて ください (10もじ いじょう)',
+    err_generic:'おくる ときに エラーが でました。もう いちど ためして ください。',
+    success_title:'おくりました', success_msg:'メッセージ ありがとうございます。\n2えいぎょう日 いない に れんらく します。',
+    btn_back:'もう いちど おくる',
+    lang_hint:'へんじの メールの ことばを えらんで ください',
+    select:'えらんで ください',
   },
   en: {
     tag:'Get in Touch', title:"We'd love to", titleStrong:'hear from you', titleSuffix:'',
