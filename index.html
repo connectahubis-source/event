@@ -2545,6 +2545,7 @@ function formatEventDate(dateStr) {
 }
 
 // (Phase 15.S35) ニュース画像URLを表示可能な形式に正規化 (Google Drive 等の対応)
+// (Phase 15.S45) ニュース画像URLを表示可能な形式に正規化 (Google Drive 等の対応)
 function normalizeNewsImageUrl(url) {
   if (!url || typeof url !== 'string') return url || '';
   let m = url.match(/drive\.google\.com\/file\/d\/([^/]+)/);
@@ -2552,6 +2553,44 @@ function normalizeNewsImageUrl(url) {
   m = url.match(/drive\.google\.com\/uc.*?[?&]id=([^&]+)/);
   if (m) return 'https://drive.google.com/thumbnail?id=' + m[1] + '&sz=w800';
   return url;
+}
+
+// (Phase 15.S46) PayPay アプリ起動ヘルパー
+// スマホなら paypay:// で アプリ起動、 ダメなら Web 版 にフォールバック
+// PC は最初から Web 版
+function isMobileDevice() {
+  try {
+    return /iPhone|iPad|iPod|Android/i.test(navigator.userAgent || '');
+  } catch (e) { return false; }
+}
+
+function openPayPayApp() {
+  // Web 版 fallback URL (PC + アプリ未インストール時)
+  const fallbackUrl = 'https://paypay.ne.jp/';
+  if (!isMobileDevice()) {
+    // PC は Web 版を新タブで
+    try { window.open(fallbackUrl, '_blank', 'noopener,noreferrer'); } catch (e) {}
+    return;
+  }
+  // スマホ: paypay:// で起動を試行、 1.5 秒後に未起動なら Web 版へフォールバック
+  // ただし visibilitychange でアプリが起動したか検知して fallback をキャンセル
+  let cancelled = false;
+  const onVisibility = () => {
+    if (document.hidden) cancelled = true;
+  };
+  document.addEventListener('visibilitychange', onVisibility, { once: true });
+  // URL Scheme 起動 (location.href で直接遷移)
+  try {
+    window.location.href = 'paypay://';
+  } catch (e) {}
+  // 1500ms 後にまだ visible なら Web 版へ
+  setTimeout(() => {
+    document.removeEventListener('visibilitychange', onVisibility);
+    if (cancelled) return;
+    if (!document.hidden) {
+      try { window.open(fallbackUrl, '_blank', 'noopener,noreferrer'); } catch (e) {}
+    }
+  }, 1500);
 }
 
 // (Phase 15.S28 F9) Google Calendar / iCal 用の URL/コンテンツ生成
@@ -11909,8 +11948,19 @@ function PageEventDetail({ lang, t, eventId }) {
     window.location.hash = `/events/${eventId}/register`;
   };
 
+  // (Phase 15.S45) PayPay 表示名 入力モーダル state
+  const [paypayNameModalOpen, setPaypayNameModalOpen] = useState(false);
+  const [paypayNamePending, setPaypayNamePending] = useState(null);  // 入力後に呼び出す paymentMethod
+
   // 実際のAPI呼び出し
   const submitRegistration = async (paymentMethod) => {
+    // (Phase 15.S45) PayPay の場合、 表示名が未設定ならモーダルで入力させる
+    const isPayPay = paymentMethod && /paypay/i.test(String(paymentMethod));
+    if (isPayPay && auth.user && !auth.user.paypayDisplayName) {
+      setPaypayNamePending(paymentMethod);
+      setPaypayNameModalOpen(true);
+      return;
+    }
     setRegisterStatus('submitting');
     setRegisterMessage('');
     try {
@@ -12709,6 +12759,29 @@ function PageEventDetail({ lang, t, eventId }) {
       </div>
 
       <div style={{ height: 110 }}></div>
+
+      {/* (Phase 15.S45) PayPay 表示名 入力モーダル — PayPay 選択時に表示名未設定なら表示 */}
+      {paypayNameModalOpen && (
+        <PayPayDisplayNameModal
+          lang={lang}
+          onCancel={() => {
+            setPaypayNameModalOpen(false);
+            setPaypayNamePending(null);
+          }}
+          onSave={async (name) => {
+            const token = authStore.getToken();
+            await authApi.updateProfile(token, { paypayDisplayName: name });
+            await auth.refresh();
+            const pending = paypayNamePending;
+            setPaypayNameModalOpen(false);
+            setPaypayNamePending(null);
+            if (pending) {
+              // プロフィール更新が反映されるまで少し待機 (auth.refresh() 完了後)
+              setTimeout(() => submitRegistration(pending), 100);
+            }
+          }}
+        />
+      )}
 
       {/* (Phase 7.7) 有料イベント — 決済方法選択モーダル */}
       {registerModalOpen && (
@@ -13619,6 +13692,18 @@ const STATUS_T = {
     navContact: '質問する',
     navLogin: 'ログイン',
     navMyPage: 'マイページ',
+    // (Phase 15.S45) PayPay 表示名 入力モーダル
+    paypayNameLabel: 'PayPay 表示名',
+    paypayNameHint: 'PayPay アプリで送金する際に表示される名前を入力してください (任意)',
+    paypayNameRequired: 'PayPay で支払うには、 表示名の登録が必要です',
+    paypayNameDescription: '支払い確認時に運営が照合するために使用します。 一度登録すれば次回以降は自動で使われます。',
+    paypayNamePlaceholder: '例: たろう / Taro Yamada',
+    paypayNameSaveAndPay: '保存して決済へ進む',
+    paypayNameCancel: 'やめる',
+    paypayNameSaving: '保存中...',
+    paypayNameEditFromProfile: 'いつでもプロフィールから変更できます',
+    paypayOpenApp: 'PayPay を開いて確認',
+    paypayOpenAppHelp: 'PayPay アプリを開いて、 自分の表示名を確認できます',
   },
   easy: {
     cancel: 'キャンセル',
@@ -13654,6 +13739,17 @@ const STATUS_T = {
     navContact: 'しつもんする',
     navLogin: 'ログイン',
     navMyPage: 'マイページ',
+    paypayNameLabel: 'PayPay の なまえ',
+    paypayNameHint: 'PayPay アプリで みえる なまえを いれてください (なくても OK)',
+    paypayNameRequired: 'PayPay で はらうには、 なまえの とうろくが ひつようです',
+    paypayNameDescription: 'おかねの かくにんに つかいます。 1かい いれたら、 つぎから じどうで つかわれます。',
+    paypayNamePlaceholder: 'れい: たろう',
+    paypayNameSaveAndPay: 'ほぞんして けっさいへ',
+    paypayNameCancel: 'やめる',
+    paypayNameSaving: 'ほぞんちゅう...',
+    paypayNameEditFromProfile: 'プロフィールから かえられます',
+    paypayOpenApp: 'PayPay を ひらいて かくにん',
+    paypayOpenAppHelp: 'PayPay アプリを ひらいて、 じぶんの なまえを かくにん できます',
   },
   en: {
     cancel: 'Cancel',
@@ -13689,6 +13785,17 @@ const STATUS_T = {
     navContact: 'Contact',
     navLogin: 'Log in',
     navMyPage: 'My page',
+    paypayNameLabel: 'PayPay display name',
+    paypayNameHint: 'The name shown when you send money via the PayPay app (optional)',
+    paypayNameRequired: 'A display name is required to pay with PayPay',
+    paypayNameDescription: 'Used by our team to verify your payment. Once registered, it will be reused automatically.',
+    paypayNamePlaceholder: 'e.g. Taro Yamada',
+    paypayNameSaveAndPay: 'Save and continue to payment',
+    paypayNameCancel: 'Cancel',
+    paypayNameSaving: 'Saving...',
+    paypayNameEditFromProfile: 'You can change it anytime from your profile',
+    paypayOpenApp: 'Open PayPay to check',
+    paypayOpenAppHelp: 'Open the PayPay app to check your display name',
   },
 };
 
@@ -15500,6 +15607,7 @@ const LANGUAGE_SKILLS = [
 
 function PageSignupProfile({ lang, t }) {
   const at = authT(lang);
+  const st = STATUS_T[lang] || STATUS_T.ja;  // (Phase 15.S45) PayPay 表示名 等
   // URL hash から email を取得
   const [email, setEmail] = React.useState('');
 
@@ -15526,6 +15634,8 @@ function PageSignupProfile({ lang, t }) {
   const [dept, setDept] = React.useState('');
   const [interests, setInterests] = React.useState([]);
   const [languageSkills, setLanguageSkills] = React.useState([]);
+  // (Phase 15.S45) PayPay 表示名 (任意)
+  const [paypayDisplayName, setPaypayDisplayName] = React.useState('');
 
   const [section, setSection] = React.useState(1);
   const [submitting, setSubmitting] = React.useState(false);
@@ -15567,6 +15677,8 @@ function PageSignupProfile({ lang, t }) {
         dept: dept.trim(),
         interests,
         languageSkills,
+        // (Phase 15.S45)
+        paypayDisplayName: paypayDisplayName.trim(),
       });
       // セッショントークン保存
       authStore.setToken(result.sessionToken, result.sessionExpires);
@@ -15695,6 +15807,22 @@ function PageSignupProfile({ lang, t }) {
       {section === 3 && (
         <div style={{ display: 'flex', flexDirection: 'column', gap: 14 }}>
           <AuthInput label={at.deptLabel} value={dept} onChange={setDept} placeholder={at.deptPh} />
+
+          {/* (Phase 15.S45) PayPay 表示名 (任意) */}
+          <div>
+            <AuthInput
+              label={st.paypayNameLabel}
+              value={paypayDisplayName}
+              onChange={setPaypayDisplayName}
+              placeholder={st.paypayNamePlaceholder}
+            />
+            <div style={{
+              fontSize: 11, color: '#6b7280', marginTop: 4,
+              fontFamily: 'var(--jp)', lineHeight: 1.5,
+            }}>
+              {st.paypayNameHint}
+            </div>
+          </div>
 
           <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
             <span style={{
@@ -16057,8 +16185,17 @@ function PageEventRegister({ lang, t, eventId, events, loading: appLoading, site
   // 申込ボタンの活性化条件
   const canSubmit = hasPolicy && agreedPolicy && (isFree || (isPaid && paymentMethod));
 
+  // (Phase 15.S45) PayPay 表示名 入力モーダル state
+  const [paypayNameModalOpen, setPaypayNameModalOpen] = React.useState(false);
+
   const handleSubmit = async () => {
     if (!canSubmit || submitting) return;
+    // (Phase 15.S45) PayPay 選択時に表示名未設定ならモーダル表示
+    const isPayPay = isPaid && paymentMethod && /paypay/i.test(String(paymentMethod));
+    if (isPayPay && auth.user && !auth.user.paypayDisplayName) {
+      setPaypayNameModalOpen(true);
+      return;
+    }
     setSubmitting(true);
     try {
       const token = authStore.getToken();
@@ -16428,6 +16565,22 @@ function PageEventRegister({ lang, t, eventId, events, loading: appLoading, site
           </div>
         </Reveal>
       </div>
+
+      {/* (Phase 15.S45) PayPay 表示名 入力モーダル */}
+      {paypayNameModalOpen && (
+        <PayPayDisplayNameModal
+          lang={lang}
+          onCancel={() => setPaypayNameModalOpen(false)}
+          onSave={async (name) => {
+            const token = authStore.getToken();
+            await authApi.updateProfile(token, { paypayDisplayName: name });
+            await auth.refresh();
+            setPaypayNameModalOpen(false);
+            // プロフィール更新が反映されるまで少し待機
+            setTimeout(() => handleSubmit(), 100);
+          }}
+        />
+      )}
     </section>
   );
 }
@@ -19352,6 +19505,161 @@ function PageTicket({ regId, lang }) {
 }
 
 // プロフィール編集モーダル
+// (Phase 15.S45) PayPay 表示名 入力モーダル — 申込時に表示名未設定の場合に出現
+function PayPayDisplayNameModal({ lang, onSave, onCancel }) {
+  const st = STATUS_T[lang] || STATUS_T.ja;
+  const [name, setName] = React.useState('');
+  const [submitting, setSubmitting] = React.useState(false);
+  const [error, setError] = React.useState('');
+
+  async function handleSave() {
+    setError('');
+    if (!name.trim()) {
+      setError(st.paypayNameRequired);
+      return;
+    }
+    setSubmitting(true);
+    try {
+      await onSave(name.trim());
+    } catch (err) {
+      setError(err.message || st.saveFailed);
+      setSubmitting(false);
+    }
+  }
+
+  return (
+    <div onClick={onCancel} style={{
+      position: 'fixed', inset: 0,
+      background: 'rgba(10, 41, 96, 0.55)',
+      display: 'flex', alignItems: 'center', justifyContent: 'center',
+      zIndex: 9999, padding: 20,
+    }}>
+      <div onClick={(e) => e.stopPropagation()} style={{
+        background: '#fff', maxWidth: 480, width: '100%',
+        maxHeight: 'calc(100vh - 48px)', overflowY: 'auto',
+        boxShadow: '0 20px 60px rgba(0, 0, 0, 0.3)',
+        borderRadius: 4, padding: 28,
+      }}>
+        {/* ヘッダー */}
+        <div style={{ marginBottom: 18 }}>
+          <div style={{
+            display: 'inline-flex', alignItems: 'center', gap: 6,
+            padding: '4px 10px', background: '#fff5e6',
+            border: '1px solid #f59e0b', borderRadius: 12,
+            fontSize: 11, fontWeight: 600, color: '#92400e',
+            marginBottom: 12,
+          }}>💰 PayPay</div>
+          <h2 style={{
+            margin: 0, fontFamily: 'var(--jp)', fontSize: 18, fontWeight: 600,
+            color: '#0a2960', letterSpacing: '0.04em', lineHeight: 1.4,
+          }}>{st.paypayNameRequired}</h2>
+          <p style={{
+            margin: '8px 0 0 0', fontFamily: 'var(--jp)', fontSize: 12,
+            color: '#6b7280', lineHeight: 1.6,
+          }}>{st.paypayNameDescription}</p>
+        </div>
+
+        {/* 入力欄 */}
+        <div style={{ marginBottom: 16 }}>
+          <label style={{
+            display: 'block', fontFamily: 'var(--jp)',
+            fontSize: 13, fontWeight: 600, color: '#374151',
+            marginBottom: 6,
+          }}>{st.paypayNameLabel} <span style={{ color: '#dc2626' }}>*</span></label>
+          <input
+            type="text"
+            value={name}
+            onChange={(e) => setName(e.target.value)}
+            placeholder={st.paypayNamePlaceholder}
+            autoFocus
+            disabled={submitting}
+            style={{
+              width: '100%', padding: '10px 14px', fontSize: 16,
+              fontFamily: 'var(--jp)',
+              border: '1px solid #d1d5db', borderRadius: 0,
+              outline: 'none', minHeight: 48,
+            }}
+          />
+          <div style={{
+            fontSize: 11, color: '#6b7280', marginTop: 6,
+            fontFamily: 'var(--jp)', lineHeight: 1.5,
+          }}>{st.paypayNameEditFromProfile}</div>
+
+          {/* (Phase 15.S46) PayPay アプリを開いて表示名を確認するリンク */}
+          <button
+            type="button"
+            onClick={openPayPayApp}
+            disabled={submitting}
+            style={{
+              marginTop: 12,
+              width: '100%',
+              padding: '10px 14px',
+              background: '#fff5e6',
+              border: '1px solid #f59e0b',
+              borderRadius: 4,
+              fontFamily: 'var(--jp)',
+              fontSize: 13,
+              fontWeight: 600,
+              color: '#92400e',
+              cursor: 'pointer',
+              display: 'inline-flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+              gap: 8,
+              minHeight: 44,
+            }}
+          >
+            <span style={{ fontSize: 16 }}>📱</span>
+            <span>{st.paypayOpenApp}</span>
+            <span style={{ fontSize: 12, opacity: 0.7 }}>↗</span>
+          </button>
+          <div style={{
+            fontSize: 11, color: '#92400e', marginTop: 4,
+            fontFamily: 'var(--jp)', lineHeight: 1.5,
+            textAlign: 'center', opacity: 0.85,
+          }}>{st.paypayOpenAppHelp}</div>
+        </div>
+
+        {/* エラー */}
+        {error && (
+          <div style={{
+            padding: '10px 14px', marginBottom: 14,
+            background: '#fef2f2', border: '1px solid #fecaca',
+            color: '#991b1b', fontSize: 12, fontFamily: 'var(--jp)',
+            borderRadius: 4,
+          }}>{error}</div>
+        )}
+
+        {/* ボタン */}
+        <div style={{ display: 'flex', gap: 12, marginTop: 8 }}>
+          <button
+            onClick={onCancel}
+            disabled={submitting}
+            style={{
+              padding: '12px 24px', fontFamily: 'var(--jp)',
+              fontSize: 13, fontWeight: 600, color: '#0a2960',
+              background: '#fff', border: '2px solid #0a2960',
+              borderRadius: 0, cursor: 'pointer', minHeight: 48,
+            }}
+          >{st.paypayNameCancel}</button>
+          <button
+            onClick={handleSave}
+            disabled={submitting || !name.trim()}
+            style={{
+              flex: 1, padding: '12px 24px', fontFamily: 'var(--jp)',
+              fontSize: 13, fontWeight: 600, color: '#fff',
+              background: (submitting || !name.trim()) ? '#94a3b8' : '#0a2960',
+              border: 'none', borderRadius: 0,
+              cursor: (submitting || !name.trim()) ? 'not-allowed' : 'pointer',
+              minHeight: 48,
+            }}
+          >{submitting ? st.paypayNameSaving : st.paypayNameSaveAndPay}</button>
+        </div>
+      </div>
+    </div>
+  );
+}
+
 function ProfileEditModal({ user, onClose, onSaved, lang }) {
   const st = STATUS_T[lang] || STATUS_T.ja;  // (Phase 15.S39)
   const [name, setName] = React.useState(user.name || '');
@@ -19367,6 +19675,8 @@ function ProfileEditModal({ user, onClose, onSaved, lang }) {
   const [dept, setDept] = React.useState(user.dept === '—' ? '' : (user.dept || ''));
   const [interests, setInterests] = React.useState(user.interests || []);
   const [languageSkills, setLanguageSkills] = React.useState(user.languageSkills || []);
+  // (Phase 15.S45)
+  const [paypayDisplayName, setPaypayDisplayName] = React.useState(user.paypayDisplayName || '');
 
   const [submitting, setSubmitting] = React.useState(false);
   const [error, setError] = React.useState('');
@@ -19396,6 +19706,8 @@ function ProfileEditModal({ user, onClose, onSaved, lang }) {
         dept: dept.trim(),
         interests,
         languageSkills,
+        // (Phase 15.S45) PayPay 表示名
+        paypayDisplayName: paypayDisplayName.trim(),
       });
       await onSaved();
     } catch (err) {
@@ -19440,6 +19752,22 @@ function ProfileEditModal({ user, onClose, onSaved, lang }) {
           <AuthInput label={st.furigana} value={kana} onChange={setKana} placeholder={lang === 'en' ? 'Optional (skip if name is in romaji)' : lang === 'easy' ? 'なくても OK (なまえが ローマじ なら)' : '任意 (名前がローマ字なら省略可)'} />
           <AuthInput label={st.nickname} value={nickname} onChange={setNickname} required />
           <AuthInput label={st.birthday} type="date" value={birthdate} onChange={setBirthdate} required />
+
+          {/* (Phase 15.S45) PayPay 表示名 */}
+          <div>
+            <AuthInput
+              label={st.paypayNameLabel}
+              value={paypayDisplayName}
+              onChange={setPaypayDisplayName}
+              placeholder={st.paypayNamePlaceholder}
+            />
+            <div style={{
+              fontSize: 11, color: '#6b7280', marginTop: 4,
+              fontFamily: 'var(--jp)', lineHeight: 1.5,
+            }}>
+              {st.paypayNameHint}
+            </div>
+          </div>
 
           {/* (Phase 15.S12 B5) メールアドレス: 表示のみ + 変更ガイド */}
           <div>
