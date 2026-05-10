@@ -328,6 +328,196 @@ body {
   overscroll-behavior-y: none;
 }
 
+/* ============================================================ */
+/* (Phase 15.S17 Q4) 共通プリセットクラス — ボタン/カード/バッジ統一 */
+/* ============================================================ */
+
+/* === ボタン: プライマリ (濃紺、 メイン CTA) === */
+.btn-primary {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  padding: 14px 24px;
+  min-height: var(--tap-comfort);
+  background: var(--brand-navy);
+  color: #fff;
+  font-family: var(--jp);
+  font-size: 14px;
+  font-weight: 600;
+  letter-spacing: 0.04em;
+  border: none;
+  border-radius: var(--radius-2);
+  cursor: pointer;
+  text-decoration: none;
+  transition: background var(--t-base), transform var(--t-fast), opacity var(--t-fast);
+}
+.btn-primary:hover {
+  background: var(--brand-navy-deep, #061a3f);
+}
+.btn-primary:disabled {
+  opacity: 0.4;
+  cursor: not-allowed;
+}
+
+/* === ボタン: セカンダリ (アウトライン) === */
+.btn-secondary {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  padding: 14px 24px;
+  min-height: var(--tap-comfort);
+  background: transparent;
+  color: var(--ink-1);
+  font-family: var(--jp);
+  font-size: 14px;
+  font-weight: 500;
+  letter-spacing: 0.04em;
+  border: 1px solid var(--ink-6, #e5e7eb);
+  border-radius: var(--radius-2);
+  cursor: pointer;
+  text-decoration: none;
+  transition: background var(--t-base), border-color var(--t-base), transform var(--t-fast);
+}
+.btn-secondary:hover {
+  background: rgba(10, 22, 40, 0.04);
+  border-color: var(--ink-4, #6b7280);
+}
+
+/* === カード: 標準 (写真+情報) === */
+.card-base {
+  background: var(--paper-2, #fdfcf9);
+  border: 1px solid var(--brand-line, #ede9e0);
+  border-radius: var(--radius-3);
+  overflow: hidden;
+  transition: transform var(--t-base), box-shadow var(--t-base);
+  cursor: pointer;
+}
+.card-base:hover {
+  box-shadow: var(--shadow-2);
+  transform: translateY(-2px);
+}
+
+/* === バッジ: ピル形 (タグ用) === */
+.badge-pill {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  padding: 3px 10px;
+  font-size: 10px;
+  font-family: var(--mono, monospace);
+  font-weight: 600;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  border-radius: var(--radius-pill);
+  background: rgba(28, 137, 232, 0.1);
+  color: var(--brand-blue, #1c89e8);
+}
+
+/* === 空状態 / エラー (Q11/Q12) === */
+.empty-state {
+  text-align: center;
+  padding: 60px 24px;
+  font-family: var(--jp);
+}
+.empty-state-icon {
+  width: 64px;
+  height: 64px;
+  margin: 0 auto 20px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: rgba(10, 22, 40, 0.04);
+  border-radius: 50%;
+  color: var(--ink-4, #6b7280);
+}
+.empty-state-title {
+  font-family: var(--serif);
+  font-size: 18px;
+  font-weight: 400;
+  color: var(--ink-1);
+  margin: 0 0 8px;
+  letter-spacing: -0.01em;
+}
+.empty-state-body {
+  font-size: 13px;
+  color: var(--ink-3);
+  line-height: 1.6;
+  margin: 0 0 20px;
+  max-width: 320px;
+  margin-left: auto;
+  margin-right: auto;
+}
+.error-banner {
+  padding: 14px 18px;
+  background: rgba(239, 68, 68, 0.06);
+  border-left: 3px solid #ef4444;
+  border-radius: 4px;
+  display: flex;
+  align-items: flex-start;
+  gap: 12px;
+  font-family: var(--jp);
+  font-size: 13px;
+  color: #991b1b;
+  line-height: 1.6;
+}
+.warning-banner {
+  padding: 14px 18px;
+  background: rgba(245, 158, 11, 0.08);
+  border-left: 3px solid #f59e0b;
+  border-radius: 4px;
+  display: flex;
+  align-items: flex-start;
+  gap: 12px;
+  font-family: var(--jp);
+  font-size: 13px;
+  color: #92400e;
+  line-height: 1.6;
+}
+
+/* (Phase 15.S17 Q9) 画像スケルトン — 読み込み中の placeholder */
+.img-skeleton {
+  background: linear-gradient(90deg,
+    rgba(10, 22, 40, 0.04) 0%,
+    rgba(10, 22, 40, 0.08) 50%,
+    rgba(10, 22, 40, 0.04) 100%);
+  background-size: 200% 100%;
+  animation: cca-skeleton-pulse 1.6s ease-in-out infinite;
+}
+@keyframes cca-skeleton-pulse {
+  0% { background-position: 200% 0; }
+  100% { background-position: -200% 0; }
+}
+
+/* (Phase 15.S17 Q6) スクロールヒント — 上下に呼吸 + フェード */
+@keyframes cca-scroll-hint {
+  0%, 100% {
+    opacity: 0.5;
+    transform: translateX(-50%) translateY(0);
+  }
+  50% {
+    opacity: 1;
+    transform: translateX(-50%) translateY(6px);
+  }
+}
+.img-fade-in {
+  opacity: 0;
+  animation: cca-img-fade-in 0.5s ease-out forwards;
+}
+@keyframes cca-img-fade-in {
+  from { opacity: 0; }
+  to { opacity: 1; }
+}
+
+/* (Phase 15.S17 Q13) 数字専用 — タビュラ figure (桁揃え) */
+.num-tabular {
+  font-family: var(--num);
+  font-feature-settings: "tnum" 1, "kern" 1;
+  font-variant-numeric: tabular-nums;
+  letter-spacing: -0.01em;
+}
+
 * { box-sizing: border-box; }
 html, body { margin: 0; padding: 0; }
 body { background: var(--paper); color: var(--ink); font-family: var(--sans); }
@@ -2329,6 +2519,78 @@ function Icon({ name, size = 20, strokeWidth = 1.5, color, style = {} }) {
 // ============================================================================
 // MOTION COMPONENTS
 // ============================================================================
+
+// (Phase 15.S17 Q9) SmartImage — 読み込み前は skeleton、 読み込み後は fade-in
+// img タグの代替として使う、 既存の <img/> は影響受けない
+function SmartImage({ src, alt = '', loading = 'lazy', objectFit = 'cover', style = {}, ...rest }) {
+  const [loaded, setLoaded] = useState(false);
+  const [errored, setErrored] = useState(false);
+  // src が変わったらリセット
+  useEffect(() => {
+    setLoaded(false);
+    setErrored(false);
+  }, [src]);
+
+  if (!src) {
+    // src が無い場合はスケルトンのみ
+    return (
+      <div className="img-skeleton" style={{
+        width: '100%', height: '100%', position: 'absolute', inset: 0,
+        ...style,
+      }}/>
+    );
+  }
+
+  return (
+    <>
+      {/* スケルトン (読み込み完了 OR エラー時に消す) */}
+      {!loaded && !errored && (
+        <div className="img-skeleton" style={{
+          position: 'absolute', inset: 0,
+          width: '100%', height: '100%',
+          ...style,
+        }}/>
+      )}
+      {/* 実画像 (エラー時は非表示) */}
+      {!errored && (
+        <img
+          src={src}
+          alt={alt}
+          loading={loading}
+          onLoad={() => setLoaded(true)}
+          onError={() => setErrored(true)}
+          className={loaded ? 'img-fade-in' : ''}
+          style={{
+            position: 'absolute', inset: 0,
+            width: '100%', height: '100%',
+            objectFit,
+            opacity: loaded ? 1 : 0,
+            ...style,
+          }}
+          {...rest}
+        />
+      )}
+      {/* エラー時のフォールバック */}
+      {errored && (
+        <div style={{
+          position: 'absolute', inset: 0,
+          background: 'linear-gradient(135deg, #f5f0e8 0%, #ede6d6 100%)',
+          display: 'flex', alignItems: 'center', justifyContent: 'center',
+          color: 'rgba(10, 22, 40, 0.3)',
+          fontSize: 24,
+          ...style,
+        }}>
+          <svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
+            <rect x="3" y="3" width="18" height="18" rx="2"/>
+            <circle cx="8.5" cy="8.5" r="1.5"/>
+            <path d="M21 15l-5-5L5 21"/>
+          </svg>
+        </div>
+      )}
+    </>
+  );
+}
+
 function Reveal({ delay = 0, children, y = 30, blur = true, style = {}, ...rest }) {
   const ref = useRef(null);
   const [shown, setShown] = useState(false);
@@ -2513,22 +2775,12 @@ function Nav({ lang, setLang, t, transparent, menuOpen: externalMenuOpen, setMen
     <React.Fragment>
       <nav style={{
         position: 'fixed', top: 0, left: 0, right: 0, zIndex: 100,
-        // (Phase 15.S14) iOS 26 Liquid Glass — より透明 + 強い blur + 飽和ブースト + 微発光
-        background: (transparent && !scrolled)
-          ? 'linear-gradient(180deg, rgba(0,0,0,0.35) 0%, rgba(0,0,0,0.15) 60%, transparent 100%)'
-          : 'rgba(255, 255, 255, 0.55)',
-        backdropFilter: (transparent && !scrolled)
-          ? 'blur(0px)'
-          : 'blur(40px) saturate(200%) brightness(1.05)',
-        WebkitBackdropFilter: (transparent && !scrolled)
-          ? 'blur(0px)'
-          : 'blur(40px) saturate(200%) brightness(1.05)',
-        // 上下に光の屈折ハイライト風の細線
-        borderBottom: scrolled ? '1px solid rgba(10, 22, 40, 0.06)' : '1px solid transparent',
-        boxShadow: scrolled
-          ? 'inset 0 1px 0 rgba(255, 255, 255, 0.6), 0 1px 24px rgba(10, 22, 40, 0.04)'
-          : 'none',
-        transition: 'background .4s cubic-bezier(0.2, 0.8, 0.2, 1), backdrop-filter .4s, border-color .4s, box-shadow .4s',
+        // (Phase 15.S15) 普通の白背景 — 透過時のみ Hero 上で暗グラデ
+        // (Phase 15.S18) 常に白背景 — Hero 上でも透明にしない
+        background: '#ffffff',
+        borderBottom: '1px solid rgba(10, 22, 40, 0.08)',
+        boxShadow: scrolled ? '0 1px 0 rgba(10, 22, 40, 0.04)' : 'none',
+        transition: 'background .4s cubic-bezier(0.2, 0.8, 0.2, 1), border-color .4s, box-shadow .4s',
         paddingTop: 'env(safe-area-inset-top, 0px)',
       }}>
         <div style={{
@@ -2540,7 +2792,7 @@ function Nav({ lang, setLang, t, transparent, menuOpen: externalMenuOpen, setMen
           <div style={{display:'flex', alignItems:'center', gap:24, flex:1, minWidth:0}}>
             <a href="#/" style={{
               display: 'flex', flexDirection: 'column', gap: 4,
-              color: (transparent && !scrolled) ? '#ffffff' : '#0a2960',
+              color: '#0a2960',
               textDecoration: 'none',
               flexShrink: 0,
               transition: 'color .4s cubic-bezier(0.2, 0.8, 0.2, 1)',
@@ -2551,14 +2803,14 @@ function Nav({ lang, setLang, t, transparent, menuOpen: externalMenuOpen, setMen
                 fontWeight: 800,
                 letterSpacing: '0.08em',
                 lineHeight: 1,
-                color: (transparent && !scrolled) ? '#ffffff' : '#0a2960',
+                color: '#0a2960',
                 transition: 'color .4s cubic-bezier(0.2, 0.8, 0.2, 1)',
               }}>connec+a</span>
               <span style={{
                 fontFamily: 'var(--jp)',
                 fontSize: 11,
                 fontWeight: 400,
-                color: (transparent && !scrolled) ? 'rgba(255,255,255,0.75)' : '#6b7280',
+                color: '#6b7280',
                 letterSpacing: '0.04em',
                 lineHeight: 1.4,
                 transition: 'color .4s cubic-bezier(0.2, 0.8, 0.2, 1)',
@@ -2638,12 +2890,11 @@ function Nav({ lang, setLang, t, transparent, menuOpen: externalMenuOpen, setMen
 
           {/* Mobile menu button */}
           <button className="mobile-only" onClick={() => setMenuOpen(true)} style={{
-            background: (transparent && !scrolled) ? 'rgba(0,0,0,0.25)' : 'transparent',
+            background: 'transparent',
             border: 0,
-            color: (transparent && !scrolled) ? '#ffffff' : 'var(--sky-800)',
+            color: 'var(--sky-800)',
             width: 40, height: 40,
-            borderRadius: (transparent && !scrolled) ? 8 : 0,
-            backdropFilter: (transparent && !scrolled) ? 'blur(8px)' : 'none',
+            borderRadius: 0,
             display: 'flex', alignItems: 'center', justifyContent: 'center',
             transition: 'all .4s cubic-bezier(0.2, 0.8, 0.2, 1)',
           }}>
@@ -2969,14 +3220,21 @@ function BottomNav({ lang, t, currentRoute, onMenuOpen }) {
         bottom: 0,
         left: 0,
         right: 0,
-        zIndex: 90,  // Nav (100) より下、 モーダル (200+) より下、 Sticky CTA (50) より上
-        // (Phase 15.S14) iOS 26 Liquid Glass
-        background: 'rgba(255, 255, 255, 0.55)',
-        backdropFilter: 'blur(40px) saturate(200%) brightness(1.05)',
-        WebkitBackdropFilter: 'blur(40px) saturate(200%) brightness(1.05)',
-        // 上端に光の反射、 下端は safe-area に溶け込む
-        borderTop: '1px solid rgba(10, 22, 40, 0.06)',
-        boxShadow: 'inset 0 1px 0 rgba(255, 255, 255, 0.6), 0 -1px 24px rgba(10, 22, 40, 0.04)',
+        zIndex: 90,
+        // (Phase 15.S15) シャボン玉のような極透明 + 強い屈折 + 多重発光
+        // 背景はほぼ完全に透明、 ブラーで色味だけ拾う
+        background: 'linear-gradient(135deg, rgba(255, 255, 255, 0.22) 0%, rgba(255, 255, 255, 0.14) 100%)',
+        backdropFilter: 'blur(60px) saturate(220%) brightness(1.08)',
+        WebkitBackdropFilter: 'blur(60px) saturate(220%) brightness(1.08)',
+        // シャボン玉のエッジ — 上端に強い光の輪、 下端は淡い影
+        borderTop: '1px solid rgba(255, 255, 255, 0.4)',
+        // 多重 inset shadow で内側に光が反射する感じ
+        boxShadow: [
+          'inset 0 1px 0 rgba(255, 255, 255, 0.7)',           // 上端の光
+          'inset 0 -1px 0 rgba(255, 255, 255, 0.15)',          // 下端の微光
+          'inset 0 8px 24px rgba(255, 255, 255, 0.15)',        // 内側上の発光
+          '0 -2px 32px rgba(10, 22, 40, 0.06)',                // 外側の浮遊感
+        ].join(', '),
         // safe-area-inset-bottom 対応 (iPhone home indicator)
         paddingBottom: 'env(safe-area-inset-bottom, 0px)',
       }}>
@@ -4809,7 +5067,8 @@ function HeroSlideshow({ lang, t, events, heroSlides, loading, frontNews, siteSe
 
         {/* === CTA ボタン群 (白基調、ブルーアクセント) === */}
         <div style={{
-          padding: '0 var(--space-6) var(--space-10)',
+          // (Phase 15.S19) 下に余裕を作って CTA が画面端で切れないように
+          padding: '0 var(--space-6) calc(var(--space-12) + 24px)',
           display: 'grid',
           gap: 'var(--space-3)',
           maxWidth: 360,
@@ -4901,8 +5160,10 @@ function HeroSlideshow({ lang, t, events, heroSlides, loading, frontNews, siteSe
     <section data-section="hero" style={{
       position: 'relative',
       width: '100%',
+      // (Phase 15.S19) Hero 内 CTA が画面下端で切れる問題を修正
+      // PC: 高さを少し短く (100vh - 130px Nav分 - 70px CTA余白)、 minHeight 強化
       height: heroVp.isMobile ? 'auto' : 'calc(100vh - 130px)',
-      minHeight: heroVp.isMobile ? 'auto' : 580,
+      minHeight: heroVp.isMobile ? 'auto' : 640,
       maxHeight: heroVp.isMobile ? 'none' : 870,
       marginTop: heroVp.isMobile ? 80 : 130,
       overflow: 'hidden',
@@ -7803,14 +8064,24 @@ function PageHomeMobile({ lang, t, events, ads, heroSlides, heroSlidesMobile, lo
   const [slideIdx, setSlideIdx] = React.useState(0);
   // (Phase 15.S8 #1) 自動切替を一時停止する時刻 (ms unix)。 ユーザー操作後 8秒は自動切替を停止
   const [autoPauseUntil, setAutoPauseUntil] = React.useState(0);
+  // (Phase 15.S17 Q2) autoPause 後の再開を滑らかに — pause 解除後すぐではなく、 一拍置いてから自動切替再開
   React.useEffect(() => {
     if (heroMobileSlides.length <= 1) return;
-    const id = setInterval(() => {
-      // 一時停止中はスキップ
-      if (Date.now() < autoPauseUntil) return;
+    let nextTick = null;
+    const tick = () => {
+      const now = Date.now();
+      if (now < autoPauseUntil) {
+        // pause 中: 解除時刻を見て、 解除 + 5.5s 後に再開
+        const wait = autoPauseUntil - now + 5500;
+        nextTick = setTimeout(tick, wait);
+        return;
+      }
+      // 通常切替
       setSlideIdx(i => (i + 1) % heroMobileSlides.length);
-    }, 5500);
-    return () => clearInterval(id);
+      nextTick = setTimeout(tick, 5500);
+    };
+    nextTick = setTimeout(tick, 5500);
+    return () => { if (nextTick) clearTimeout(nextTick); };
   }, [heroMobileSlides.length, autoPauseUntil]);
 
   // (Phase 15.S8 #1) スワイプ操作の状態
@@ -7916,9 +8187,11 @@ function PageHomeMobile({ lang, t, events, ads, heroSlides, heroSlidesMobile, lo
           heroStyle.aspectRatio = '1 / 1';
           heroStyle.height = 'auto';
         } else {
-          // 'full' = 100vh (デフォルト)
-          heroStyle.height = '100vh';
+          // (Phase 15.S18) 'full' = 画面全体だが Nav (~64px) + BottomNav (56px + safe-area) を引く
+          // dvh はモバイルブラウザの動的ビューポート (URL バー収納時の最大高に追従)
+          heroStyle.height = 'calc(100dvh - 64px - 56px - env(safe-area-inset-bottom, 0px) - env(safe-area-inset-top, 0px))';
           heroStyle.minHeight = 480;
+          heroStyle.marginTop = 'calc(64px + env(safe-area-inset-top, 0px))';  // Nav 分下げる
         }
         return (
       <section
@@ -8188,6 +8461,38 @@ function PageHomeMobile({ lang, t, events, ads, heroSlides, heroSlidesMobile, lo
               <span style={{ opacity: 0.6 }}>/ {String(heroMobileSlides.length).padStart(2, '0')}</span>
             </div>
           </>
+        )}
+
+        {/* (Phase 15.S17 Q6) スクロールヒント — 下中央に呼吸する矢印 */}
+        {heroMobileSlides.length > 0 && (
+          <div style={{
+            position: 'absolute',
+            bottom: 'max(20px, env(safe-area-inset-bottom, 20px))',
+            left: '50%',
+            transform: 'translateX(-50%)',
+            display: 'flex',
+            flexDirection: 'column',
+            alignItems: 'center',
+            gap: 4,
+            color: 'rgba(255, 255, 255, 0.7)',
+            pointerEvents: 'none',
+            animation: 'cca-scroll-hint 2s ease-in-out infinite',
+            zIndex: 4,
+          }}>
+            <span style={{
+              fontSize: 9,
+              fontFamily: 'var(--mono, monospace)',
+              letterSpacing: '0.22em',
+              fontWeight: 600,
+              textTransform: 'uppercase',
+              textShadow: '0 1px 4px rgba(0, 0, 0, 0.3)',
+            }}>{lang === 'en' ? 'Scroll' : 'スクロール'}</span>
+            <svg width="14" height="20" viewBox="0 0 14 20" fill="none" style={{
+              filter: 'drop-shadow(0 1px 4px rgba(0, 0, 0, 0.3))',
+            }}>
+              <path d="M7 3 L7 16 M2 11 L7 16 L12 11" stroke="currentColor" strokeWidth="1.4" strokeLinecap="round" strokeLinejoin="round"/>
+            </svg>
+          </div>
         )}
       </section>
         );
@@ -10208,10 +10513,67 @@ function PageEvents({ lang, t, events, loading, siteSettings }) {
             }}>{lang === 'en' ? 'Loading...' : lang === 'easy' ? 'よみこみちゅう...' : '読み込み中...'}</div>
           ) : filteredAndSorted.length === 0 ? (
             <div style={{
-              textAlign: 'center', padding: 80,
-              fontFamily: 'var(--jp)', fontSize: 14,
-              color: 'rgba(255, 255, 255, 0.5)',
-            }}>{lang === 'en' ? 'No matching events.' : lang === 'easy' ? 'みつかる イベントは ありません。' : '該当するイベントはありません。'}</div>
+              textAlign: 'center',
+              padding: 'clamp(60px, 12vw, 100px) 24px',
+              fontFamily: 'var(--jp)',
+            }}>
+              {/* (Phase 15.S17 Q12) 空状態リッチデザイン */}
+              <div style={{
+                width: 64, height: 64,
+                margin: '0 auto 20px',
+                display: 'flex', alignItems: 'center', justifyContent: 'center',
+                background: 'rgba(255, 255, 255, 0.06)',
+                border: '1px solid rgba(255, 255, 255, 0.1)',
+                borderRadius: '50%',
+                color: 'rgba(255, 255, 255, 0.4)',
+              }}>
+                <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.4" strokeLinecap="round" strokeLinejoin="round">
+                  <rect x="3" y="5" width="18" height="16" rx="2"/>
+                  <path d="M3 9h18"/>
+                  <path d="M8 3v4M16 3v4"/>
+                </svg>
+              </div>
+              <div style={{
+                fontFamily: 'var(--serif)',
+                fontSize: 'clamp(18px, 3vw, 22px)',
+                fontWeight: 300,
+                color: 'rgba(255, 255, 255, 0.9)',
+                marginBottom: 8,
+                letterSpacing: '-0.01em',
+              }}>{lang === 'en' ? 'No events match your filters' : lang === 'easy' ? 'みつかる イベントは ありません' : '該当するイベントはありません'}</div>
+              <div style={{
+                fontSize: 13,
+                color: 'rgba(255, 255, 255, 0.5)',
+                lineHeight: 1.6,
+                maxWidth: 320,
+                margin: '0 auto 20px',
+              }}>{lang === 'en'
+                ? 'Try adjusting filters or clearing them to see all upcoming events.'
+                : lang === 'easy'
+                ? 'フィルターを へんこうしてみてください。'
+                : 'フィルターを調整するか、 解除して すべてのイベントをご覧ください。'}</div>
+              {(selectedAreas.size > 0 || selectedFees.size > 0) && (
+                <button
+                  onClick={() => { setSelectedAreas(new Set()); setSelectedFees(new Set()); }}
+                  style={{
+                    padding: '10px 24px',
+                    background: 'transparent',
+                    color: 'rgba(255, 255, 255, 0.9)',
+                    fontSize: 12,
+                    fontFamily: 'var(--jp)',
+                    fontWeight: 600,
+                    letterSpacing: '0.06em',
+                    border: '1px solid rgba(255, 255, 255, 0.3)',
+                    borderRadius: 4,
+                    cursor: 'pointer',
+                    transition: 'all .2s',
+                  }}
+                  onMouseEnter={(e) => e.currentTarget.style.background = 'rgba(255,255,255,0.08)'}
+                  onMouseLeave={(e) => e.currentTarget.style.background = 'transparent'}>
+                  {lang === 'en' ? 'Clear filters' : 'フィルターを解除'}
+                </button>
+              )}
+            </div>
           ) : (
             <div style={{
               display: 'flex',
@@ -11240,15 +11602,20 @@ function PageEventDetail({ lang, t, eventId }) {
       <div style={{
         position: 'fixed',
         bottom: 0, left: 0, right: 0,
-        // (Phase 15.S14) iOS 26 Liquid Glass — Nav と統一
-        background: 'rgba(252, 250, 245, 0.55)',
-        backdropFilter: 'blur(40px) saturate(200%) brightness(1.05)',
-        WebkitBackdropFilter: 'blur(40px) saturate(200%) brightness(1.05)',
-        borderTop: '1px solid rgba(10, 22, 40, 0.06)',
-        boxShadow: 'inset 0 1px 0 rgba(255, 255, 255, 0.6), 0 -1px 24px rgba(10, 22, 40, 0.04)',
+        // (Phase 15.S15) シャボン玉風 — BottomNav と統一
+        background: 'linear-gradient(135deg, rgba(255, 255, 255, 0.22) 0%, rgba(255, 255, 255, 0.14) 100%)',
+        backdropFilter: 'blur(60px) saturate(220%) brightness(1.08)',
+        WebkitBackdropFilter: 'blur(60px) saturate(220%) brightness(1.08)',
+        borderTop: '1px solid rgba(255, 255, 255, 0.4)',
+        boxShadow: [
+          'inset 0 1px 0 rgba(255, 255, 255, 0.7)',
+          'inset 0 -1px 0 rgba(255, 255, 255, 0.15)',
+          'inset 0 8px 24px rgba(255, 255, 255, 0.15)',
+          '0 -2px 32px rgba(10, 22, 40, 0.06)',
+        ].join(', '),
         padding: '20px 24px',
-        paddingBottom: 'calc(20px + env(safe-area-inset-bottom, 0px))',  // safe-area
-        zIndex: 95,  // BottomNav (90) より上、 Nav (100) より下
+        paddingBottom: 'calc(20px + env(safe-area-inset-bottom, 0px))',
+        zIndex: 95,
       }}>
         <div style={{
           maxWidth: 920,
