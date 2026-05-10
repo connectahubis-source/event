@@ -2102,6 +2102,8 @@ function useAuth() {
  *   loading: boolean (送信中表示)
  */
 function UIDialog({ open, variant, title, message, confirmLabel, cancelLabel, onConfirm, onCancel, loading }) {
+  // (Phase 15.S51) 背景スクロール / タップ反応を無効化
+  useBodyScrollLock(open);
   if (!open) return null;
 
   const colorMap = {
@@ -2558,6 +2560,9 @@ function normalizeNewsImageUrl(url) {
 // (Phase 15.S46) PayPay アプリ起動ヘルパー
 // スマホなら paypay:// で アプリ起動、 ダメなら Web 版 にフォールバック
 // PC は最初から Web 版
+// (Phase 15.S46) PayPay アプリ起動ヘルパー
+// スマホなら paypay:// で アプリ起動、 ダメなら Web 版 にフォールバック
+// PC は最初から Web 版
 function isMobileDevice() {
   try {
     return /iPhone|iPad|iPod|Android/i.test(navigator.userAgent || '');
@@ -2591,6 +2596,30 @@ function openPayPayApp() {
       try { window.open(fallbackUrl, '_blank', 'noopener,noreferrer'); } catch (e) {}
     }
   }, 1500);
+}
+
+// (Phase 15.S51) モーダル表示時に背景のスクロール / タップ反応を完全に無効化するフック
+// 使い方: モーダルコンポーネント内で `useBodyScrollLock(open)` を呼ぶだけ
+// open=true でロック開始、 false (またはアンマウント) で復元
+function useBodyScrollLock(active) {
+  React.useEffect(() => {
+    if (!active) return;
+    const originalOverflow = document.body.style.overflow;
+    const originalTouchAction = document.body.style.touchAction;
+    const originalPaddingRight = document.body.style.paddingRight;
+    // スクロールバーの幅補正 (PC でモーダル開閉時のレイアウト揺れ防止)
+    const scrollbarWidth = window.innerWidth - document.documentElement.clientWidth;
+    document.body.style.overflow = 'hidden';
+    document.body.style.touchAction = 'none';
+    if (scrollbarWidth > 0) {
+      document.body.style.paddingRight = scrollbarWidth + 'px';
+    }
+    return () => {
+      document.body.style.overflow = originalOverflow;
+      document.body.style.touchAction = originalTouchAction;
+      document.body.style.paddingRight = originalPaddingRight;
+    };
+  }, [active]);
 }
 
 // (Phase 15.S28 F9) Google Calendar / iCal 用の URL/コンテンツ生成
@@ -2696,6 +2725,8 @@ function downloadICalFile(event, extraDescription) {
 // Google Calendar (新タブ) と Apple/Outlook (.ics ダウンロード) の選択
 function AddToCalendarButton({ event, lang, extraDescription, compact }) {
   const [open, setOpen] = React.useState(false);
+  // (Phase 15.S51) Dropdown 開いてる間は背景タップを止める
+  useBodyScrollLock(open);
   if (!event || !event.date) return null;
   const gcalUrl = buildGoogleCalendarUrl(event, extraDescription);
   const labels = {
@@ -11871,6 +11902,14 @@ function PageEventDetail({ lang, t, eventId }) {
     return () => { cancelled = true; };
   }, [auth.user, eventId]);
 
+  // (Phase 15.S45) PayPay 表示名 入力モーダル state — Hooks は早期リターン前に
+  // (Phase 15.S49) 早期リターン後に置くと Hooks 規則違反になるため上に移動
+  const [paypayNameModalOpen, setPaypayNameModalOpen] = useState(false);
+  const [paypayNamePending, setPaypayNamePending] = useState(null);  // 入力後に呼び出す paymentMethod
+
+  // (Phase 15.S51) いずれかのモーダルが開いている時は背景タップ防止
+  useBodyScrollLock(registerModalOpen || paypayNameModalOpen);
+
   // ローディング中
   if (loading) {
     return (
@@ -11948,9 +11987,7 @@ function PageEventDetail({ lang, t, eventId }) {
     window.location.hash = `/events/${eventId}/register`;
   };
 
-  // (Phase 15.S45) PayPay 表示名 入力モーダル state
-  const [paypayNameModalOpen, setPaypayNameModalOpen] = useState(false);
-  const [paypayNamePending, setPaypayNamePending] = useState(null);  // 入力後に呼び出す paymentMethod
+  // (Phase 15.S45) PayPay 表示名 state は上部 (早期リターン前) で宣言済み
 
   // 実際のAPI呼び出し
   const submitRegistration = async (paymentMethod) => {
@@ -16121,6 +16158,13 @@ function PageEventRegister({ lang, t, eventId, events, loading: appLoading, site
   const loading = appLoading;
   const error = (!loading && !event) ? (lang === 'en' ? 'Event not found.' : 'イベントが見つかりません') : '';
 
+  // (Phase 15.S45) PayPay 表示名 入力モーダル state
+  // (Phase 15.S49) Hooks 規則違反対策で 早期リターン前に宣言
+  const [paypayNameModalOpen, setPaypayNameModalOpen] = React.useState(false);
+
+  // (Phase 15.S51) PayPay 表示名モーダルが開いている時は背景タップ防止
+  useBodyScrollLock(paypayNameModalOpen);
+
   // ローディング
   if (loading) {
     return (
@@ -16185,8 +16229,7 @@ function PageEventRegister({ lang, t, eventId, events, loading: appLoading, site
   // 申込ボタンの活性化条件
   const canSubmit = hasPolicy && agreedPolicy && (isFree || (isPaid && paymentMethod));
 
-  // (Phase 15.S45) PayPay 表示名 入力モーダル state
-  const [paypayNameModalOpen, setPaypayNameModalOpen] = React.useState(false);
+  // (Phase 15.S45) PayPay 表示名 state は上部 (早期リターン前) で宣言済み
 
   const handleSubmit = async () => {
     if (!canSubmit || submitting) return;
@@ -16713,11 +16756,33 @@ function PaymentOption({ method, selected, onSelect, lang }) {
 //   Phase 5 (2.7s): イベント情報カード fade-in
 //   Phase 6 (3.2s): CTA ボタン (チケット詳細 / マイページ)
 // (Phase 15.S22 H4) PayPay ミニ CTA — マイページのカード内用、 PayPayCTA と同じモーダルだが ボタンが小さい
-function PayPayMiniCTA({ url, amount, userName, eventTitle, lang }) {
-  const [modalOpen, setModalOpen] = React.useState(false);
+// (Phase 15.S20 / S50) PayPay 決済 ミニ CTA — マイページの未決済アラート用
+// 仕様 (Phase 15.S50):
+// - PayPay 表示名 登録済み → 「決済する」ボタンを押すと直接 PayPay (URL) へ遷移、 確認モーダルなし
+// - 未登録 → PayPayDisplayNameModal を表示して入力させ、 保存後に PayPay へ遷移
+function PayPayMiniCTA({ url, amount, userName, eventTitle, lang, paypayDisplayName }) {
+  const [showNameModal, setShowNameModal] = React.useState(false);
+  const auth = useAuth();
+  // 最新の表示名を取る (props は古い場合がある)
+  const currentName = (auth.user && auth.user.paypayDisplayName) || paypayDisplayName || '';
+  const hasName = !!String(currentName).trim();
+
+  const handleClick = (e) => {
+    e.stopPropagation();
+    if (hasName) {
+      // 登録済み → 直接遷移
+      try { window.open(url, '_blank', 'noopener,noreferrer'); } catch (err) {
+        window.location.href = url;
+      }
+    } else {
+      // 未登録 → 入力モーダル (body lock は PayPayDisplayNameModal 内で実施)
+      setShowNameModal(true);
+    }
+  };
+
   return (
     <>
-      <button onClick={(e) => { e.stopPropagation(); setModalOpen(true); }} style={{
+      <button onClick={handleClick} style={{
         flexShrink: 0,
         padding: '8px 14px',
         fontSize: 12,
@@ -16739,99 +16804,24 @@ function PayPayMiniCTA({ url, amount, userName, eventTitle, lang }) {
         <span>→</span>
       </button>
 
-      {modalOpen && (
-        <div style={{
-          position: 'fixed', inset: 0, zIndex: 300,
-          background: 'rgba(10, 22, 40, 0.7)',
-          backdropFilter: 'blur(8px)',
-          WebkitBackdropFilter: 'blur(8px)',
-          display: 'flex', alignItems: 'center', justifyContent: 'center',
-          padding: 24,
-        }} onClick={(e) => { if (e.target === e.currentTarget) setModalOpen(false); }}>
-          <div style={{
-            background: '#fff',
-            borderRadius: 12,
-            padding: '28px 24px 24px',
-            maxWidth: 420, width: '100%',
-            boxShadow: '0 24px 48px -12px rgba(0,0,0,0.4)',
-            fontFamily: 'var(--jp)',
-            // (Phase 15.S24 MH11) モーダル長文対応: 画面高超えたらスクロール
-            maxHeight: 'calc(100vh - 48px)',
-            overflowY: 'auto',
-            WebkitOverflowScrolling: 'touch',
-          }}>
-            <div style={{
-              display: 'flex', alignItems: 'center', gap: 10,
-              marginBottom: 16,
-            }}>
-              <div style={{
-                width: 36, height: 36,
-                background: '#fef3c7',
-                color: '#92400e',
-                borderRadius: '50%',
-                display: 'flex', alignItems: 'center', justifyContent: 'center',
-                fontSize: 18, fontWeight: 800,
-              }}>!</div>
-              <strong style={{
-                fontSize: 16, fontWeight: 700,
-                color: '#0a2960',
-                letterSpacing: '0.02em',
-              }}>{lang === 'en' ? 'Important: Before sending' : '重要: 送金ボタンを押す前に'}</strong>
-            </div>
-            <div style={{
-              fontSize: 14, lineHeight: 1.8,
-              color: '#374151',
-              marginBottom: 16,
-            }}>
-              {lang === 'en' ? (
-                <>
-                  <p style={{margin: '0 0 12px'}}>
-                    Please check your <strong>PayPay display name</strong>.
-                  </p>
-                  <p style={{margin: '0 0 12px'}}>
-                    If your PayPay name differs from your registered name, please add a message:
-                  </p>
-                  <div style={{padding:'10px 14px', background:'#f0f9ff', border:'1px solid #bae6fd', borderRadius:6, margin:'0 0 12px'}}>
-                    <div style={{fontSize: 13, color: '#374151'}}>
-                      "Registered as: <strong>{userName || '(your name)'}</strong>"
-                    </div>
-                  </div>
-                </>
-              ) : (
-                <>
-                  <p style={{margin: '0 0 12px'}}>
-                    PayPay 表示名が <strong>connec+a 登録名と違う場合</strong>のみ、 送金時のメッセージ欄に一言添えてください。
-                  </p>
-                  <div style={{padding:'10px 14px', background:'#f0f9ff', border:'1px solid #bae6fd', borderRadius:6, margin:'0 0 12px'}}>
-                    <div style={{fontSize: 13, color: '#374151'}}>
-                      「connec+a 登録名: <strong>{userName || '(あなたの名前)'}</strong>」
-                    </div>
-                  </div>
-                </>
-              )}
-            </div>
-            <div style={{display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 10}}>
-              <button onClick={() => setModalOpen(false)} style={{
-                padding: '12px 16px',
-                background: '#fff', color: '#6b7280',
-                border: '1px solid #e5e7eb', borderRadius: 6,
-                fontSize: 13, fontWeight: 600, fontFamily: 'var(--jp)', cursor: 'pointer',
-              }}>{lang === 'en' ? 'Cancel' : 'キャンセル'}</button>
-              <a href={url} target="_blank" rel="noopener noreferrer"
-                onClick={() => setModalOpen(false)}
-                style={{
-                  padding: '12px 16px', background: '#ff0033', color: '#fff',
-                  border: 'none', borderRadius: 6,
-                  fontSize: 13, fontWeight: 700, fontFamily: 'var(--jp)',
-                  cursor: 'pointer', textAlign: 'center', textDecoration: 'none',
-                  display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 6,
-                }}>
-                <span>{lang === 'en' ? 'Got it, go to PayPay' : 'PayPay へ'}</span>
-                <span>→</span>
-              </a>
-            </div>
-          </div>
-        </div>
+      {/* PayPay 表示名 入力モーダル — 未登録時のみ */}
+      {showNameModal && (
+        <PayPayDisplayNameModal
+          lang={lang}
+          onCancel={() => setShowNameModal(false)}
+          onSave={async (name) => {
+            const token = authStore.getToken();
+            await authApi.updateProfile(token, { paypayDisplayName: name });
+            await auth.refresh();
+            setShowNameModal(false);
+            // 保存後に PayPay へ遷移
+            setTimeout(() => {
+              try { window.open(url, '_blank', 'noopener,noreferrer'); } catch (err) {
+                window.location.href = url;
+              }
+            }, 100);
+          }}
+        />
       )}
     </>
   );
@@ -16840,6 +16830,8 @@ function PayPayMiniCTA({ url, amount, userName, eventTitle, lang }) {
 // (Phase 15.S20) PayPay 決済ボタン + モーダル — 名前一致確認後に PayPay 画面へ
 function PayPayCTA({ url, amount, userName, eventTitle, lang }) {
   const [modalOpen, setModalOpen] = React.useState(false);
+  // (Phase 15.S51) モーダル開いてる時だけ背景ロック
+  useBodyScrollLock(modalOpen);
   return (
     <>
       <button onClick={() => setModalOpen(true)} className="cca-shimmer cca-magnetic" style={{
@@ -17469,6 +17461,44 @@ function PageMyPage({ lang, t, events }) {
   // (Phase 12.1) ビューポート
   const vp = useViewport();
 
+  // (Phase 15.S48) Hooks 規則違反修正 — 早期リターン前に全 Hooks を完了させる
+  // (Phase 10.2 / 11.1) 通知バナー: dismissed alerts を localStorage で保持
+  const [dismissedAlerts, setDismissedAlerts] = React.useState(() => {
+    try {
+      const raw = localStorage.getItem('connecta_dismissed_alerts_v1');
+      return new Set(raw ? JSON.parse(raw) : []);
+    } catch (e) { return new Set(); }
+  });
+  const dismissAlert = React.useCallback((alertKey) => {
+    setDismissedAlerts(prev => {
+      const next = new Set(prev);
+      next.add(alertKey);
+      try {
+        localStorage.setItem('connecta_dismissed_alerts_v1', JSON.stringify(Array.from(next)));
+      } catch (e) {}
+      return next;
+    });
+  }, []);
+
+  // (Phase 15.S20) 未決済 (= 申込済みかつ paid=false) の申込を抽出
+  // (Phase 15.S48) 早期リターンより前に移動、 内部で myRegistrations と todayStart を完結
+  const unpaidRegistrations = React.useMemo(() => {
+    const today = new Date();
+    const todayStart = new Date(today.getFullYear(), today.getMonth(), today.getDate());
+    return myRegistrations.filter(function(r) {
+      if (!r.event) return false;
+      // 新ステータス「申込済み」かつ未決済 (paid=false) のみ
+      // 旧ステータス「未決済」も互換のため拾う
+      const isUnpaid = (r.status === '申込済み' && !r.paid) || r.status === '未決済';
+      if (!isUnpaid) return false;
+      const endStr = r.event.endDate || r.event.date;
+      if (!endStr) return true;
+      const endDate = new Date(String(endStr) + 'T23:59:59');
+      if (isNaN(endDate.getTime())) return true;
+      return endDate >= todayStart;
+    });
+  }, [myRegistrations]);
+
   // 認証ガード: 未ログインなら /login にリダイレクト
   React.useEffect(() => {
     if (!auth.loading && !auth.user) {
@@ -17622,23 +17652,7 @@ function PageMyPage({ lang, t, events }) {
       });
   })();
 
-  // (Phase 10.2 / 11.1) 通知バナー: dismissed alerts を localStorage で保持 (ブラウザ全体)
-  const [dismissedAlerts, setDismissedAlerts] = React.useState(() => {
-    try {
-      const raw = localStorage.getItem('connecta_dismissed_alerts_v1');
-      return new Set(raw ? JSON.parse(raw) : []);
-    } catch (e) { return new Set(); }
-  });
-  const dismissAlert = React.useCallback((alertKey) => {
-    setDismissedAlerts(prev => {
-      const next = new Set(prev);
-      next.add(alertKey);
-      try {
-        localStorage.setItem('connecta_dismissed_alerts_v1', JSON.stringify(Array.from(next)));
-      } catch (e) {}
-      return next;
-    });
-  }, []);
+  // (Phase 10.2 / 11.1) 通知バナー: dismissed alerts は上で初期化済み
 
   // (Phase 10.2) 通知判定: お気に入り × 未申込 で、定員間近 or 開始直前
   const alerts = (() => {
@@ -17675,20 +17689,7 @@ function PageMyPage({ lang, t, events }) {
     return result.slice(0, 3);
   })();
 
-  // (Phase 15.S20) 未決済 (= 申込済みかつ paid=false) の申込を抽出
-  const unpaidRegistrations = React.useMemo(() => {
-    return allRegsWithEvent.filter(function(r) {
-      // 新ステータス「申込済み」かつ未決済 (paid=false) のみ
-      // 旧ステータス「未決済」も互換のため拾う
-      const isUnpaid = (r.status === '申込済み' && !r.paid) || r.status === '未決済';
-      if (!isUnpaid) return false;
-      const endStr = r.event.endDate || r.event.date;
-      if (!endStr) return true;
-      const endDate = new Date(String(endStr) + 'T23:59:59');
-      if (isNaN(endDate.getTime())) return true;
-      return endDate >= todayStart;
-    });
-  }, [allRegsWithEvent, todayStart]);
+  // (Phase 15.S20) 未決済 — 上で計算済み (Phase 15.S48 でフック移動)
 
   return (
     <section style={{
@@ -19512,6 +19513,20 @@ function PayPayDisplayNameModal({ lang, onSave, onCancel }) {
   const [submitting, setSubmitting] = React.useState(false);
   const [error, setError] = React.useState('');
 
+  // (Phase 15.S51) 背景タップ反応防止 — useBodyScrollLock 統一実装
+  useBodyScrollLock(true);
+
+  // ESC キーで閉じる
+  React.useEffect(() => {
+    const handleKey = (e) => {
+      if (e.key === 'Escape' && !submitting) onCancel();
+    };
+    document.addEventListener('keydown', handleKey);
+    return () => {
+      document.removeEventListener('keydown', handleKey);
+    };
+  }, [onCancel, submitting]);
+
   async function handleSave() {
     setError('');
     if (!name.trim()) {
@@ -19528,16 +19543,28 @@ function PayPayDisplayNameModal({ lang, onSave, onCancel }) {
   }
 
   return (
-    <div onClick={onCancel} style={{
-      position: 'fixed', inset: 0,
-      background: 'rgba(10, 41, 96, 0.55)',
-      display: 'flex', alignItems: 'center', justifyContent: 'center',
-      zIndex: 9999, padding: 20,
-    }}>
-      <div onClick={(e) => e.stopPropagation()} style={{
-        background: '#fff', maxWidth: 480, width: '100%',
-        maxHeight: 'calc(100vh - 48px)', overflowY: 'auto',
-        boxShadow: '0 20px 60px rgba(0, 0, 0, 0.3)',
+    <div
+      onClick={(e) => {
+        // 背景クリック時のみ閉じる (内部クリックは伝播してこない、 念のため確認)
+        if (e.target === e.currentTarget && !submitting) onCancel();
+      }}
+      // (Phase 15.S50) 背景タップ防止: タッチイベントもオーバーレイで止める
+      onTouchMove={(e) => { if (e.target === e.currentTarget) e.preventDefault(); }}
+      style={{
+        position: 'fixed', inset: 0,
+        background: 'rgba(10, 41, 96, 0.55)',
+        display: 'flex', alignItems: 'center', justifyContent: 'center',
+        zIndex: 9999, padding: 20,
+        // 確実に背景の操作を遮断
+        touchAction: 'none',
+      }}>
+      <div
+        onClick={(e) => e.stopPropagation()}
+        onTouchMove={(e) => e.stopPropagation()}
+        style={{
+          background: '#fff', maxWidth: 480, width: '100%',
+          maxHeight: 'calc(100vh - 48px)', overflowY: 'auto',
+          boxShadow: '0 20px 60px rgba(0, 0, 0, 0.3)',
         borderRadius: 4, padding: 28,
       }}>
         {/* ヘッダー */}
@@ -19661,6 +19688,8 @@ function PayPayDisplayNameModal({ lang, onSave, onCancel }) {
 }
 
 function ProfileEditModal({ user, onClose, onSaved, lang }) {
+  // (Phase 15.S51) 背景タップ防止
+  useBodyScrollLock(true);
   const st = STATUS_T[lang] || STATUS_T.ja;  // (Phase 15.S39)
   const [name, setName] = React.useState(user.name || '');
   const [kana, setKana] = React.useState(user.kana || '');
@@ -21954,16 +21983,21 @@ if ('serviceWorker' in navigator && location.protocol === 'https:') {
       }
     });
   `;
+  // (Phase 15.S48) ServiceWorker 登録: GitHub Pages では Blob URL での登録が不可
+  // (Same-Origin 制約) のため、 別ファイル sw.js を用意していない場合は登録自体をスキップ
+  // SW がなくても manifest で「ホーム画面に追加」は動作するため致命的ではない
+  // 既存の console.error を warn 以下に下げて抑制
   try {
     const blob = new Blob([swCode], { type: 'application/javascript' });
     const swUrl = URL.createObjectURL(blob);
     navigator.serviceWorker.register(swUrl).then(() => {
       console.log('[PWA] Service Worker registered (Blob)');
-    }).catch((err) => {
-      console.warn('[PWA] Service Worker registration failed:', err);
+    }).catch(() => {
+      // GitHub Pages 等の Blob URL 非対応環境では失敗するが致命的ではないので静かに無視
+      // console.warn は残さない (ユーザーに無用な警告を見せない)
     });
   } catch (e) {
-    console.warn('[PWA] Service Worker setup failed:', e);
+    // 同様にサイレント
   }
 }
 </script>
