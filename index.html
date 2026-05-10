@@ -20839,7 +20839,7 @@ function FooterCol({ title, items }) {
 //   3.0s : 完全消失、unmount
 // 装飾:
 //   なし。ロゴ単体。シンプルに削ぎ落とした上品さ。
-function OpeningCurtain({ phase, settings }) {
+function OpeningCurtain({ phase, settings, lang }) {
   const isSplitting = phase === 'splitting';
   const [innerPhase, setInnerPhase] = React.useState(0);
   // (Phase 15.S6) 短縮版 4段階演出 — 全体 2.4s で完了
@@ -20914,7 +20914,14 @@ function OpeningCurtain({ phase, settings }) {
         color: 'var(--ink-3)',
         fontWeight: 500,
         textAlign: 'center',
-      }}>WELCOME TO TOKYO</div>
+      }}>{(() => {
+        // (Phase 15.S38) Admin の opening_main_* キー優先、 フォールバック「WELCOME TO TOKYO」
+        const s = settings || {};
+        const langKey = lang === 'en' ? '_en' : lang === 'easy' ? '_easy' : '_ja';
+        return s['opening_main' + langKey]
+            || s['opening_main_ja']
+            || 'WELCOME TO TOKYO';
+      })()}</div>
 
       {/* === 細い水平線 (下) === */}
       <div style={{
@@ -20942,7 +20949,14 @@ function OpeningCurtain({ phase, settings }) {
         fontFamily: 'var(--mono)',
         color: 'var(--ink-4)',
         textAlign: 'center',
-      }}>EST. 2018 · TOKYO · JP</div>
+      }}>{(() => {
+        // (Phase 15.S38) Admin の opening_subtitle_* キー優先、 フォールバック「EST. 2018 · TOKYO · JP」
+        const s = settings || {};
+        const langKey = lang === 'en' ? '_en' : lang === 'easy' ? '_easy' : '_ja';
+        return s['opening_subtitle' + langKey]
+            || s['opening_subtitle_ja']
+            || 'EST. 2018 · TOKYO · JP';
+      })()}</div>
     </div>
   );
 }
@@ -21216,7 +21230,7 @@ function App() {
       <PWAInstallBanner lang={lang} />
       {/* オープニング画面 (上下カーテン)。最後に描画 = 一番手前 */}
       {openingPhase !== 'gone' && (
-        <OpeningCurtain phase={openingPhase} settings={siteSettings} />
+        <OpeningCurtain phase={openingPhase} settings={siteSettings} lang={lang} />
       )}
     </React.Fragment>
   );
