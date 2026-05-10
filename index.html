@@ -1718,7 +1718,10 @@ const I18N = {
  * GASのdoPostは body を JSON.parse するので、Content-Type は text/plain で送信
  * (CORS preflight 回避のため)
  */
-async function postToGAS(action, payload) {
+// (Phase 15.S57) GAS のリダイレクト echo URL が時々 404 を返すため リトライ機構を追加
+async function postToGAS(action, payload, retryCount) {
+  retryCount = retryCount || 0;
+  const MAX_RETRIES = 2;  // 最大 2 回リトライ (合計 3 回試行)
   const controller = new AbortController();
   const timeoutId = setTimeout(() => controller.abort(), 60000); // 60秒
   try {
@@ -1731,8 +1734,17 @@ async function postToGAS(action, payload) {
     });
     clearTimeout(timeoutId);
     if (!res.ok) {
-      console.error('[postToGAS] HTTP error:', res.status);
-      throw new Error('サーバーとの通信に失敗しました');
+      console.error('[postToGAS] HTTP error:', res.status, '(attempt ' + (retryCount + 1) + ')');
+      // 404/502/503/504 は GAS 側の一時的な問題なのでリトライ
+      const isRetryable = [404, 502, 503, 504].includes(res.status);
+      if (isRetryable && retryCount < MAX_RETRIES) {
+        // 指数バックオフ: 500ms, 1500ms
+        const delay = 500 * Math.pow(3, retryCount);
+        console.warn('[postToGAS] retrying in ' + delay + 'ms');
+        await new Promise(r => setTimeout(r, delay));
+        return postToGAS(action, payload, retryCount + 1);
+      }
+      throw new Error('サーバーとの通信に失敗しました (' + res.status + ')');
     }
     const json = await res.json();
     if (!json.ok) {
@@ -1742,7 +1754,19 @@ async function postToGAS(action, payload) {
   } catch (err) {
     clearTimeout(timeoutId);
     if (err.name === 'AbortError') {
+      // タイムアウトもリトライ対象
+      if (retryCount < MAX_RETRIES) {
+        console.warn('[postToGAS] timeout, retrying (attempt ' + (retryCount + 2) + ')');
+        await new Promise(r => setTimeout(r, 500));
+        return postToGAS(action, payload, retryCount + 1);
+      }
       throw new Error('応答がタイムアウトしました');
+    }
+    // ネットワークエラー (TypeError: Failed to fetch) もリトライ
+    if (err instanceof TypeError && retryCount < MAX_RETRIES) {
+      console.warn('[postToGAS] network error, retrying (attempt ' + (retryCount + 2) + ')');
+      await new Promise(r => setTimeout(r, 500 * Math.pow(2, retryCount)));
+      return postToGAS(action, payload, retryCount + 1);
     }
     throw err;
   }
@@ -2412,6 +2436,8 @@ async function fetchAds() {
     return [];
   } catch (err) {
     clearTimeout(timeoutId);
+    // (Phase 15.S57) AbortError は意図された中止なので無視
+    if (err && err.name === 'AbortError') return [];
     console.error('[Participants] fetchAds error:', err);
     return [];
   }
@@ -2432,6 +2458,8 @@ async function fetchHeroSlides() {
     return [];
   } catch (err) {
     clearTimeout(timeoutId);
+    // (Phase 15.S57) AbortError は意図された中止なので無視
+    if (err && err.name === 'AbortError') return [];
     console.error('[Participants] fetchHeroSlides error:', err);
     return [];
   }
@@ -2452,6 +2480,8 @@ async function fetchHeroSlidesMobile() {
     return [];
   } catch (err) {
     clearTimeout(timeoutId);
+    // (Phase 15.S57) AbortError は意図された中止なので無視
+    if (err && err.name === 'AbortError') return [];
     console.error('[Participants] fetchHeroSlidesMobile error:', err);
     return [];
   }
@@ -2472,6 +2502,8 @@ async function fetchSiteSettings() {
     return {};
   } catch (err) {
     clearTimeout(timeoutId);
+    // (Phase 15.S57) AbortError は意図された中止なので無視
+    if (err && err.name === 'AbortError') return {};
     console.error('[Participants] fetchSiteSettings error:', err);
     return {};
   }
@@ -2492,6 +2524,8 @@ async function fetchFrontNews() {
     return [];
   } catch (err) {
     clearTimeout(timeoutId);
+    // (Phase 15.S57) AbortError は意図された中止なので無視
+    if (err && err.name === 'AbortError') return [];
     console.error('[Participants] fetchFrontNews error:', err);
     return [];
   }
@@ -2512,6 +2546,8 @@ async function fetchEvent(eventId) {
     return null;
   } catch (err) {
     clearTimeout(timeoutId);
+    // (Phase 15.S57) AbortError は意図された中止なので無視
+    if (err && err.name === 'AbortError') return null;
     console.error('[Participants] fetchEvent error:', err);
     return null;
   }
@@ -2532,6 +2568,8 @@ async function fetchEventSessions(eventId) {
     return [];
   } catch (err) {
     clearTimeout(timeoutId);
+    // (Phase 15.S57) AbortError は意図された中止 (タイムアウト/コンポーネント アンマウント) なので無視
+    if (err && err.name === 'AbortError') return [];
     console.error('[Participants] fetchEventSessions error:', err);
     return [];
   }
@@ -11924,7 +11962,7 @@ function PageEventDetail({ lang, t, eventId }) {
         const result = await authApi.getMyRegistrations(token);
         if (!cancelled) setMyRegistrations(result.registrations || []);
       } catch (e) {
-        console.error('getMyRegistrations failed:', e);
+        console.warn('getMyRegistrations failed (will retry on next reload):', e);
       }
     })();
     return () => { cancelled = true; };
@@ -17690,7 +17728,7 @@ function PageMyPage({ lang, t, events }) {
           setRegsLoading(false);
         }
       } catch (err) {
-        console.error('getMyRegistrations failed:', err);
+        console.warn('getMyRegistrations failed (will retry on next reload):', err);
         if (!cancelled) setRegsLoading(false);
       }
     })();
