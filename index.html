@@ -18,6 +18,9 @@
 <meta name="application-name" content="connec+a">
 <meta name="format-detection" content="telephone=no">
 
+<!-- (Phase 15.S28) PWA — Web App Manifest を data URI で inline (単一HTML運用のため) -->
+<link rel="manifest" href='data:application/manifest+json,%7B%22name%22%3A%22connec%2Ba%22%2C%22short_name%22%3A%22connec%2Ba%22%2C%22description%22%3A%22%E5%9C%A8%E6%97%A5%E5%A4%96%E5%9B%BD%E4%BA%BA%E7%95%99%E5%AD%A6%E7%94%9F%E3%81%A8%E6%97%A5%E6%9C%AC%E4%BA%BA%E3%82%92%E3%81%A4%E3%81%AA%E3%81%90%E5%9B%BD%E9%9A%9B%E4%BA%A4%E6%B5%81%E3%83%97%E3%83%A9%E3%83%83%E3%83%88%E3%83%95%E3%82%A9%E3%83%BC%E3%83%A0%22%2C%22start_url%22%3A%22.%2F%22%2C%22display%22%3A%22standalone%22%2C%22orientation%22%3A%22portrait-primary%22%2C%22background_color%22%3A%22%23ffffff%22%2C%22theme_color%22%3A%22%230a2960%22%2C%22lang%22%3A%22ja%22%2C%22categories%22%3A%5B%22events%22%2C%22social%22%2C%22education%22%5D%7D'>
+
 <!-- (L9) Favicon — SVG (modern) + ICO (legacy fallback) -->
 <link rel="icon" type="image/png" href="data:image/png;base64,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">
 <link rel="apple-touch-icon" href="data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAALQAAAC0CAYAAAA9zQYyAAABCGlDQ1BJQ0MgUHJvZmlsZQAAeJxjYGA8wQAELAYMDLl5JUVB7k4KEZFRCuwPGBiBEAwSk4sLGHADoKpv1yBqL+viUYcLcKakFicD6Q9ArFIEtBxopAiQLZIOYWuA2EkQtg2IXV5SUAJkB4DYRSFBzkB2CpCtkY7ETkJiJxcUgdT3ANk2uTmlyQh3M/Ck5oUGA2kOIJZhKGYIYnBncAL5H6IkfxEDg8VXBgbmCQixpJkMDNtbGRgkbiHEVBYwMPC3MDBsO48QQ4RJQWJRIliIBYiZ0tIYGD4tZ2DgjWRgEL7AwMAVDQsIHG5TALvNnSEfCNMZchhSgSKeDHkMyQx6QJYRgwGDIYMZAKbWPz9HbOBQAAAhd0lEQVR42u2deXxdxZHvf9V9zrmLdlmSJVnItrziHW8BDJbBBHBYA1xPyGAgYQKEYCADyUxChqtLXgiTSXgJPCbh5cEDMkAikQQStoQwltghxqy2sYMXeROSbMuWdHWXc7pr/jj3yvIClgw2stLfz+foLpLO1tV1qqqrugGDwWAwGAwGg8FgMBgMBoPBYDAYDAaDwWAwGAwGg8FgMBgMBoPBYDAYDAaDwWAwGAwGg8FgMBgMBoPBYDAYDAaDwWAwGAwGg8FgMBgMBoPBYDAYDAaDwWAwGAwGg8FgMBgMBoPBYDAYDAaDwWAwGAwGg8FgMBgMBsPQgpnJ3AXD0Si4gplpHwEW2ddolEUkEpEAqM/vBDNTbW3UAiBNxzAMFmG2Mm/J/7w2wMwkBIGZiwewnwMJtRHkowjrKDclCAB/+OGHVcxdeUDu+wCkm+iY29HVtqKwZMIJv/71g4FZsxY17+gquD3ubtvcvuG9bwM7O4uLxx5fnJ/7ub9tePP9L174z+Mg3KpEV8eTAF6IRCKyqKhIdHScphsaFisgInt6flEZChW3ElHaiI3hsNrEzExvvfXW+EUXXHbhn155/nPZ7yfNPOuxwmNOWVs58tSNYyZezGPnXcWh8hlfZ2Y67tQlNw+ftCg+94x/3Dp1yhIeddzF/OWlNy5hZgEiMHOebfva37IE2pOdE7NmjWmFwYs42k6YiBgAMXOu5+24kpntwtJjZ54b+e4TG9YlHr32yp++Ou/UC+9mZpo4Zdyy4pqTx3mBqmWnLbKrFHWynVdUCECefs45M1A0N/zBmtYP333vt19JCKnfXbddEpEGc2HFiFOurBp3YdPnTr/irZziWQtLg/nv19XVZY9vMAL96WhnZq4GwDNmnD597epNGwE4gZzy24ZXlVauffeta7e37niQgzXXLLn6ttNGHzf1VR1UOpFob/7FHQ+0dm7p6Zozs/YkALzsuZerdSqO66646EfPP3XXk248LApURSrB2z9fMTnyZmVNZXT4sLJntm5U40vKRv2lpqZmaiwWY995jArs7WAajEAPjGg0KgBgzbotY2umnPd0ayL44rz5S2f88Y9vsBOoOH3azIn3aL327o62psv+tqVly59ferNs5LDyinh8B1VWhhsBFEsVvqWnJ7EAQM67qzYkSgt2t0W/d9VTS3/wWBmRxNq/vr79a9/95ZmqbMyoDk+3j51eWubkp1A2sjj+7LJl5cwcDAVtBcQ0GhoUAKOtjUAfGrHGRiGE4IULrzultLT6zG8svfj+c84/uYt5bZ6Ak374vqcSzGwzc8WsWdNCY0ePyLet3eR2Ek48YeZkAF3pruYVFiXCC8+++OricLi2eWPLrUTUlZNfGqocbvX834eu2/TYb9fbBaonhXT42WefWv2leEJveeftFVfWVFcvn3/h166tHHX6XyfP+MqK0nHnPZ47/uySo9V0MwL9GWtnbmxUja88MzoUCn71xOOnrvjetRf/6wP33fbEuede3F5dE36voLTosrq6Lxe8uOK1c9pbu4qqSsrClQV5I4I9O2l4ReF2IkoEcttTze8te7Fx2Ys7Q7R15UUnjXkIAKYcU1HMO1rleWeel3/SpFHjura0p372w7Mf37W5oaJjTUNN9+bXf1sy+pQrU+n8H+UXFW+YOGX8KzUTas7N0zsfAUCRSMSYHoYBGc8EgG677bZhM064dPsvHn72LWYuad3cOv2h+vpZV/9L7OGpC7/mlo76UueoKefwvIuW8rLl750EAOXlM77AzOF4vL1yj2MJ1D/22IStWznMzPadd/58eknZtGiSk+dccdVtd1ZP/wYfu/Aqnly75Lnq6pnRcPGs08fMvJZLR5wTY+Z8Zs6bW3v6DZXV0x/InKARaMPAiETqJTOLCTMuefHU827m97Y+W83MkyZNP/vP50WufOCZl1/8x4kzrni+tPrzv//O7T/5EjMXMbPo1fCZ98xMmc8V2c9SSkgp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">
@@ -323,9 +326,11 @@ a:focus:not(:focus-visible), button:focus:not(:focus-visible) {
 /* 画像のドラッグ無効化 (モバイルで誤操作回避) */
 img { -webkit-user-drag: none; user-select: none; }
 
-/* オーバースクロール挙動 (Pull-to-refresh を制御) */
-body {
-  overscroll-behavior-y: none;
+/* オーバースクロール挙動 (Pull-to-refresh を制御) — モバイル限定 */
+@media (max-width: 767px) {
+  body {
+    overscroll-behavior-y: none;
+  }
 }
 
 /* ============================================================ */
@@ -594,6 +599,11 @@ button { font-family: inherit; cursor: pointer; }
 @keyframes cca-fade-in-soft {
   0%   { opacity: 0; }
   100% { opacity: 1; }
+}
+/* (Phase 15.S28) PWA インストールバナー用 — 下からスライドイン */
+@keyframes cca-slide-up-fade {
+  0%   { transform: translateY(20px); opacity: 0; }
+  100% { transform: translateY(0); opacity: 1; }
 }
 
 /* (Phase 15.S6) Hero モバイル: dvh サポート時はアドレスバー考慮の動的高さに */
@@ -968,9 +978,10 @@ html, body {
   text-size-adjust: 100%;
   -webkit-tap-highlight-color: transparent; /* (L7) タップ時のハイライト色を透明に */
 }
-* {
-  max-width: 100%;
-  box-sizing: border-box;
+/* (Phase 15.S26) box-sizing は全環境、 max-width 100% はモバイル限定に */
+* { box-sizing: border-box; }
+@media (max-width: 767px) {
+  * { max-width: 100%; }
 }
 
 @media (max-width: 880px) {
@@ -1069,9 +1080,392 @@ html, body {
 }
 .btn-outline:hover { background: var(--ink); color: var(--paper); border-color: var(--ink); }
 
+/* (Phase 15.S25) アクティブ感を出すアニメーション集 */
+
+/* === Footer リンクのスマートホバー === */
+.footer-link {
+  position: relative;
+}
+.footer-link::before {
+  content: '';
+  position: absolute;
+  left: 0;
+  bottom: 2px;
+  width: 0;
+  height: 1px;
+  background: rgba(255, 255, 255, 0.6);
+  transition: width 0.3s cubic-bezier(0.2, 0.8, 0.2, 1);
+}
+.footer-link:hover {
+  color: #fff !important;
+  transform: translateX(2px);
+}
+.footer-link:hover::before {
+  width: 100%;
+}
+
+/* === パルス発光 (新着・ライブ等のドット) === */
+@keyframes cca-pulse-soft {
+  0%, 100% {
+    opacity: 0.6;
+    transform: scale(1);
+  }
+  50% {
+    opacity: 1;
+    transform: scale(1.15);
+  }
+}
+.pulse-dot {
+  display: inline-block;
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  background: var(--brand-blue);
+  animation: cca-pulse-soft 1.8s ease-in-out infinite;
+}
+.pulse-dot.urgent {
+  background: #ef4444;
+  animation-duration: 1.2s;
+}
+
+/* === ゆっくり浮遊する装飾円 (背景用) === */
+@keyframes cca-float-1 {
+  0%, 100% { transform: translate(0, 0); }
+  50% { transform: translate(20px, -30px); }
+}
+@keyframes cca-float-2 {
+  0%, 100% { transform: translate(0, 0); }
+  33% { transform: translate(-15px, 20px); }
+  66% { transform: translate(25px, 10px); }
+}
+.bg-float-slow { animation: cca-float-1 18s ease-in-out infinite; }
+.bg-float-slow-2 { animation: cca-float-2 24s ease-in-out infinite; }
+
+/* === グラデーション背景がゆっくり流れる === */
+@keyframes cca-gradient-shift {
+  0%, 100% { background-position: 0% 50%; }
+  50% { background-position: 100% 50%; }
+}
+.bg-gradient-shift {
+  background-size: 200% 200%;
+  animation: cca-gradient-shift 15s ease infinite;
+}
+
+/* === カードホバー: モダンな浮き上がり === */
+@media (hover: hover) {
+  .card-lift {
+    transition: transform 0.4s cubic-bezier(0.2, 0.8, 0.2, 1),
+                box-shadow 0.4s cubic-bezier(0.2, 0.8, 0.2, 1);
+  }
+  .card-lift:hover {
+    transform: translateY(-6px);
+    box-shadow: 0 24px 48px -16px rgba(10, 22, 40, 0.18),
+                0 4px 12px -4px rgba(10, 22, 40, 0.08);
+  }
+}
+
+/* === ボタンの押下 リップル効果風 === */
+@keyframes cca-ripple {
+  0% { transform: scale(0); opacity: 0.5; }
+  100% { transform: scale(2.5); opacity: 0; }
+}
+
+/* === 文字の段階的フェードイン (タイトル用) === */
+@keyframes cca-text-reveal {
+  0% {
+    opacity: 0;
+    transform: translateY(20px);
+    filter: blur(6px);
+  }
+  100% {
+    opacity: 1;
+    transform: translateY(0);
+    filter: blur(0);
+  }
+}
+.text-reveal {
+  animation: cca-text-reveal 0.8s cubic-bezier(0.2, 0.8, 0.2, 1) backwards;
+}
+
+/* === 矢印の右に進むアニメ (CTA リンク用) === */
+@keyframes cca-arrow-bounce {
+  0%, 100% { transform: translateX(0); }
+  50% { transform: translateX(4px); }
+}
+.cta-arrow {
+  display: inline-block;
+  transition: transform 0.25s;
+}
+a:hover .cta-arrow,
+button:hover .cta-arrow {
+  animation: cca-arrow-bounce 0.6s ease-in-out infinite;
+}
+
+/* === 数字のロール表示 === */
+@keyframes cca-number-roll {
+  from { transform: translateY(20px); opacity: 0; }
+  to { transform: translateY(0); opacity: 1; }
+}
+.number-roll { animation: cca-number-roll 0.6s cubic-bezier(0.2, 0.8, 0.2, 1) backwards; }
+
+/* === セクション境界の薄い線が伸びる === */
+@keyframes cca-line-grow {
+  from { transform: scaleX(0); }
+  to { transform: scaleX(1); }
+}
+.line-grow {
+  transform-origin: left center;
+  animation: cca-line-grow 1.2s cubic-bezier(0.2, 0.8, 0.2, 1) backwards;
+}
+
+/* === マウスカーソル追従の極微動 (デスクトップのみ装飾) === */
+@media (hover: hover) and (pointer: fine) {
+  .interactive-tilt {
+    transition: transform 0.3s ease-out;
+  }
+}
+
+/* === 画像のさざ波シマー (読込中 → 完了で消える) === */
+@keyframes cca-shimmer {
+  0% { background-position: -200% 0; }
+  100% { background-position: 200% 0; }
+}
+
+/* === スクロール時のセクション背景の極微シフト === */
+@keyframes cca-section-breath {
+  0%, 100% { opacity: 0.95; }
+  50% { opacity: 1; }
+}
+.section-breath { animation: cca-section-breath 8s ease-in-out infinite; }
+
+/* === reduce-motion 配慮 === */
+@media (prefers-reduced-motion: reduce) {
+  .pulse-dot,
+  .bg-float-slow,
+  .bg-float-slow-2,
+  .bg-gradient-shift,
+  .text-reveal,
+  .number-roll,
+  .line-grow,
+  .section-breath {
+    animation: none !important;
+  }
+}
+
+/* (Phase 15.S25) アクティブ感アニメーション集 */
+
+/* スクロール進捗バー */
+.cca-scroll-progress {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  height: 2px;
+  background: linear-gradient(90deg, var(--brand-blue) 0%, var(--brand-navy) 100%);
+  transform-origin: 0 50%;
+  transform: scaleX(var(--p, 0));
+  z-index: 110;
+  transition: transform 0.1s ease-out;
+  pointer-events: none;
+}
+
+/* 微細なフロート (ふわっと上下) */
+@keyframes cca-float-soft {
+  0%, 100% { transform: translateY(0); }
+  50% { transform: translateY(-4px); }
+}
+.cca-float-soft {
+  animation: cca-float-soft 4s ease-in-out infinite;
+}
+.cca-float-soft-delayed {
+  animation: cca-float-soft 4s ease-in-out 1s infinite;
+}
+
+/* 微細な回転 (極々ゆっくり) */
+@keyframes cca-spin-slow {
+  from { transform: rotate(0deg); }
+  to { transform: rotate(360deg); }
+}
+.cca-spin-slow {
+  animation: cca-spin-slow 30s linear infinite;
+}
+
+/* グラデーションシフト (背景がじわじわ変化) */
+@keyframes cca-gradient-shift {
+  0%, 100% { background-position: 0% 50%; }
+  50% { background-position: 100% 50%; }
+}
+.cca-gradient-shift {
+  background-size: 200% 200%;
+  animation: cca-gradient-shift 12s ease infinite;
+}
+
+/* リップル (タップ時の波紋) */
+@keyframes cca-ripple {
+  0% { transform: scale(0); opacity: 0.4; }
+  100% { transform: scale(2.5); opacity: 0; }
+}
+.cca-ripple-target {
+  position: relative;
+  overflow: hidden;
+}
+.cca-ripple-target::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  background: radial-gradient(circle at var(--ripple-x, 50%) var(--ripple-y, 50%),
+                              rgba(255, 255, 255, 0.4) 0%,
+                              transparent 50%);
+  opacity: 0;
+  pointer-events: none;
+  transition: opacity 0.6s;
+}
+.cca-ripple-target:active::after {
+  opacity: 1;
+  transition: opacity 0.05s;
+}
+
+/* マウスホバー (PC) — カードに lift + 影 */
+@media (hover: hover) {
+  .cca-card-hover {
+    transition: transform 0.4s cubic-bezier(0.2, 0.8, 0.2, 1),
+                box-shadow 0.4s cubic-bezier(0.2, 0.8, 0.2, 1);
+  }
+  .cca-card-hover:hover {
+    transform: translateY(-4px);
+    box-shadow: 0 20px 40px -16px rgba(10, 22, 40, 0.18),
+                0 4px 12px -2px rgba(10, 22, 40, 0.06);
+  }
+  .cca-card-hover:hover .cca-card-img {
+    transform: scale(1.04);
+  }
+  .cca-card-img {
+    transition: transform 0.6s cubic-bezier(0.2, 0.8, 0.2, 1);
+  }
+}
+
+/* "LIVE" ドット — 脈動 */
+@keyframes cca-live-pulse {
+  0% { transform: scale(0.95); opacity: 1; box-shadow: 0 0 0 0 rgba(220, 38, 38, 0.4); }
+  70% { transform: scale(1); opacity: 0.85; box-shadow: 0 0 0 8px rgba(220, 38, 38, 0); }
+  100% { transform: scale(0.95); opacity: 1; box-shadow: 0 0 0 0 rgba(220, 38, 38, 0); }
+}
+
+/* (Phase 15.S27) シマー — 光がスーッと流れる */
+@keyframes cca-shimmer {
+  0% { transform: translateX(-100%) skewX(-20deg); }
+  100% { transform: translateX(200%) skewX(-20deg); }
+}
+.cca-shimmer {
+  position: relative;
+  overflow: hidden;
+}
+.cca-shimmer::after {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 50%;
+  height: 100%;
+  background: linear-gradient(
+    90deg,
+    transparent 0%,
+    rgba(255, 255, 255, 0.2) 50%,
+    transparent 100%
+  );
+  pointer-events: none;
+  animation: cca-shimmer 3s ease-in-out infinite;
+  animation-delay: 1s;
+}
+
+/* (Phase 15.S27) ボタン用 マグネティック (PC のみ、 ホバー時の引き寄せ) */
+@media (hover: hover) {
+  .cca-magnetic {
+    transition: transform 0.3s cubic-bezier(0.2, 0.8, 0.2, 1);
+  }
+  .cca-magnetic:hover {
+    transform: translateY(-2px) scale(1.02);
+  }
+}
+
+/* (Phase 15.S27) フローティング装飾 (極遅) */
+@keyframes cca-float-deco {
+  0%, 100% { transform: translate(0, 0) rotate(0deg); }
+  33% { transform: translate(8px, -12px) rotate(2deg); }
+  66% { transform: translate(-6px, 8px) rotate(-1deg); }
+}
+.cca-float-deco {
+  animation: cca-float-deco 12s ease-in-out infinite;
+}
+
+/* BottomNav indicator 出現アニメ */
+@keyframes cca-indicator-grow {
+  from {
+    transform: translateX(-50%) scaleX(0);
+    opacity: 0;
+  }
+  to {
+    transform: translateX(-50%) scaleX(1);
+    opacity: 1;
+  }
+}
+.cca-live-dot {
+  display: inline-block;
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background: #dc2626;
+  animation: cca-live-pulse 1.6s ease-out infinite;
+}
+
+/* 文字スライドアップ (カードホバー時にタイトルが少し動く) */
+@media (hover: hover) {
+  .cca-title-slide {
+    transition: transform 0.35s cubic-bezier(0.2, 0.8, 0.2, 1);
+    display: inline-block;
+  }
+  *:hover > .cca-title-slide,
+  .cca-card-hover:hover .cca-title-slide {
+    transform: translateY(-2px);
+  }
+}
+
+/* (Phase 15.S24 MH9) 長い英文・URL等のはみ出し防止 */
+@media (max-width: 767px) {
+  h1, h2, h3, h4, h5, h6,
+  [data-event-title],
+  [data-news-title] {
+    word-break: break-word;
+    overflow-wrap: anywhere;
+    hyphens: auto;
+  }
+  /* イベントタイトルや本文のテキストが横スクロールを引き起こさないように */
+  p, li, span[role="text"], div[role="text"] {
+    overflow-wrap: anywhere;
+  }
+  /* 全体: 横スクロール禁止 (body) */
+  body {
+    overflow-x: hidden;
+  }
+}
+
 /* レスポンシブ: スマホ */
 @media (max-width: 767px) {
   .desktop-only { display: none !important; }
+
+  /* (Phase 15.S23 P1) モバイル時のタイポスケール再調整 — 主要見出しを clamp で適度に縮小 */
+  :root {
+    --font-mega:    clamp(38px, 10vw, 52px);   /* PC 56 → mobile 38-52 */
+    --font-display: clamp(28px, 7.5vw, 40px);  /* PC 44 → mobile 28-40 */
+    --font-h1:      clamp(24px, 6.5vw, 32px);  /* PC 36 → mobile 24-32 */
+    --font-h2:      clamp(20px, 5.5vw, 26px);  /* PC 30 → mobile 20-26 */
+    --font-h3:      clamp(17px, 4.6vw, 20px);  /* PC 22 → mobile 17-20 */
+    --font-lead:    clamp(15px, 4vw, 17px);    /* PC 17 → mobile 15-17 */
+    --font-body:    clamp(14px, 3.7vw, 15px);  /* PC 14 → mobile 14-15 (やや拡大、 読みやすさ重視) */
+    --font-body-sm: clamp(13px, 3.4vw, 14px);  /* PC 13 → mobile 13-14 */
+    --font-caption: clamp(11px, 3vw, 12px);    /* PC 11 → mobile 11-12 */
+    --font-label:   clamp(10px, 2.8vw, 11px);  /* PC 10 → mobile 10-11 */
+  }
 }
 @media (min-width: 768px) {
   .mobile-only { display: none !important; }
@@ -2150,6 +2544,220 @@ function formatEventDate(dateStr) {
   return `${d.getFullYear()}.${String(d.getMonth() + 1).padStart(2, '0')}.${String(d.getDate()).padStart(2, '0')} ${dayNames[d.getDay()]}`;
 }
 
+// (Phase 15.S35) ニュース画像URLを表示可能な形式に正規化 (Google Drive 等の対応)
+function normalizeNewsImageUrl(url) {
+  if (!url || typeof url !== 'string') return url || '';
+  let m = url.match(/drive\.google\.com\/file\/d\/([^/]+)/);
+  if (m) return 'https://drive.google.com/thumbnail?id=' + m[1] + '&sz=w800';
+  m = url.match(/drive\.google\.com\/uc.*?[?&]id=([^&]+)/);
+  if (m) return 'https://drive.google.com/thumbnail?id=' + m[1] + '&sz=w800';
+  return url;
+}
+
+// (Phase 15.S28 F9) Google Calendar / iCal 用の URL/コンテンツ生成
+// event オブジェクトに必要なプロパティ: date (YYYY-MM-DD), time (HH:MM), endTime?, title, venue?, description?
+function buildGoogleCalendarUrl(event, extraDescription) {
+  if (!event || !event.date) return null;
+  try {
+    const startStr = String(event.date).replace(/-/g, '');
+    const startTime = (event.time || '00:00').replace(':', '');
+    const start = `${startStr}T${startTime}00`;
+    // 終了時刻: endTime があれば使う、 なければ +2 時間
+    let end;
+    if (event.endTime) {
+      const endTime = String(event.endTime).replace(':', '');
+      end = `${startStr}T${endTime}00`;
+    } else {
+      const startHourNum = parseInt((event.time || '00:00').substring(0, 2), 10) || 0;
+      const endHourNum = (startHourNum + 2) % 24;
+      const endHourStr = endHourNum.toString().padStart(2, '0');
+      const endMinStr = (event.time || '00:00').substring(3, 5);
+      end = `${startStr}T${endHourStr}${endMinStr}00`;
+    }
+    const description = [event.description || '', extraDescription || '']
+      .filter(Boolean).join('\n\n');
+    const params = new URLSearchParams({
+      action: 'TEMPLATE',
+      text: event.title || 'connec+a イベント',
+      dates: `${start}/${end}`,
+      details: description,
+      location: event.venue || '',
+    });
+    return `https://www.google.com/calendar/render?${params.toString()}`;
+  } catch (e) {
+    return null;
+  }
+}
+
+// (Phase 15.S28 F9) iCal (.ics) 形式のテキスト生成 — Apple Calendar / Outlook 用
+function buildICalContent(event, extraDescription) {
+  if (!event || !event.date) return null;
+  try {
+    const startStr = String(event.date).replace(/-/g, '');
+    const startTime = (event.time || '00:00').replace(':', '');
+    const start = `${startStr}T${startTime}00`;
+    let end;
+    if (event.endTime) {
+      const endTime = String(event.endTime).replace(':', '');
+      end = `${startStr}T${endTime}00`;
+    } else {
+      const startHourNum = parseInt((event.time || '00:00').substring(0, 2), 10) || 0;
+      const endHourNum = (startHourNum + 2) % 24;
+      const endHourStr = endHourNum.toString().padStart(2, '0');
+      const endMinStr = (event.time || '00:00').substring(3, 5);
+      end = `${startStr}T${endHourStr}${endMinStr}00`;
+    }
+    const description = [event.description || '', extraDescription || '']
+      .filter(Boolean).join('\\n\\n').replace(/\n/g, '\\n');
+    const uid = `${event.id || Date.now()}@connecta.jp`;
+    const now = new Date();
+    const nowStr = now.getUTCFullYear().toString()
+      + String(now.getUTCMonth() + 1).padStart(2, '0')
+      + String(now.getUTCDate()).padStart(2, '0') + 'T'
+      + String(now.getUTCHours()).padStart(2, '0')
+      + String(now.getUTCMinutes()).padStart(2, '0')
+      + String(now.getUTCSeconds()).padStart(2, '0') + 'Z';
+    return [
+      'BEGIN:VCALENDAR',
+      'VERSION:2.0',
+      'PRODID:-//connec+a//EventsApp//JA',
+      'CALSCALE:GREGORIAN',
+      'BEGIN:VEVENT',
+      `UID:${uid}`,
+      `DTSTAMP:${nowStr}`,
+      `DTSTART;TZID=Asia/Tokyo:${start}`,
+      `DTEND;TZID=Asia/Tokyo:${end}`,
+      `SUMMARY:${(event.title || '').replace(/[\r\n,;]/g, ' ')}`,
+      `DESCRIPTION:${description}`,
+      `LOCATION:${(event.venue || '').replace(/[\r\n,;]/g, ' ')}`,
+      'END:VEVENT',
+      'END:VCALENDAR',
+    ].join('\r\n');
+  } catch (e) {
+    return null;
+  }
+}
+
+// (Phase 15.S28 F9) iCal ダウンロードを発火 (Blob → アンカークリック)
+function downloadICalFile(event, extraDescription) {
+  const ics = buildICalContent(event, extraDescription);
+  if (!ics) return;
+  const blob = new Blob([ics], { type: 'text/calendar;charset=utf-8' });
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement('a');
+  a.href = url;
+  a.download = `${(event.title || 'event').replace(/[^\w\d-_]/g, '_')}.ics`;
+  document.body.appendChild(a);
+  a.click();
+  document.body.removeChild(a);
+  setTimeout(() => URL.revokeObjectURL(url), 1000);
+}
+
+// (Phase 15.S28 F9) 「カレンダーに追加」ボタンコンポーネント
+// Google Calendar (新タブ) と Apple/Outlook (.ics ダウンロード) の選択
+function AddToCalendarButton({ event, lang, extraDescription, compact }) {
+  const [open, setOpen] = React.useState(false);
+  if (!event || !event.date) return null;
+  const gcalUrl = buildGoogleCalendarUrl(event, extraDescription);
+  const labels = {
+    ja: { btn: 'カレンダーに追加', google: 'Google カレンダー', apple: 'Apple / その他 (.ics)' },
+    en: { btn: 'Add to calendar', google: 'Google Calendar', apple: 'Apple / Other (.ics)' },
+    easy: { btn: 'カレンダーに ついか', google: 'Google カレンダー', apple: 'Apple / そのた (.ics)' },
+  };
+  const l = labels[lang] || labels.ja;
+
+  return (
+    <div style={{ position: 'relative', display: 'inline-block' }}>
+      <button onClick={() => setOpen(!open)} style={{
+        display: 'inline-flex', alignItems: 'center', gap: 8,
+        padding: compact ? '8px 14px' : '12px 20px',
+        background: '#fff',
+        color: '#0a2960',
+        border: '1.5px solid #0a2960',
+        borderRadius: compact ? 6 : 8,
+        fontSize: compact ? 12 : 13,
+        fontWeight: 600,
+        fontFamily: 'var(--jp)',
+        letterSpacing: '0.04em',
+        cursor: 'pointer',
+        transition: 'all 0.2s',
+      }}
+      onMouseOver={(e) => { e.currentTarget.style.background = '#f0f4fb'; }}
+      onMouseOut={(e) => { e.currentTarget.style.background = '#fff'; }}>
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+          <rect x="3" y="4" width="18" height="18" rx="2" />
+          <line x1="16" y1="2" x2="16" y2="6" />
+          <line x1="8" y1="2" x2="8" y2="6" />
+          <line x1="3" y1="10" x2="21" y2="10" />
+          <line x1="12" y1="14" x2="12" y2="18" />
+          <line x1="10" y1="16" x2="14" y2="16" />
+        </svg>
+        <span>{l.btn}</span>
+        <span style={{ fontSize: 9, opacity: 0.6 }}>▾</span>
+      </button>
+      {open && (
+        <>
+          {/* オーバーレイ (タップで閉じる) */}
+          <div onClick={() => setOpen(false)} style={{
+            position: 'fixed', inset: 0, zIndex: 90,
+          }}/>
+          {/* メニュー */}
+          <div style={{
+            position: 'absolute',
+            top: 'calc(100% + 6px)',
+            left: 0,
+            zIndex: 91,
+            background: '#fff',
+            border: '1px solid rgba(10, 22, 40, 0.12)',
+            borderRadius: 8,
+            boxShadow: '0 12px 32px -8px rgba(10, 22, 40, 0.18)',
+            padding: 4,
+            minWidth: 220,
+          }}>
+            {gcalUrl && (
+              <a href={gcalUrl} target="_blank" rel="noopener noreferrer"
+                onClick={() => setOpen(false)}
+                style={{
+                  display: 'block',
+                  padding: '12px 14px',
+                  fontSize: 13,
+                  color: 'var(--ink-2, #1f2937)',
+                  fontFamily: 'var(--jp)',
+                  textDecoration: 'none',
+                  borderRadius: 6,
+                  transition: 'background 0.15s',
+                }}
+                onMouseOver={(e) => { e.currentTarget.style.background = '#f3f4f6'; }}
+                onMouseOut={(e) => { e.currentTarget.style.background = 'transparent'; }}>
+                {l.google}
+              </a>
+            )}
+            <button onClick={() => { downloadICalFile(event, extraDescription); setOpen(false); }}
+              style={{
+                display: 'block',
+                width: '100%',
+                textAlign: 'left',
+                padding: '12px 14px',
+                fontSize: 13,
+                color: 'var(--ink-2, #1f2937)',
+                fontFamily: 'var(--jp)',
+                background: 'transparent',
+                border: 'none',
+                borderRadius: 6,
+                cursor: 'pointer',
+                transition: 'background 0.15s',
+              }}
+              onMouseOver={(e) => { e.currentTarget.style.background = '#f3f4f6'; }}
+              onMouseOut={(e) => { e.currentTarget.style.background = 'transparent'; }}>
+              {l.apple}
+            </button>
+          </div>
+        </>
+      )}
+    </div>
+  );
+}
+
 // イベントの会場ラベルを返す共通ヘルパー (Phase 6.6)
 //   - venues 配列が複数ある (multi イベント) → 結合 / 長すぎたら省略
 //   - venue 単体 → そのまま
@@ -2410,7 +3018,13 @@ function useRoute() {
   useEffect(() => {
     const handler = () => {
       setHash(window.location.hash || '#/');
-      window.scrollTo(0, 0);
+      // (Phase 15.S34) モバイル + iOS Safari で確実にトップへリセット
+      // 複数 API を併用 (ブラウザ間の差異を吸収)
+      try {
+        window.scrollTo(0, 0);
+        document.documentElement.scrollTop = 0;
+        document.body.scrollTop = 0;
+      } catch (e) {}
     };
     window.addEventListener('hashchange', handler);
     return () => window.removeEventListener('hashchange', handler);
@@ -2522,6 +3136,124 @@ function Icon({ name, size = 20, strokeWidth = 1.5, color, style = {} }) {
 
 // (Phase 15.S17 Q9) SmartImage — 読み込み前は skeleton、 読み込み後は fade-in
 // img タグの代替として使う、 既存の <img/> は影響受けない
+// (Phase 15.S25) スクロール進捗バー — ページ全体の上部に細い帯
+function ScrollProgress() {
+  const ref = React.useRef(null);
+  React.useEffect(() => {
+    const update = () => {
+      const docH = document.documentElement.scrollHeight - window.innerHeight;
+      const p = docH > 0 ? Math.min(window.scrollY / docH, 1) : 0;
+      if (ref.current) {
+        ref.current.style.setProperty('--p', String(p));
+      }
+    };
+    update();
+    window.addEventListener('scroll', update, { passive: true });
+    window.addEventListener('resize', update);
+    return () => {
+      window.removeEventListener('scroll', update);
+      window.removeEventListener('resize', update);
+    };
+  }, []);
+  return <div ref={ref} className="cca-scroll-progress" aria-hidden="true"/>;
+}
+
+// (Phase 15.S25) LIVE ドット — 「現在開催中」「公開中」等の動的表示用
+function LiveDot({ label, color = '#dc2626' }) {
+  return (
+    <span style={{
+      display: 'inline-flex', alignItems: 'center', gap: 6,
+      fontFamily: 'var(--mono, monospace)',
+      fontSize: 10,
+      letterSpacing: '0.18em',
+      fontWeight: 700,
+      color: color,
+      textTransform: 'uppercase',
+    }}>
+      <span className="cca-live-dot" style={{ background: color }}/>
+      {label}
+    </span>
+  );
+}
+
+// (Phase 15.S25) アニメーション付き数字カウントアップ用 hook
+function useCountUp(target, duration = 1400, trigger = true) {
+  const [v, setV] = React.useState(0);
+  React.useEffect(() => {
+    if (!trigger) return;
+    let raf;
+    const start = performance.now();
+    const step = (t) => {
+      const p = Math.min((t - start) / duration, 1);
+      const eased = 1 - Math.pow(1 - p, 3);  // easeOutCubic
+      setV(Math.round(target * eased));
+      if (p < 1) raf = requestAnimationFrame(step);
+    };
+    raf = requestAnimationFrame(step);
+    return () => cancelAnimationFrame(raf);
+  }, [target, duration, trigger]);
+  return v;
+}
+
+// (Phase 15.S27) マウス追従パララックス hook — PC のみ動作、 タッチデバイスでは無効
+// 戻り値: { x, y } は -1 ~ 1 の範囲。 要素にマウスが乗ってる時の中央からの偏差
+function useMouseParallax(ref, intensity = 1) {
+  const [pos, setPos] = React.useState({ x: 0, y: 0 });
+  React.useEffect(() => {
+    if (!ref.current) return;
+    // タッチデバイスでは無効 (パフォーマンス + 不要)
+    if (window.matchMedia('(hover: none)').matches) return;
+    const el = ref.current;
+    let raf = null;
+    const onMove = (e) => {
+      const rect = el.getBoundingClientRect();
+      const cx = rect.left + rect.width / 2;
+      const cy = rect.top + rect.height / 2;
+      const dx = (e.clientX - cx) / (rect.width / 2);
+      const dy = (e.clientY - cy) / (rect.height / 2);
+      // requestAnimationFrame で間引き
+      if (raf) cancelAnimationFrame(raf);
+      raf = requestAnimationFrame(() => {
+        setPos({ x: dx * intensity, y: dy * intensity });
+      });
+    };
+    const onLeave = () => {
+      if (raf) cancelAnimationFrame(raf);
+      raf = requestAnimationFrame(() => setPos({ x: 0, y: 0 }));
+    };
+    el.addEventListener('mousemove', onMove);
+    el.addEventListener('mouseleave', onLeave);
+    return () => {
+      el.removeEventListener('mousemove', onMove);
+      el.removeEventListener('mouseleave', onLeave);
+      if (raf) cancelAnimationFrame(raf);
+    };
+  }, [ref, intensity]);
+  return pos;
+}
+
+// (Phase 15.S27) カウントダウン hook — 「あと N 日 H 時間 M 分」 に分解
+// targetDate は ISO 文字列 or Date object
+function useCountdown(targetDate) {
+  const [now, setNow] = React.useState(() => new Date());
+  React.useEffect(() => {
+    const id = setInterval(() => setNow(new Date()), 60000);  // 1分間隔で十分
+    return () => clearInterval(id);
+  }, []);
+  const target = React.useMemo(() => {
+    if (!targetDate) return null;
+    const d = typeof targetDate === 'string' ? new Date(targetDate) : targetDate;
+    return isNaN(d.getTime()) ? null : d;
+  }, [targetDate]);
+  if (!target) return null;
+  const diff = target.getTime() - now.getTime();
+  if (diff <= 0) return { expired: true, days: 0, hours: 0, minutes: 0, totalMs: 0 };
+  const days = Math.floor(diff / (24 * 60 * 60 * 1000));
+  const hours = Math.floor((diff % (24 * 60 * 60 * 1000)) / (60 * 60 * 1000));
+  const minutes = Math.floor((diff % (60 * 60 * 1000)) / (60 * 1000));
+  return { expired: false, days, hours, minutes, totalMs: diff };
+}
+
 function SmartImage({ src, alt = '', loading = 'lazy', objectFit = 'cover', style = {}, ...rest }) {
   const [loaded, setLoaded] = useState(false);
   const [errored, setErrored] = useState(false);
@@ -2754,6 +3486,53 @@ function Nav({ lang, setLang, t, transparent, menuOpen: externalMenuOpen, setMen
     return () => window.removeEventListener('scroll', onScroll);
   }, []);
 
+  // (Phase 15.S24/S26 MM10) menuOpen 時は body スクロールロック + ESC で閉じる
+  // 注意: PC では BottomNav 経由でも開かない想定だが、 念のためモバイル幅でのみ body lock
+  // PC で何かの理由で menuOpen=true になっても body はロックしない (副作用回避)
+  useEffect(() => {
+    if (!menuOpen) return;
+    // モバイル幅 (<= 767px) でのみ body lock (PC でのスクロール阻害を防ぐ)
+    const isMobile = typeof window !== 'undefined' && window.innerWidth <= 767;
+    let scrollY = 0;
+    let originalOverflow = '';
+    let originalPosition = '';
+    let originalTop = '';
+    if (isMobile) {
+      scrollY = window.scrollY;
+      originalOverflow = document.body.style.overflow;
+      originalPosition = document.body.style.position;
+      originalTop = document.body.style.top;
+      document.body.style.overflow = 'hidden';
+      document.body.style.position = 'fixed';
+      document.body.style.top = `-${scrollY}px`;
+      document.body.style.width = '100%';
+    }
+    // ESC キーで閉じる (全環境)
+    const onKey = (e) => { if (e.key === 'Escape') setMenuOpen(false); };
+    window.addEventListener('keydown', onKey);
+    return () => {
+      if (isMobile) {
+        document.body.style.overflow = originalOverflow;
+        document.body.style.position = originalPosition;
+        document.body.style.top = originalTop;
+        document.body.style.width = '';
+        window.scrollTo(0, scrollY);
+      }
+      window.removeEventListener('keydown', onKey);
+    };
+  }, [menuOpen, setMenuOpen]);
+
+  // (Phase 15.S26) 念のため: 起動時に body の position/overflow をリセット (前回の lock が残ってる場合の保険)
+  useEffect(() => {
+    // ページ読み込み時に body が固定されていたら強制解除
+    if (document.body.style.position === 'fixed') {
+      document.body.style.overflow = '';
+      document.body.style.position = '';
+      document.body.style.top = '';
+      document.body.style.width = '';
+    }
+  }, []);
+
   // (Phase 7.7) ログアウト処理
   const handleLogout = async () => {
     const ok = await dialog.confirm({
@@ -2980,6 +3759,8 @@ function Nav({ lang, setLang, t, transparent, menuOpen: externalMenuOpen, setMen
                       alignItems: 'center',
                       justifyContent: 'space-between',
                       padding: '20px 0',
+                      // (Phase 15.S24 MM11) タップ領域 56px 以上
+                      minHeight: 56,
                       borderBottom: '1px solid rgba(255,255,255,0.1)',
                       color: '#fff',
                       textDecoration: 'none',
@@ -3127,12 +3908,15 @@ function Nav({ lang, setLang, t, transparent, menuOpen: externalMenuOpen, setMen
 
 // (Phase 15.S13) 下部クイックアクセス (BottomNav) — Frosted Glass + safe-area
 // モバイルのみ表示、 全ページに固定
-function BottomNav({ lang, t, currentRoute, onMenuOpen }) {
+function BottomNav({ lang, t, currentRoute, onMenuOpen, menuOpen }) {
   const auth = useAuth();
   const vp = useViewport();
 
   // モバイル以外では表示しない
   if (!vp.isMobile) return null;
+
+  // (Phase 15.S24 MH13) メニューが開いている時は BottomNav 非表示 (重なり防止)
+  if (menuOpen) return null;
 
   // (Phase 15.S14) Sticky CTA がある画面では非表示 (申込ボタンを隠さないため)
   const route = currentRoute || (typeof window !== 'undefined' ? window.location.hash.slice(1) || '/' : '/');
@@ -3274,7 +4058,7 @@ function BottomNav({ lang, t, currentRoute, onMenuOpen }) {
               transition: 'font-weight .25s',
             }}>{item.label}</span>
           );
-          // アクティブインジケータ (上部の細い線)
+          // アクティブインジケータ (上部の細い線、 (Phase 15.S25) スケールアニメ付き)
           const indicator = item.active ? (
             <span style={{
               position: 'absolute',
@@ -3285,6 +4069,7 @@ function BottomNav({ lang, t, currentRoute, onMenuOpen }) {
               height: 2,
               background: 'var(--brand-navy)',
               borderRadius: '0 0 2px 2px',
+              animation: 'cca-indicator-grow 0.4s cubic-bezier(0.2, 0.8, 0.2, 1)',
             }}/>
           ) : null;
 
@@ -3403,7 +4188,7 @@ function EventCard({ ev, lang, t, big }) {
   const date = formatEventDate(ev.date);
 
   return (
-    <a href={`#/events/${ev.id}`} className="lift-card" style={{
+    <a href={`#/events/${ev.id}`} className="lift-card cca-card-hover" data-event-card="true" style={{
       display: 'block',
       background: 'var(--paper)',
       borderRadius: 'var(--r-xl)',
@@ -3449,12 +4234,50 @@ function EventCard({ ev, lang, t, big }) {
       {/* Body */}
       <div style={{ padding: big ? '28px 28px 24px' : '20px 22px 22px' }}>
         <div style={{
-          fontFamily: 'var(--mono)',
-          fontSize: 11,
-          color: 'var(--ink-mute)',
-          letterSpacing: '0.08em',
+          display: 'flex',
+          alignItems: 'center',
+          gap: 10,
           marginBottom: 12,
-        }}>{date}</div>
+          flexWrap: 'wrap',
+        }}>
+          <span style={{
+            fontFamily: 'var(--mono)',
+            fontSize: 11,
+            color: 'var(--ink-mute)',
+            letterSpacing: '0.08em',
+          }}>{date}</span>
+          {/* (Phase 15.S27) 3 日以内のイベントは カウントダウンバッジ */}
+          {(() => {
+            try {
+              const eventDate = new Date(String(ev.date) + 'T00:00:00');
+              if (isNaN(eventDate.getTime())) return null;
+              const now = new Date();
+              const todayStart = new Date(now.getFullYear(), now.getMonth(), now.getDate());
+              const diffDays = Math.ceil((eventDate.getTime() - todayStart.getTime()) / (24*60*60*1000));
+              if (diffDays < 0 || diffDays > 3) return null;
+              const label = diffDays === 0
+                ? (lang === 'en' ? 'TODAY' : '本日開催')
+                : diffDays === 1
+                ? (lang === 'en' ? 'TOMORROW' : '明日開催')
+                : (lang === 'en' ? `IN ${diffDays} DAYS` : `あと${diffDays}日`);
+              return (
+                <span style={{
+                  display: 'inline-flex', alignItems: 'center', gap: 4,
+                  fontFamily: 'var(--mono)',
+                  fontSize: 10, fontWeight: 700,
+                  letterSpacing: '0.12em',
+                  padding: '3px 8px',
+                  background: '#fef2f2',
+                  color: '#dc2626',
+                  borderRadius: 3,
+                }}>
+                  <span className="cca-live-dot" style={{ background: '#dc2626' }}/>
+                  {label}
+                </span>
+              );
+            } catch (e) { return null; }
+          })()}
+        </div>
         <h3 style={{
           fontFamily: 'var(--jp)',
           fontSize: big ? 24 : 18,
@@ -3462,7 +4285,7 @@ function EventCard({ ev, lang, t, big }) {
           margin: '0 0 12px',
           lineHeight: 1.4,
           color: 'var(--ink)',
-        }}>{ev.title}</h3>
+        }}><span className="cca-title-slide">{ev.title}</span></h3>
         <div style={{
           fontSize: 13,
           color: 'var(--ink-mute)',
@@ -4322,6 +5145,9 @@ function HeroSlideshow({ lang, t, events, heroSlides, loading, frontNews, siteSe
   const auth = useAuth();
   // (Phase 13.2) ビューポート
   const heroVp = useViewport();
+  // (Phase 15.S28 U1) Hero マウス追従パララックス (PC のみ自動有効、 タッチ無効)
+  const heroVisualRef = React.useRef(null);
+  const parallax = useMouseParallax(heroVisualRef, 1);
 
   // Google Drive の URL を表示可能な形式に正規化 (Phase 6 fix)
   const normalizeImageUrl = (url) => {
@@ -4920,7 +5746,8 @@ function HeroSlideshow({ lang, t, events, heroSlides, loading, frontNews, siteSe
         </div>
 
         {/* === メインビジュアル: スライドショー (白の上に主役写真) === */}
-        <div style={{
+        {/* (Phase 15.S28 U1) パララックス用 ref */}
+        <div ref={heroVisualRef} style={{
           position: 'relative',
           width: '100%',
           aspectRatio: '4 / 5',
@@ -4931,7 +5758,11 @@ function HeroSlideshow({ lang, t, events, heroSlides, loading, frontNews, siteSe
             <div key={`${s.kind || 's'}-${i}`} style={{
               position: 'absolute', inset: 0,
               opacity: i === idx ? 1 : 0,
-              transition: 'opacity 1.2s cubic-bezier(0.2, 0.8, 0.2, 1)',
+              transition: 'opacity 1.2s cubic-bezier(0.2, 0.8, 0.2, 1),\
+                          transform 0.6s cubic-bezier(0.2, 0.8, 0.2, 1)',
+              transform: i === idx
+                ? `translate(${parallax.x * 6}px, ${parallax.y * 6}px) scale(1.02)`
+                : 'translate(0, 0) scale(1)',
             }}>
               {s.img && (
                 <img src={s.img} alt="" loading={i === 0 ? 'eager' : 'lazy'} style={{
@@ -9632,7 +10463,7 @@ function PageNewsList({ lang, t, frontNews, loading, siteSettings }) {
                   display: 'grid',
                   gridTemplateColumns: newsListVp.isMobile
                     ? '1fr'
-                    : 'minmax(120px, 0.5fr) minmax(0, 3fr) auto',
+                    : 'minmax(120px, 0.5fr) minmax(0, 3fr) 96px auto',
                   gap: newsListVp.isMobile ? 8 : 'clamp(20px, 3vw, 48px)',
                   alignItems: newsListVp.isMobile ? 'stretch' : 'center',
                   padding: newsListVp.isMobile ? '16px 0' : 'clamp(20px, 3vh, 28px) clamp(8px, 1vw, 16px)',
@@ -9686,6 +10517,31 @@ function PageNewsList({ lang, t, frontNews, loading, siteSettings }) {
                   }}>
                     {(getI18nField(news, 'title', lang) || news.title)}
                   </h2>
+
+                  {/* (Phase 15.S35) サムネイル画像 (任意) */}
+                  {(news.thumbnailImageUrl || news.coverImageUrl) && !newsListVp.isMobile && (
+                    <div style={{
+                      width: 96,
+                      height: 64,
+                      flexShrink: 0,
+                      borderRadius: 4,
+                      overflow: 'hidden',
+                      background: 'rgba(255,255,255,0.05)',
+                      gridColumn: 'auto',
+                    }}>
+                      <img
+                        src={normalizeNewsImageUrl(news.thumbnailImageUrl || news.coverImageUrl)}
+                        alt=""
+                        style={{
+                          width: '100%', height: '100%',
+                          objectFit: 'cover',
+                          display: 'block',
+                        }}
+                        loading="lazy"
+                        onError={(e) => { e.currentTarget.style.display = 'none'; }}
+                      />
+                    </div>
+                  )}
 
                   {/* 矢印 */}
                   <div style={{
@@ -10003,6 +10859,33 @@ function PageNewsDetail({ lang, t, newsId, frontNews, loading }) {
               )}
             </div>
           </Reveal>
+
+          {/* (Phase 15.S35) カバー画像 (任意) */}
+          {news.coverImageUrl && (
+            <Reveal y={30} blur={false} delay={150}>
+              <div style={{
+                marginTop: 24,
+                marginBottom: 16,
+                width: '100%',
+                aspectRatio: newsDetailVp.isMobile ? '4 / 3' : '16 / 9',
+                background: '#f3f4f6',
+                overflow: 'hidden',
+                borderRadius: 4,
+              }}>
+                <img
+                  src={normalizeNewsImageUrl(news.coverImageUrl)}
+                  alt=""
+                  style={{
+                    width: '100%', height: '100%',
+                    objectFit: 'cover',
+                    display: 'block',
+                  }}
+                  loading="eager"
+                  onError={(e) => { e.currentTarget.style.display = 'none'; }}
+                />
+              </div>
+            </Reveal>
+          )}
 
           {/* タイトル (英文体: Fraunces italic) */}
           <Reveal y={30} blur={false} delay={200}>
@@ -10405,20 +11288,28 @@ function PageEvents({ lang, t, events, loading, siteSettings }) {
               gap: 'clamp(12px, 2vh, 20px)',
               marginBottom: 'clamp(24px, 3vh, 32px)',
               paddingTop: 'clamp(8px, 1vh, 16px)',
+              // (Phase 15.S24 MM4) 横スクロール防止
+              maxWidth: '100%',
+              overflowX: 'hidden',
             }}>
               {/* エリアグループ */}
               <div style={{
                 display: 'flex',
-                alignItems: 'center',
+                alignItems: 'flex-start',
                 flexWrap: 'wrap',
-                gap: 12,
+                gap: 'clamp(8px, 2vw, 12px)',
+                rowGap: 8,
               }}>
                 <span style={{
                   fontFamily: 'var(--mono, monospace)',
                   fontSize: 10, fontWeight: 600,
                   letterSpacing: '0.2em',
                   color: 'rgba(255, 255, 255, 0.55)',
-                  minWidth: 64,
+                  // (Phase 15.S24) モバイルでは minWidth 64 を撤廃し ラベルが折り返しで上配置
+                  minWidth: 0,
+                  width: 'auto',
+                  paddingTop: 8,
+                  flexBasis: 'clamp(64px, 12vw, 96px)',
                   textTransform: 'uppercase',
                 }}>AREA</span>
                 {['関東', '関西'].map(area => {
@@ -10447,16 +11338,19 @@ function PageEvents({ lang, t, events, loading, siteSettings }) {
               {/* 料金グループ */}
               <div style={{
                 display: 'flex',
-                alignItems: 'center',
+                alignItems: 'flex-start',
                 flexWrap: 'wrap',
-                gap: 12,
+                gap: 'clamp(8px, 2vw, 12px)',
+                rowGap: 8,
               }}>
                 <span style={{
                   fontFamily: 'var(--mono, monospace)',
                   fontSize: 10, fontWeight: 600,
                   letterSpacing: '0.2em',
                   color: 'rgba(255, 255, 255, 0.55)',
-                  minWidth: 64,
+                  minWidth: 0,
+                  paddingTop: 8,
+                  flexBasis: 'clamp(64px, 12vw, 96px)',
                   textTransform: 'uppercase',
                 }}>FEE</span>
                 {[{key:'paid', label:'有料'}, {key:'free', label:'無料'}].map(f => {
@@ -11264,6 +12158,26 @@ function PageEventDetail({ lang, t, eventId }) {
                 ))}
               </InfoLine>
             </div>
+            {/* (Phase 15.S28 F9) カレンダーに追加ボタン (情報セクションの末尾) */}
+            {ev.date && (
+              <div style={{
+                marginTop: 16,
+                paddingTop: 16,
+                borderTop: '1px solid var(--brand-line)',
+                display: 'flex',
+                justifyContent: 'flex-start',
+              }}>
+                <AddToCalendarButton
+                  event={{
+                    ...ev,
+                    description: ev.summary || '',
+                  }}
+                  lang={lang}
+                  extraDescription={`connec+a イベント\n詳細: ${typeof window !== 'undefined' ? window.location.href : ''}`}
+                  compact={true}
+                />
+              </div>
+            )}
           </Reveal>
         )}
 
@@ -11668,7 +12582,9 @@ function PageEventDetail({ lang, t, eventId }) {
               {myReg.status === '確定' ? '申込済み' : '未決済'} · キャンセル
             </button>
           ) : (
-          <button onClick={handleRegister} disabled={cantRegister || (isMulti && selectedSessionIds.length === 0)} style={{
+          <button onClick={handleRegister} disabled={cantRegister || (isMulti && selectedSessionIds.length === 0)}
+            className={!cantRegister ? 'cca-shimmer cca-magnetic' : ''}
+            style={{
             background: cantRegister ? 'var(--ink-faint)' : 'var(--ink)',
             color: 'var(--paper)',
             border: 0,
@@ -13198,18 +14114,25 @@ function AuthPageLayout({ children, title, subtitle, lang }) {
     en: { s1: 'Sign Up', s2: 'Join Event', s3: 'Next Event' },
   };
   const labels = stepLabels[lang] || stepLabels.ja;
+  // (Phase 15.S23) ビューポート判定 — モバイルでは 1 カラム
+  const vp = useViewport();
 
   return (
     <section style={{
       position: 'relative',
       width: '100%',
-      minHeight: 'calc(100vh - 130px)',
-      marginTop: 130,
+      minHeight: vp.isMobile ? 'auto' : 'calc(100vh - 130px)',
+      // (Phase 15.S23) モバイル: Nav 64px 分だけ上に余白、 BottomNav 分は main で確保
+      marginTop: vp.isMobile ? 'calc(64px + env(safe-area-inset-top, 0px))' : 130,
       background: '#ffffff',
       display: 'grid',
-      gridTemplateColumns: 'clamp(48px, 8%, 110px) 1fr clamp(280px, 32%, 420px)',
+      gridTemplateColumns: vp.isMobile
+        ? '1fr'
+        : 'clamp(48px, 8%, 110px) 1fr clamp(280px, 32%, 420px)',
+      paddingBottom: vp.isMobile ? 40 : 0,
     }}>
-      {/* 左ベージュ縦帯 */}
+      {/* 左ベージュ縦帯 — モバイルでは非表示 */}
+      {!vp.isMobile && (
       <div style={{
         background: '#f5f0e8',
         position: 'relative',
@@ -13235,6 +14158,7 @@ function AuthPageLayout({ children, title, subtitle, lang }) {
           writingMode: 'vertical-rl',
         }}>FOR YOU</div>
       </div>
+      )}
 
       {/* 中央: フォーム + +a ロゴ */}
       <div style={{
@@ -13461,8 +14385,9 @@ function AuthInput({ label, type, value, onChange, placeholder, required, autoCo
         placeholder={placeholder}
         autoComplete={autoComplete}
         style={{
-          padding: '12px 14px',
-          fontSize: 14,
+          // (Phase 15.S23 P2) iOS で フォーカス時のズーム回避: fontSize 16px 必須
+          padding: '14px 16px',
+          fontSize: 16,
           fontFamily: 'var(--jp)',
           color: '#1f2937',
           background: '#ffffff',
@@ -13470,6 +14395,10 @@ function AuthInput({ label, type, value, onChange, placeholder, required, autoCo
           borderRadius: 0,
           outline: 'none',
           transition: 'border-color .15s',
+          // タップターゲット最小高
+          minHeight: 48,
+          width: '100%',
+          boxSizing: 'border-box',
         }}
         onFocus={(e) => e.target.style.borderColor = '#2c89e8'}
         onBlur={(e) => e.target.style.borderColor = error ? '#dc2626' : '#e5e7eb'}
@@ -13497,8 +14426,8 @@ function AuthSelect({ label, value, onChange, options, required, error, selectPl
         value={value || ''}
         onChange={(e) => onChange(e.target.value)}
         style={{
-          padding: '12px 14px',
-          fontSize: 14,
+          padding: '14px 16px',
+          fontSize: 16,
           fontFamily: 'var(--jp)',
           color: value ? '#1f2937' : '#9ca3af',
           background: '#ffffff',
@@ -13506,6 +14435,9 @@ function AuthSelect({ label, value, onChange, options, required, error, selectPl
           borderRadius: 0,
           outline: 'none',
           cursor: 'pointer',
+          minHeight: 48,
+          width: '100%',
+          boxSizing: 'border-box',
         }}
       >
         <option value="" disabled>{selectPlaceholder || '選択してください'}</option>
@@ -13529,10 +14461,11 @@ function AuthButton({ children, onClick, type, disabled, variant }) {
       disabled={disabled}
       style={{
         width: '100%',
-        maxWidth: 320,
-        padding: '14px 20px',
+        // (Phase 15.S23 P3) モバイルでは横幅いっぱい (maxWidth 撤廃のため none)
+        maxWidth: typeof window !== 'undefined' && window.innerWidth < 768 ? 'none' : 320,
+        padding: '16px 20px',
         fontFamily: 'var(--jp)',
-        fontSize: 14,
+        fontSize: 15,
         fontWeight: 600,
         letterSpacing: '0.06em',
         color: isPrimary ? '#fff' : '#0a2960',
@@ -13545,7 +14478,8 @@ function AuthButton({ children, onClick, type, disabled, variant }) {
         alignItems: 'center',
         justifyContent: 'center',
         gap: 8,
-        alignSelf: 'flex-start',
+        alignSelf: typeof window !== 'undefined' && window.innerWidth < 768 ? 'stretch' : 'flex-start',
+        minHeight: 48,
       }}
       onMouseOver={(e) => {
         if (!disabled && isPrimary) e.currentTarget.style.background = '#1c56b0';
@@ -13573,6 +14507,21 @@ function PageLogin({ lang, t }) {
   // (Part A) プライバシー同意
   const [agreedPrivacy, setAgreedPrivacy] = React.useState(false);
 
+  // (Phase 15.S23) 既にログイン済みなら自動でリダイレクト
+  React.useEffect(() => {
+    if (!auth.loading && auth.user) {
+      let redirect = '/mypage';
+      try {
+        const saved = sessionStorage.getItem('connecta_redirect_after_login');
+        if (saved) {
+          sessionStorage.removeItem('connecta_redirect_after_login');
+          redirect = saved.startsWith('#') ? saved.slice(1) : saved;
+        }
+      } catch (e) {}
+      window.location.hash = redirect;
+    }
+  }, [auth.loading, auth.user]);
+
   const handleSubmit = async (e) => {
     if (e) e.preventDefault();
     setError('');
@@ -13597,7 +14546,10 @@ function PageLogin({ lang, t }) {
           redirect = saved.startsWith('#') ? saved.slice(1) : saved;
         }
       } catch(e) {}
-      window.location.hash = redirect;
+      // (Phase 15.S23) state の反映後に確実に遷移するよう、 micro-task の後に
+      setTimeout(() => {
+        window.location.hash = redirect;
+      }, 50);
     } catch (err) {
       setError(err.message || at.loginFailed);
       setSubmitting(false);
@@ -15409,6 +16361,312 @@ function PaymentOption({ method, selected, onSelect, lang }) {
 //   Phase 4 (2.0s): QRコード reveal (clip-path)
 //   Phase 5 (2.7s): イベント情報カード fade-in
 //   Phase 6 (3.2s): CTA ボタン (チケット詳細 / マイページ)
+// (Phase 15.S22 H4) PayPay ミニ CTA — マイページのカード内用、 PayPayCTA と同じモーダルだが ボタンが小さい
+function PayPayMiniCTA({ url, amount, userName, eventTitle, lang }) {
+  const [modalOpen, setModalOpen] = React.useState(false);
+  return (
+    <>
+      <button onClick={(e) => { e.stopPropagation(); setModalOpen(true); }} style={{
+        flexShrink: 0,
+        padding: '8px 14px',
+        fontSize: 12,
+        fontWeight: 600,
+        fontFamily: 'var(--jp)',
+        color: '#fff',
+        background: '#ff0033',
+        border: '1px solid #ff0033',
+        borderRadius: 4,
+        cursor: 'pointer',
+        alignSelf: 'center',
+        letterSpacing: '0.04em',
+        whiteSpace: 'nowrap',
+        display: 'inline-flex',
+        alignItems: 'center',
+        gap: 6,
+      }}>
+        <span>{lang === 'en' ? 'Pay with PayPay' : '決済する'}</span>
+        <span>→</span>
+      </button>
+
+      {modalOpen && (
+        <div style={{
+          position: 'fixed', inset: 0, zIndex: 300,
+          background: 'rgba(10, 22, 40, 0.7)',
+          backdropFilter: 'blur(8px)',
+          WebkitBackdropFilter: 'blur(8px)',
+          display: 'flex', alignItems: 'center', justifyContent: 'center',
+          padding: 24,
+        }} onClick={(e) => { if (e.target === e.currentTarget) setModalOpen(false); }}>
+          <div style={{
+            background: '#fff',
+            borderRadius: 12,
+            padding: '28px 24px 24px',
+            maxWidth: 420, width: '100%',
+            boxShadow: '0 24px 48px -12px rgba(0,0,0,0.4)',
+            fontFamily: 'var(--jp)',
+            // (Phase 15.S24 MH11) モーダル長文対応: 画面高超えたらスクロール
+            maxHeight: 'calc(100vh - 48px)',
+            overflowY: 'auto',
+            WebkitOverflowScrolling: 'touch',
+          }}>
+            <div style={{
+              display: 'flex', alignItems: 'center', gap: 10,
+              marginBottom: 16,
+            }}>
+              <div style={{
+                width: 36, height: 36,
+                background: '#fef3c7',
+                color: '#92400e',
+                borderRadius: '50%',
+                display: 'flex', alignItems: 'center', justifyContent: 'center',
+                fontSize: 18, fontWeight: 800,
+              }}>!</div>
+              <strong style={{
+                fontSize: 16, fontWeight: 700,
+                color: '#0a2960',
+                letterSpacing: '0.02em',
+              }}>{lang === 'en' ? 'Important: Before sending' : '重要: 送金ボタンを押す前に'}</strong>
+            </div>
+            <div style={{
+              fontSize: 14, lineHeight: 1.8,
+              color: '#374151',
+              marginBottom: 16,
+            }}>
+              {lang === 'en' ? (
+                <>
+                  <p style={{margin: '0 0 12px'}}>
+                    Please check your <strong>PayPay display name</strong>.
+                  </p>
+                  <p style={{margin: '0 0 12px'}}>
+                    If your PayPay name differs from your registered name, please add a message:
+                  </p>
+                  <div style={{padding:'10px 14px', background:'#f0f9ff', border:'1px solid #bae6fd', borderRadius:6, margin:'0 0 12px'}}>
+                    <div style={{fontSize: 13, color: '#374151'}}>
+                      "Registered as: <strong>{userName || '(your name)'}</strong>"
+                    </div>
+                  </div>
+                </>
+              ) : (
+                <>
+                  <p style={{margin: '0 0 12px'}}>
+                    PayPay 表示名が <strong>connec+a 登録名と違う場合</strong>のみ、 送金時のメッセージ欄に一言添えてください。
+                  </p>
+                  <div style={{padding:'10px 14px', background:'#f0f9ff', border:'1px solid #bae6fd', borderRadius:6, margin:'0 0 12px'}}>
+                    <div style={{fontSize: 13, color: '#374151'}}>
+                      「connec+a 登録名: <strong>{userName || '(あなたの名前)'}</strong>」
+                    </div>
+                  </div>
+                </>
+              )}
+            </div>
+            <div style={{display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 10}}>
+              <button onClick={() => setModalOpen(false)} style={{
+                padding: '12px 16px',
+                background: '#fff', color: '#6b7280',
+                border: '1px solid #e5e7eb', borderRadius: 6,
+                fontSize: 13, fontWeight: 600, fontFamily: 'var(--jp)', cursor: 'pointer',
+              }}>{lang === 'en' ? 'Cancel' : 'キャンセル'}</button>
+              <a href={url} target="_blank" rel="noopener noreferrer"
+                onClick={() => setModalOpen(false)}
+                style={{
+                  padding: '12px 16px', background: '#ff0033', color: '#fff',
+                  border: 'none', borderRadius: 6,
+                  fontSize: 13, fontWeight: 700, fontFamily: 'var(--jp)',
+                  cursor: 'pointer', textAlign: 'center', textDecoration: 'none',
+                  display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 6,
+                }}>
+                <span>{lang === 'en' ? 'Got it, go to PayPay' : 'PayPay へ'}</span>
+                <span>→</span>
+              </a>
+            </div>
+          </div>
+        </div>
+      )}
+    </>
+  );
+}
+
+// (Phase 15.S20) PayPay 決済ボタン + モーダル — 名前一致確認後に PayPay 画面へ
+function PayPayCTA({ url, amount, userName, eventTitle, lang }) {
+  const [modalOpen, setModalOpen] = React.useState(false);
+  return (
+    <>
+      <button onClick={() => setModalOpen(true)} className="cca-shimmer cca-magnetic" style={{
+        display: 'flex', alignItems: 'center', justifyContent: 'space-between',
+        width: '100%',
+        padding: 'var(--space-5)',
+        background: '#ff0033',  // PayPay の赤
+        color: '#fff',
+        fontSize: 'var(--font-body)',
+        fontWeight: 700,
+        fontFamily: 'var(--jp)',
+        letterSpacing: 'var(--ls-wide)',
+        border: 'none',
+        cursor: 'pointer',
+        boxShadow: '0 8px 24px -8px rgba(255, 0, 51, 0.5)',
+        transition: 'all var(--t-base)',
+      }}
+      onTouchStart={(e) => { e.currentTarget.style.transform = 'scale(0.98)'; }}
+      onTouchEnd={(e) => { e.currentTarget.style.transform = 'scale(1)'; }}>
+        <span style={{ display: 'inline-flex', alignItems: 'center', gap: 10 }}>
+          <span style={{
+            display: 'inline-flex', alignItems: 'center', justifyContent: 'center',
+            width: 28, height: 28,
+            background: '#fff', color: '#ff0033',
+            borderRadius: 4, fontSize: 12, fontWeight: 800,
+            letterSpacing: '0.02em',
+          }}>P</span>
+          <span>{lang === 'en'
+            ? `Pay with PayPay${amount ? ` (¥${amount.toLocaleString()})` : ''}`
+            : `PayPay で支払う${amount ? ` (¥${amount.toLocaleString()})` : ''}`}</span>
+        </span>
+        <span>→</span>
+      </button>
+
+      {/* 名前一致確認モーダル */}
+      {modalOpen && (
+        <div style={{
+          position: 'fixed', inset: 0, zIndex: 300,
+          background: 'rgba(10, 22, 40, 0.7)',
+          backdropFilter: 'blur(8px)',
+          WebkitBackdropFilter: 'blur(8px)',
+          display: 'flex', alignItems: 'center', justifyContent: 'center',
+          padding: 24,
+        }} onClick={(e) => { if (e.target === e.currentTarget) setModalOpen(false); }}>
+          <div style={{
+            background: '#fff',
+            borderRadius: 12,
+            padding: '28px 24px 24px',
+            maxWidth: 420, width: '100%',
+            boxShadow: '0 24px 48px -12px rgba(0,0,0,0.4)',
+            fontFamily: 'var(--jp)',
+            // (Phase 15.S24 MH11) モーダル長文対応: 画面高超えたらスクロール
+            maxHeight: 'calc(100vh - 48px)',
+            overflowY: 'auto',
+            WebkitOverflowScrolling: 'touch',
+          }}>
+            {/* ヘッダー */}
+            <div style={{
+              display: 'flex', alignItems: 'center', gap: 10,
+              marginBottom: 16,
+            }}>
+              <div style={{
+                width: 36, height: 36,
+                background: '#fef3c7',
+                color: '#92400e',
+                borderRadius: '50%',
+                display: 'flex', alignItems: 'center', justifyContent: 'center',
+                fontSize: 18, fontWeight: 800,
+              }}>!</div>
+              <strong style={{
+                fontSize: 16, fontWeight: 700,
+                color: '#0a2960',
+                letterSpacing: '0.02em',
+              }}>{lang === 'en' ? 'Important: Before sending' : '重要: 送金ボタンを押す前に'}</strong>
+            </div>
+
+            <div style={{
+              fontSize: 14, lineHeight: 1.8,
+              color: '#374151',
+              marginBottom: 16,
+            }}>
+              {lang === 'en' ? (
+                <>
+                  <p style={{margin: '0 0 12px'}}>
+                    Please check your <strong>PayPay display name</strong>.
+                  </p>
+                  <p style={{margin: '0 0 12px'}}>
+                    If your PayPay name is <strong>different from your registered name</strong>:
+                  </p>
+                  <div style={{
+                    padding: '10px 14px',
+                    background: '#f0f9ff',
+                    border: '1px solid #bae6fd',
+                    borderRadius: 6,
+                    margin: '0 0 12px',
+                  }}>
+                    <div style={{fontSize: 12, color: '#0369a1', fontWeight: 600, marginBottom: 4}}>
+                      Add a message:
+                    </div>
+                    <div style={{fontSize: 13, color: '#374151', lineHeight: 1.6}}>
+                      "Registered as: <strong>{userName || '(your name)'}</strong>"
+                    </div>
+                  </div>
+                  <p style={{margin: 0, fontSize: 12, color: '#6b7280'}}>
+                    This helps us match your payment to your registration.
+                  </p>
+                </>
+              ) : (
+                <>
+                  <p style={{margin: '0 0 12px'}}>
+                    送金ボタンを押す前に、 <strong>PayPay の表示名</strong>をご確認ください。
+                  </p>
+                  <p style={{margin: '0 0 12px'}}>
+                    PayPay 表示名が <strong>connec+a 登録名と違う場合</strong>のみ、
+                    送金時のメッセージ欄に一言添えてください。
+                  </p>
+                  <div style={{
+                    padding: '10px 14px',
+                    background: '#f0f9ff',
+                    border: '1px solid #bae6fd',
+                    borderRadius: 6,
+                    margin: '0 0 12px',
+                  }}>
+                    <div style={{fontSize: 12, color: '#0369a1', fontWeight: 600, marginBottom: 4}}>
+                      メッセージ例:
+                    </div>
+                    <div style={{fontSize: 13, color: '#374151', lineHeight: 1.6}}>
+                      「connec+a 登録名: <strong>{userName || '(あなたの名前)'}</strong>」
+                    </div>
+                  </div>
+                  <p style={{margin: 0, fontSize: 12, color: '#6b7280', lineHeight: 1.6}}>
+                    これにより、 運営側で決済の照会がスムーズになります。
+                    PayPay 表示名と登録名が同じ場合、 メッセージは不要です。
+                  </p>
+                </>
+              )}
+            </div>
+
+            <div style={{
+              display: 'grid', gridTemplateColumns: '1fr 1fr',
+              gap: 10,
+            }}>
+              <button onClick={() => setModalOpen(false)} style={{
+                padding: '12px 16px',
+                background: '#fff',
+                color: '#6b7280',
+                border: '1px solid #e5e7eb',
+                borderRadius: 6,
+                fontSize: 13, fontWeight: 600,
+                fontFamily: 'var(--jp)',
+                cursor: 'pointer',
+              }}>{lang === 'en' ? 'Cancel' : 'キャンセル'}</button>
+              <a href={url} target="_blank" rel="noopener noreferrer"
+                onClick={() => setModalOpen(false)}
+                style={{
+                  padding: '12px 16px',
+                  background: '#ff0033',
+                  color: '#fff',
+                  border: 'none',
+                  borderRadius: 6,
+                  fontSize: 13, fontWeight: 700,
+                  fontFamily: 'var(--jp)',
+                  cursor: 'pointer',
+                  textAlign: 'center',
+                  textDecoration: 'none',
+                  display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 6,
+                }}>
+                <span>{lang === 'en' ? 'Got it, go to PayPay' : 'PayPay へ'}</span>
+                <span>→</span>
+              </a>
+            </div>
+          </div>
+        </div>
+      )}
+    </>
+  );
+}
+
 function PageEventRegisterComplete({ lang, t, eventId, events }) {
   const auth = useAuth();
   // クエリから regId を取得
@@ -15438,11 +16696,13 @@ function PageEventRegisterComplete({ lang, t, eventId, events }) {
     return () => timers.forEach(clearTimeout);
   }, []);
 
-  // 登録情報を取得 (regId が必要なため)
+  // (Phase 15.S22 C3+C7) 登録情報を取得 (最新ステータス + paymentUrl 取得用)
+  // 申込直後はキャッシュ前の最新データを取りに行く + 1.5 秒後にもう一度リトライ
   React.useEffect(() => {
     if (!auth.user || !regId) return;
     let cancelled = false;
-    (async () => {
+    let retryTimer = null;
+    const fetchReg = async () => {
       try {
         const token = authStore.getToken();
         if (!token) return;
@@ -15450,8 +16710,14 @@ function PageEventRegisterComplete({ lang, t, eventId, events }) {
         const found = (result.registrations || []).find(r => r.regId === regId);
         if (!cancelled && found) setReg(found);
       } catch (err) { console.error('Failed to load registration:', err); }
-    })();
-    return () => { cancelled = true; };
+    };
+    fetchReg();
+    // 1.5 秒後にもう一度: GAS 側のキャッシュ反映を考慮、 ステータスが「申込済み」になっているか確認
+    retryTimer = setTimeout(fetchReg, 1500);
+    return () => {
+      cancelled = true;
+      if (retryTimer) clearTimeout(retryTimer);
+    };
   }, [auth.user, regId]);
 
   // QR SVG 生成
@@ -15661,58 +16927,55 @@ function PageEventRegisterComplete({ lang, t, eventId, events }) {
           transition: 'all 0.5s ease-out',
           display: 'grid', gap: 'var(--space-3)',
         }}>
-          {/* (Phase 15.S10) 未決済 + 事前決済系 + 決済URL あり = 決済ボタン (最優先) */}
-          {reg && reg.status === '未決済' && reg.paymentType === '事前決済'
+          {/* (Phase 15.S20/S21) PayPay 決済ボタン — 申込済み(未決済) なら表示 */}
+          {/* 条件緩和: paymentType ではなく status と paid で判定、 paymentUrl があれば表示 */}
+          {reg && (reg.status === '申込済み' || reg.status === '未決済') && !reg.paid
               && reg.event && reg.event.paymentUrl
+              && !reg.event.paymentLinkExpired
               && /^https?:\/\//i.test(reg.event.paymentUrl) && (
-            <a href={reg.event.paymentUrl}
-               target="_blank"
-               rel="noopener noreferrer"
-               style={{
-                 display: 'flex', alignItems: 'center', justifyContent: 'space-between',
-                 padding: 'var(--space-5) var(--space-5)',
-                 background: '#f59e0b',
-                 color: '#fff',
-                 fontSize: 'var(--font-body)',
-                 fontWeight: 700,
-                 fontFamily: 'var(--jp)',
-                 textDecoration: 'none',
-                 letterSpacing: 'var(--ls-wide)',
-                 boxShadow: '0 8px 20px -8px rgba(245, 158, 11, 0.5)',
-                 transition: 'all var(--t-base)',
-               }}
-               onTouchStart={(e) => { e.currentTarget.style.transform = 'scale(0.98)'; }}
-               onTouchEnd={(e) => { e.currentTarget.style.transform = 'scale(1)'; }}>
-              <span style={{ display: 'inline-flex', alignItems: 'center', gap: 8 }}>
-                <span style={{ fontSize: 18 }}>💳</span>
-                <span>{lang === 'en' ? `Pay now (¥${reg.amount ? reg.amount.toLocaleString() : ''})` : `今すぐ決済する${reg.amount ? ` (¥${reg.amount.toLocaleString()})` : ''}`}</span>
-              </span>
-              <Icon name="arrow-right" size={16} />
-            </a>
+            <PayPayCTA
+              url={reg.event.paymentUrl}
+              amount={reg.amount}
+              userName={(auth.user && (auth.user.name || auth.user.nickname)) || ''}
+              eventTitle={reg.event.title || ''}
+              lang={lang}
+            />
           )}
 
-          {/* (Phase 15.S10) 未決済 + 事前決済系 だが 決済URL なしの 警告 */}
-          {reg && reg.status === '未決済' && reg.paymentType === '事前決済'
+          {/* (Phase 15.S20/S21) 期限切れ または リンク未設定 = フォールバック */}
+          {reg && (reg.status === '申込済み' || reg.status === '未決済') && !reg.paid
+              && reg.amount > 0
               && (!reg.event || !reg.event.paymentUrl
+                  || reg.event.paymentLinkExpired
                   || !/^https?:\/\//i.test(reg.event.paymentUrl)) && (
             <div style={{
-              padding: 'var(--space-4) var(--space-5)',
+              padding: 'var(--space-5)',
               background: 'rgba(245, 158, 11, 0.15)',
-              border: '1px solid rgba(245, 158, 11, 0.4)',
+              border: '1px solid rgba(245, 158, 11, 0.5)',
               color: '#fff',
-              fontSize: 'var(--font-body-sm)',
               fontFamily: 'var(--jp)',
-              lineHeight: 1.6,
+              lineHeight: 1.7,
               letterSpacing: 'var(--ls-wide)',
             }}>
-              <strong style={{ display: 'block', marginBottom: 4, fontSize: 13 }}>
-                {lang === 'en' ? '⚠ Payment link not configured' : '⚠ 決済リンク未設定'}
-              </strong>
-              <span style={{ fontSize: 12, opacity: 0.85 }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 8 }}>
+                <span style={{ fontSize: 22 }}>⏳</span>
+                <strong style={{ fontSize: 14, fontWeight: 700 }}>
+                  {lang === 'en' ? 'Payment link is being prepared' : '決済リンクを準備中です'}
+                </strong>
+              </div>
+              <div style={{ fontSize: 12, opacity: 0.9, lineHeight: 1.7 }}>
                 {lang === 'en'
-                  ? 'Your registration is saved. Contact the organizer for payment instructions.'
-                  : '申込は受け付けています。\n運営に決済方法をお問い合わせください。'}
-              </span>
+                  ? 'Your registration is confirmed. The payment link is being prepared by the organizer. Please contact us if you need it urgently.'
+                  : '申込は受付済みです。\n運営にて PayPay 決済リンクを準備しております。\n急ぎの場合はお問い合わせください。'}
+              </div>
+              <a href="#/contact" style={{
+                display: 'inline-block', marginTop: 10,
+                fontSize: 11,
+                color: '#fff',
+                textDecoration: 'underline',
+                fontFamily: 'var(--jp)',
+                fontWeight: 600,
+              }}>{lang === 'en' ? 'Contact us →' : 'お問い合わせ →'}</a>
             </div>
           )}
 
@@ -15756,9 +17019,85 @@ function PageEventRegisterComplete({ lang, t, eventId, events }) {
             <span>{lang === 'en' ? 'Go to My Page' : 'マイページへ'}</span>
             <Icon name="arrow-right" size={14} />
           </a>
+
+          {/* (Phase 15.S28 F9) カレンダー追加ボタン — 当日忘れ防止 */}
+          {event && event.date && (
+            <div style={{
+              marginTop: 'var(--space-4)',
+              paddingTop: 'var(--space-4)',
+              borderTop: '1px solid rgba(255,255,255,0.15)',
+              display: 'flex',
+              flexDirection: 'column',
+              alignItems: 'center',
+              gap: 10,
+            }}>
+              <div style={{
+                fontFamily: 'var(--mono, monospace)',
+                fontSize: 10,
+                letterSpacing: '0.18em',
+                color: 'rgba(255,255,255,0.55)',
+                fontWeight: 600,
+              }}>{lang === 'en' ? 'DON\u0027T FORGET' : '当日 忘れずに'}</div>
+              {/* インライン用 ライト版 (紺背景に白) */}
+              <CalendarButtonsLight
+                event={event}
+                lang={lang}
+                extraDescription={`connec+a イベント\n会場: ${event.venue || '未定'}\n申込ID: ${regId}\n詳細: ${typeof window !== 'undefined' ? window.location.origin + window.location.pathname : ''}`}
+              />
+            </div>
+          )}
         </div>
       </div>
     </section>
+  );
+}
+
+// (Phase 15.S28 F9) 完了画面用 — 紺背景に映える 白枠ボタン (Google + Apple/.ics)
+function CalendarButtonsLight({ event, lang, extraDescription }) {
+  if (!event || !event.date) return null;
+  const gcalUrl = buildGoogleCalendarUrl(event, extraDescription);
+  const labels = {
+    ja: { google: 'Google カレンダー', apple: 'Apple / その他' },
+    en: { google: 'Google Calendar', apple: 'Apple / Other' },
+    easy: { google: 'Google カレンダー', apple: 'Apple / そのた' },
+  };
+  const l = labels[lang] || labels.ja;
+  const sharedStyle = {
+    display: 'inline-flex', alignItems: 'center', gap: 6,
+    padding: '10px 16px',
+    background: 'rgba(255,255,255,0.08)',
+    color: '#fff',
+    border: '1px solid rgba(255,255,255,0.3)',
+    borderRadius: 6,
+    fontSize: 12,
+    fontWeight: 600,
+    fontFamily: 'var(--jp)',
+    cursor: 'pointer',
+    textDecoration: 'none',
+    transition: 'all 0.2s',
+  };
+  return (
+    <div style={{
+      display: 'flex',
+      flexWrap: 'wrap',
+      gap: 8,
+      justifyContent: 'center',
+    }}>
+      {gcalUrl && (
+        <a href={gcalUrl} target="_blank" rel="noopener noreferrer"
+          style={sharedStyle}
+          onMouseOver={(e) => { e.currentTarget.style.background = 'rgba(255,255,255,0.18)'; }}
+          onMouseOut={(e) => { e.currentTarget.style.background = 'rgba(255,255,255,0.08)'; }}>
+          <span>{l.google}</span>
+        </a>
+      )}
+      <button onClick={() => downloadICalFile(event, extraDescription)}
+        style={{ ...sharedStyle, background: 'rgba(255,255,255,0.08)' }}
+        onMouseOver={(e) => { e.currentTarget.style.background = 'rgba(255,255,255,0.18)'; }}
+        onMouseOut={(e) => { e.currentTarget.style.background = 'rgba(255,255,255,0.08)'; }}>
+        <span>{l.apple}</span>
+      </button>
+    </div>
   );
 }
 
@@ -15984,10 +17323,13 @@ function PageMyPage({ lang, t, events }) {
     return result.slice(0, 3);
   })();
 
-  // (Phase 15.S11 A2) 未決済の申込を抽出 (status='未決済' + キャンセルでない + 今日以降のイベント)
+  // (Phase 15.S20) 未決済 (= 申込済みかつ paid=false) の申込を抽出
   const unpaidRegistrations = React.useMemo(() => {
     return allRegsWithEvent.filter(function(r) {
-      if (r.status !== '未決済') return false;
+      // 新ステータス「申込済み」かつ未決済 (paid=false) のみ
+      // 旧ステータス「未決済」も互換のため拾う
+      const isUnpaid = (r.status === '申込済み' && !r.paid) || r.status === '未決済';
+      if (!isUnpaid) return false;
       const endStr = r.event.endDate || r.event.date;
       if (!endStr) return true;
       const endDate = new Date(String(endStr) + 'T23:59:59');
@@ -16068,11 +17410,15 @@ function PageMyPage({ lang, t, events }) {
                   display: 'flex',
                   alignItems: 'center',
                   gap: 6,
+                  // (Phase 15.S24 MH12) 長文タイトルでもアラート枠から はみ出さない
+                  flexWrap: 'wrap',
+                  wordBreak: 'break-word',
+                  overflowWrap: 'anywhere',
                 }}>
                   <span style={{ opacity: 0.6 }}>•</span>
-                  <span style={{ fontWeight: 600 }}>{r.event.title}</span>
+                  <span style={{ fontWeight: 600, flex: 1, minWidth: 0 }}>{r.event.title}</span>
                   {r.amount > 0 && (
-                    <span style={{ marginLeft: 'auto', fontFamily: 'var(--mono)' }}>
+                    <span style={{ marginLeft: 'auto', fontFamily: 'var(--mono)', whiteSpace: 'nowrap' }}>
                       ¥{r.amount.toLocaleString()}
                     </span>
                   )}
@@ -16679,6 +18025,12 @@ function MyEventCard({ registration, past, onCancel, lang }) {
   // ステータスバッジの色
   const statusColor = (() => {
     switch (registration.status) {
+      // (Phase 15.S20) 新ステータス
+      case '申込済み':   return registration.paid
+        ? { bg: '#ecfdf5', fg: '#065f46', label: lang === 'en' ? 'Paid' : '決済済み' }
+        : { bg: '#fef3c7', fg: '#92400e', label: lang === 'en' ? 'Pending' : '申込済み (未決済)' };
+      case '決済済み':   return { bg: '#ecfdf5', fg: '#065f46', label: lang === 'en' ? 'Paid' : '決済済み' };
+      // 旧ステータス互換
       case '確定':       return { bg: '#ecfdf5', fg: '#065f46', label: at.badgeConfirmed };
       case '未決済':     return { bg: '#fef3c7', fg: '#92400e', label: registration.memo && registration.memo.indexOf('当日払い') >= 0 ? at.badgeDayPay : at.badgeUnpaid };
       case 'チェックイン済': return { bg: '#f0f9ff', fg: '#1e40af', label: at.badgeAttended };
@@ -16806,42 +18158,30 @@ function MyEventCard({ registration, past, onCancel, lang }) {
           </div>
         </div>
 
-        {/* (Phase 15.S10) 未決済 + 事前決済系 + paymentUrl あり = 決済する ボタン */}
-        {!past && !isCancelled && registration.status === '未決済'
-            && registration.paymentType === '事前決済'
+        {/* (Phase 15.S22 H4) 申込済み or 未決済 + 未支払 + 有効な決済URL = PayPay モーダル経由ボタン */}
+        {!past && !isCancelled
+            && (registration.status === '申込済み' || registration.status === '未決済')
+            && !registration.paid
             && event.paymentUrl
+            && !event.paymentLinkExpired
             && /^https?:\/\//i.test(event.paymentUrl) && (
-          <a href={event.paymentUrl}
-             target="_blank"
-             rel="noopener noreferrer"
-             onClick={(e) => e.stopPropagation()}
-             style={{
-               flexShrink: 0,
-               padding: '8px 14px',
-               fontSize: 12,
-               fontWeight: 600,
-               fontFamily: 'var(--jp)',
-               color: '#fff',
-               background: '#0a2960',
-               border: '1px solid #0a2960',
-               borderRadius: 4,
-               textDecoration: 'none',
-               alignSelf: 'center',
-               letterSpacing: '0.04em',
-               whiteSpace: 'nowrap',
-               display: 'inline-flex',
-               alignItems: 'center',
-               gap: 6,
-             }}>
-            <span>{lang === 'en' ? 'Pay now' : '決済する'}</span>
-            <span>→</span>
-          </a>
+          <PayPayMiniCTA
+            url={event.paymentUrl}
+            amount={registration.amount}
+            userName={(useAuth().user && (useAuth().user.name || useAuth().user.nickname)) || ''}
+            eventTitle={event.title || ''}
+            lang={lang}
+          />
         )}
 
-        {/* (Phase 15.S10) 未決済 + 事前決済系だが決済URL未設定の場合のヘルプ */}
-        {!past && !isCancelled && registration.status === '未決済'
-            && registration.paymentType === '事前決済'
-            && (!event.paymentUrl || !/^https?:\/\//i.test(event.paymentUrl)) && (
+        {/* (Phase 15.S20/S21) 申込済み or 未決済 + 未支払 + 期限切れ or 未設定 = フォールバック */}
+        {!past && !isCancelled
+            && (registration.status === '申込済み' || registration.status === '未決済')
+            && !registration.paid
+            && registration.amount > 0
+            && (!event.paymentUrl
+                || event.paymentLinkExpired
+                || !/^https?:\/\//i.test(event.paymentUrl)) && (
           <div style={{
             flexShrink: 0,
             padding: '6px 10px',
@@ -16854,9 +18194,11 @@ function MyEventCard({ registration, past, onCancel, lang }) {
             alignSelf: 'center',
             letterSpacing: '0.04em',
             lineHeight: 1.4,
-            maxWidth: 140,
+            maxWidth: 160,
           }}>
-            {lang === 'en' ? 'Contact organizer for payment' : '運営に連絡して決済'}
+            {event.paymentLinkExpired
+              ? (lang === 'en' ? '⏳ Link being prepared' : '⏳ 決済リンクを準備中')
+              : (lang === 'en' ? 'Contact organizer' : '運営に連絡して決済')}
           </div>
         )}
 
@@ -17649,7 +18991,8 @@ function PageTicket({ regId, lang }) {
             {qrSvg ? (
               <div style={{
                 position: 'relative',
-                width: 'min(320px, 80vw)', height: 'min(320px, 80vw)',
+                // (Phase 15.S25 MM7) clamp で 小画面 280px - タブレット 440px - 大画面 380px
+                width: 'clamp(240px, 80vw, 380px)', height: 'clamp(240px, 80vw, 380px)',
                 padding: 16,
               }}>
                 {/* 4隅アクセント (Admin側スキャナー枠と同じテイスト) */}
@@ -19141,6 +20484,8 @@ function ContactInput({ label, type, value, onChange, placeholder, required, err
 // ============================================================================
 function Footer({ lang, t }) {
   // (Phase 15.S9 新D) モバイル対応 Aman 風 Footer
+  // (Phase 15.S25) PC 時は 4 カラム、 モバイル時は 2 カラム
+  const vp = useViewport();
   return (
     <footer style={{
       background: '#0a1628',
@@ -19197,7 +20542,8 @@ function Footer({ lang, t }) {
         {/* === ナビゲーションリンク (グリッド) === */}
         <div style={{
           display: 'grid',
-          gridTemplateColumns: 'repeat(2, 1fr)',
+          // (Phase 15.S25) PC: 4 列、 モバイル: 2 列
+          gridTemplateColumns: vp.isMobile ? 'repeat(2, 1fr)' : 'repeat(4, 1fr)',
           gap: 'var(--space-6, 24px) var(--space-5, 20px)',
           marginBottom: 'var(--space-9, 48px)',
         }}>
@@ -19217,12 +20563,21 @@ function Footer({ lang, t }) {
                 { href: '#/news',    ja: 'ニュース',     en: 'News',     easy: 'ニュース' },
                 { href: '#/about',   ja: '私たちのこと', en: 'About us', easy: 'わたしたち' },
               ].map(item => (
-                <a key={item.href} href={item.href} style={{
+                <a key={item.href} href={item.href}
+                  className="footer-link"
+                  style={{
                   fontSize: 14,
                   fontFamily: 'var(--jp)',
                   color: 'rgba(255,255,255,0.85)',
                   textDecoration: 'none',
                   letterSpacing: '0.04em',
+                  // (Phase 15.S25 MM6) タップ領域 + ホバーアニメ
+                  display: 'inline-flex',
+                  alignItems: 'center',
+                  minHeight: 32,
+                  paddingTop: 4,
+                  paddingBottom: 4,
+                  transition: 'color .25s, transform .25s',
                 }}>{lang === 'en' ? item.en : lang === 'easy' ? item.easy : item.ja}</a>
               ))}
             </div>
@@ -19244,12 +20599,20 @@ function Footer({ lang, t }) {
                 { href: '#/login',   ja: 'ログイン',   en: 'Log In',          easy: 'ろぐいん' },
                 { href: '#/contact', ja: 'お問い合わせ', en: 'Contact',       easy: 'おといあわせ' },
               ].map(item => (
-                <a key={item.href} href={item.href} style={{
+                <a key={item.href} href={item.href}
+                  className="footer-link"
+                  style={{
                   fontSize: 14,
                   fontFamily: 'var(--jp)',
                   color: 'rgba(255,255,255,0.85)',
                   textDecoration: 'none',
                   letterSpacing: '0.04em',
+                  display: 'inline-flex',
+                  alignItems: 'center',
+                  minHeight: 32,
+                  paddingTop: 4,
+                  paddingBottom: 4,
+                  transition: 'color .25s, transform .25s',
                 }}>{lang === 'en' ? item.en : lang === 'easy' ? item.easy : item.ja}</a>
               ))}
             </div>
@@ -19271,6 +20634,7 @@ function Footer({ lang, t }) {
           }}>FOLLOW US</div>
           <div style={{
             display: 'flex', justifyContent: 'center', gap: 12,
+            flexWrap: 'wrap',
           }}>
             {[
               { href: 'https://www.instagram.com/connecta_official/', label: 'Instagram', short: 'IG' },
@@ -19570,6 +20934,19 @@ class ErrorBoundary extends React.Component {
   }
 }
 
+// (Phase 15.S33/S34) ページ遷移トランジション — アニメ廃止 + スクロール位置リセット (確実版)
+function PageTransition({ routeKey, children }) {
+  React.useEffect(() => {
+    // 複数 API 併用で iOS Safari でも確実にトップへ
+    try {
+      window.scrollTo(0, 0);
+      document.documentElement.scrollTop = 0;
+      document.body.scrollTop = 0;
+    } catch (e) {}
+  }, [routeKey]);
+  return children;
+}
+
 function App() {
   const [lang, setLang] = useLang();
   const route = useRoute();
@@ -19736,6 +21113,8 @@ function App() {
     <React.Fragment>
       {/* (Phase 6.11) Nav と Footer は常にマウント (ベース画面は0秒から描画される)。
           オープニングは「上に被さる蓋」。オープニング中も裏でベース画面は完成している。 */}
+      {/* (Phase 15.S25) スクロール進捗バー — Nav の上、 110z で常に最上に */}
+      <ScrollProgress />
       <Nav lang={lang} setLang={setLang} t={t} transparent={isHome}
            menuOpen={globalMenuOpen} setMenuOpen={setGlobalMenuOpen} />
       <main id="main-content" tabIndex={-1} style={{
@@ -19745,7 +21124,10 @@ function App() {
         paddingBottom: 'calc(56px + env(safe-area-inset-bottom, 0px))',
       }}>
         <ErrorBoundary label={lang === 'en' ? 'This page failed to load.' : 'このページを読み込めませんでした。'}>
-          {Page}
+          {/* (Phase 15.S27/S29) ページ遷移トランジション — VEIL — クエリ違いでは発動しない */}
+          <PageTransition routeKey={(route || '/').split('?')[0]}>
+            {Page}
+          </PageTransition>
         </ErrorBoundary>
       </main>
       <ErrorBoundary label="">
@@ -19753,9 +21135,12 @@ function App() {
       </ErrorBoundary>
       {/* (Phase 15.S13) モバイル下部クイックアクセス */}
       <BottomNav lang={lang} t={t} currentRoute={route}
+                 menuOpen={globalMenuOpen}
                  onMenuOpen={() => setGlobalMenuOpen(true)} />
       {/* (L10) Cookie同意バナー */}
       <CookieConsent lang={lang} />
+      {/* (Phase 15.S28) PWA インストール誘導バナー — beforeinstallprompt をキャッチ */}
+      <PWAInstallBanner lang={lang} />
       {/* オープニング画面 (上下カーテン)。最後に描画 = 一番手前 */}
       {openingPhase !== 'gone' && (
         <OpeningCurtain phase={openingPhase} settings={siteSettings} />
@@ -19765,6 +21150,128 @@ function App() {
 }
 
 // (L10) Cookie同意バナー — 大手企業基準のGDPR/個人情報保護準拠
+// (Phase 15.S28) PWA インストール誘導バナー
+// beforeinstallprompt イベントをキャッチして、 数秒後に控えめに表示
+function PWAInstallBanner({ lang }) {
+  const [deferredPrompt, setDeferredPrompt] = React.useState(null);
+  const [show, setShow] = React.useState(false);
+  const [dismissed, setDismissed] = React.useState(() => {
+    try {
+      const v = localStorage.getItem('cca_pwa_install_dismissed');
+      if (!v) return false;
+      const expireAt = Number(v);
+      return Date.now() < expireAt;  // 7日間表示しない
+    } catch (e) { return false; }
+  });
+
+  React.useEffect(() => {
+    if (dismissed) return;
+    const handler = (e) => {
+      e.preventDefault();
+      setDeferredPrompt(e);
+      // 8 秒後に表示 (即座にだとうるさい)
+      setTimeout(() => setShow(true), 8000);
+    };
+    window.addEventListener('beforeinstallprompt', handler);
+    // インストール完了時に閉じる
+    const installedHandler = () => { setShow(false); setDeferredPrompt(null); };
+    window.addEventListener('appinstalled', installedHandler);
+    return () => {
+      window.removeEventListener('beforeinstallprompt', handler);
+      window.removeEventListener('appinstalled', installedHandler);
+    };
+  }, [dismissed]);
+
+  const handleInstall = async () => {
+    if (!deferredPrompt) return;
+    deferredPrompt.prompt();
+    const { outcome } = await deferredPrompt.userChoice;
+    if (outcome === 'accepted') {
+      setShow(false);
+    }
+    setDeferredPrompt(null);
+  };
+
+  const handleDismiss = () => {
+    setShow(false);
+    try {
+      // 7日間 表示しない
+      const expireAt = Date.now() + 7 * 24 * 60 * 60 * 1000;
+      localStorage.setItem('cca_pwa_install_dismissed', String(expireAt));
+    } catch (e) {}
+  };
+
+  if (!show || !deferredPrompt) return null;
+
+  return (
+    <div style={{
+      position: 'fixed',
+      bottom: 'calc(72px + env(safe-area-inset-bottom, 0px))',  // BottomNav (56px) の上
+      left: 16, right: 16,
+      maxWidth: 480,
+      margin: '0 auto',
+      zIndex: 95,
+      background: '#fff',
+      borderRadius: 12,
+      boxShadow: '0 12px 32px -8px rgba(10, 22, 40, 0.18), 0 2px 8px rgba(10, 22, 40, 0.06)',
+      border: '1px solid rgba(10, 22, 40, 0.08)',
+      padding: 16,
+      display: 'flex',
+      alignItems: 'center',
+      gap: 12,
+      fontFamily: 'var(--jp)',
+      animation: 'cca-slide-up-fade 0.4s cubic-bezier(0.2, 0.8, 0.2, 1)',
+    }}>
+      <div style={{
+        width: 44, height: 44,
+        flexShrink: 0,
+        background: 'linear-gradient(135deg, #0a2960 0%, #2c89e8 100%)',
+        borderRadius: 10,
+        display: 'flex', alignItems: 'center', justifyContent: 'center',
+        color: '#fff',
+        fontFamily: 'var(--sans)',
+        fontSize: 16, fontWeight: 800,
+        letterSpacing: '0.02em',
+      }}>+a</div>
+      <div style={{ flex: 1, minWidth: 0 }}>
+        <div style={{
+          fontSize: 13, fontWeight: 700,
+          color: 'var(--ink-1, #0a1628)',
+          marginBottom: 2,
+        }}>{lang === 'en' ? 'Install connec+a' : 'connec+a をホーム画面に'}</div>
+        <div style={{
+          fontSize: 11,
+          color: 'var(--ink-3, #4b5563)',
+          lineHeight: 1.4,
+        }}>{lang === 'en' ? 'Faster access, full-screen experience' : 'すぐ開ける、 フルスクリーン体験'}</div>
+      </div>
+      <button onClick={handleInstall} style={{
+        padding: '8px 14px',
+        background: '#0a2960',
+        color: '#fff',
+        border: 'none',
+        borderRadius: 6,
+        fontSize: 12, fontWeight: 700,
+        fontFamily: 'var(--jp)',
+        cursor: 'pointer',
+        whiteSpace: 'nowrap',
+        flexShrink: 0,
+      }}>{lang === 'en' ? 'Install' : '追加'}</button>
+      <button onClick={handleDismiss} aria-label="閉じる" style={{
+        width: 28, height: 28,
+        background: 'transparent',
+        border: 'none',
+        color: 'var(--ink-4, #6b7280)',
+        fontSize: 18,
+        cursor: 'pointer',
+        flexShrink: 0,
+        padding: 0,
+        display: 'flex', alignItems: 'center', justifyContent: 'center',
+      }}>×</button>
+    </div>
+  );
+}
+
 function CookieConsent({ lang }) {
   const [visible, setVisible] = useState(false);
   useEffect(() => {
@@ -19854,6 +21361,59 @@ try {
   if (fallback) {
     fallback.innerHTML = '<h1 style="color:#d44;">起動エラー</h1>'
       + '<p style="color:#666;font-family:monospace;font-size:12px;">' + (err.message || err) + '</p>';
+  }
+}
+
+// (Phase 15.S28) PWA Service Worker 登録
+// 単一HTML運用のため、 Blob で SW スクリプトを動的生成して登録する
+// 注意: Blob 経由 SW は scope が制限される (SW ファイル自体の URL のスコープ)
+// → 同一ファイルから動的生成すると scope = 同じパス、 でも Page との同期が必要
+// より一般的な方法は別ファイル sw.js を置くこと。 ここでは fetch インターセプトのみ最小実装
+if ('serviceWorker' in navigator && location.protocol === 'https:') {
+  // SW 本体を文字列で構築 — fetch をキャッシュファースト戦略で
+  const swCode = `
+    const CACHE_NAME = 'cca-cache-v1';
+    const STATIC_ASSETS = [self.location.origin + self.location.pathname.replace(/sw\\.js$/, '')];
+    self.addEventListener('install', (e) => {
+      self.skipWaiting();
+    });
+    self.addEventListener('activate', (e) => {
+      e.waitUntil(self.clients.claim());
+    });
+    self.addEventListener('fetch', (e) => {
+      // GAS API は キャッシュしない (常に最新を取得)
+      if (e.request.url.indexOf('script.google.com') >= 0) return;
+      if (e.request.url.indexOf('googleusercontent.com') >= 0) return;
+      // GET のみキャッシュ
+      if (e.request.method !== 'GET') return;
+      // フォント、 画像、 静的アセットを cache-first で
+      const url = new URL(e.request.url);
+      const isStatic = /\\.(woff2?|ttf|otf|png|jpg|jpeg|gif|svg|webp|ico|css|js)(\\?|$)/i.test(url.pathname);
+      if (isStatic) {
+        e.respondWith(
+          caches.open(CACHE_NAME).then((cache) =>
+            cache.match(e.request).then((cached) => {
+              const fetchPromise = fetch(e.request).then((networkRes) => {
+                if (networkRes.ok) cache.put(e.request, networkRes.clone());
+                return networkRes;
+              }).catch(() => cached);
+              return cached || fetchPromise;
+            })
+          )
+        );
+      }
+    });
+  `;
+  try {
+    const blob = new Blob([swCode], { type: 'application/javascript' });
+    const swUrl = URL.createObjectURL(blob);
+    navigator.serviceWorker.register(swUrl).then(() => {
+      console.log('[PWA] Service Worker registered (Blob)');
+    }).catch((err) => {
+      console.warn('[PWA] Service Worker registration failed:', err);
+    });
+  } catch (e) {
+    console.warn('[PWA] Service Worker setup failed:', e);
   }
 }
 </script>
