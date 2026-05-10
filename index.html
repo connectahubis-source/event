@@ -2970,6 +2970,9 @@ function isRegistrationOpen(event) {
 // 申込が締め切られた理由を文字列で返す (UI 表示用) Phase 6.2
 function getRegistrationStatus(event) {
   if (!event) return { open: false, reason: '不明', label: '' };
+  // (Phase 15.S41) 中止/延期 を最優先で判定
+  if (event.status === '中止') return { open: false, reason: 'cancelled', label: '中止' };
+  if (event.status === '延期') return { open: false, reason: 'postponed', label: '延期' };
   if (event.status === '満員') return { open: false, reason: 'full', label: '満員 (キャンセル待ち)' };
   const now = new Date();
   if (event.regOpenDate) {
@@ -6816,8 +6819,10 @@ function SeibanBackgroundImage({ src }) {
 function ConceptSection({ settings, lang, t }) {
   const mainEn = settings.concept_main_en || 'Where strangers become friends.';
   const mainJa = settings.concept_main_ja || '一緒に、東京を歩こう';
+  const mainEasy = settings.concept_main_easy || mainJa;  // (Phase 15.S42) easy フォールバック
   const bodyEn = settings.concept_body_en || "For international students arriving in Tokyo, we don't host events. We host encounters — small, daily, real.";
   const bodyJa = settings.concept_body_ja || 'イベントではなく、出会いを。\n一夜限りでなく、日常のなかで。';
+  const bodyEasy = settings.concept_body_easy || bodyJa;  // (Phase 15.S42) easy フォールバック
 
   // (Phase 13.3) モバイルビューポート
   const conceptVp = useViewport();
@@ -6944,7 +6949,7 @@ function ConceptSection({ settings, lang, t }) {
               fontFamily: 'var(--jp)',
               color: '#cfdcf2',
               letterSpacing: 'var(--ls-normal)',
-            }}>{mainJa}</div>
+            }}>{lang === 'easy' ? mainEasy : mainJa}</div>
           </Reveal>
 
           <Reveal y={15} blur={false} delay={280}>
@@ -6974,7 +6979,7 @@ function ConceptSection({ settings, lang, t }) {
               whiteSpace: 'pre-wrap',
               letterSpacing: 'var(--ls-wide)',
               fontWeight: 400,
-            }}>{lang === 'ja' || lang === 'easy' ? bodyJa : bodyEn}</p>
+            }}>{lang === 'easy' ? bodyEasy : lang === 'ja' ? bodyJa : bodyEn}</p>
           </Reveal>
         </div>
       </section>
@@ -7224,7 +7229,7 @@ function EventsEntrySection({ settings, lang, t }) {
   // (Phase 7.8) ctaText/sub テキストを多言語対応
   const ctaText = lang === 'en' ? (settings.events_section_cta_text_en || 'Join us')
                 : lang === 'easy' ? (settings.events_section_cta_text_easy || 'さんかする')
-                : (settings.events_section_cta_text || '参加する');
+                : (settings.events_section_cta_text_ja || settings.events_section_cta_text || '参加する');
   const galleryText = lang === 'en' ? 'See past events' : lang === 'easy' ? 'むかしの イベント' : '過去のイベントを見る';
   const ctaLink  = settings.events_section_cta_link || '#/events';
   const galleryLink = settings.events_gallery_link || '#/gallery';
@@ -7681,7 +7686,10 @@ function EventsEntrySection({ settings, lang, t }) {
                 paddingLeft: 'clamp(0px, 2vw, 24px)',
                 borderLeft: '1px solid rgba(10, 41, 96, 0.15)',
               }}>
-                {settings.events_section_body || '初めての方も、一人での参加も大歓迎です。\n毎週末、東京のどこかで出会いが生まれています。'}
+                {/* (Phase 15.S42) easy/ja で本文切替、 旧キー events_section_body も互換維持 */}
+                {lang === 'easy'
+                  ? (settings.events_section_body_easy || settings.events_section_body_ja || settings.events_section_body || 'はじめての ひとも、 ひとりの ひとも だいかんげい。\nまいしゅうまつ、 とうきょうの どこかで であいが あります。')
+                  : (settings.events_section_body_ja || settings.events_section_body || '初めての方も、一人での参加も大歓迎です。\n毎週末、東京のどこかで出会いが生まれています。')}
               </p>
             </div>
           </Reveal>
@@ -7709,6 +7717,8 @@ function NewsSection({ settings, newsList, lang, t }) {
   const bgImage = settings.news_section_bg_image || '';
   const labelEn = settings.news_section_label_en || 'News';
   const labelJa = settings.news_section_label_ja || '最新のお知らせ';
+  const labelEasy = settings.news_section_label_easy || labelJa;  // (Phase 15.S42)
+  const label = lang === 'en' ? labelEn : lang === 'easy' ? labelEasy : labelJa;
 
   // (Phase 13.3) モバイルビューポート
   const newsVp = useViewport();
@@ -7791,7 +7801,7 @@ function NewsSection({ settings, newsList, lang, t }) {
             fontFamily: 'var(--jp)',
             marginBottom: 'var(--space-7)',
             letterSpacing: 'var(--ls-wide)',
-          }}>{labelJa}</div>
+          }}>{lang === 'easy' ? labelEasy : labelJa}</div>
         </Reveal>
 
         {items.length === 0 ? (
@@ -11782,6 +11792,7 @@ function PageEventDetail({ lang, t, eventId }) {
   // (Phase 12.1) ビューポート
   const detailVp = useViewport();
   const at = authT(lang);
+  const st = STATUS_T[lang] || STATUS_T.ja;  // (Phase 15.S39) 統一辞書
   const isFav = ev ? fav.has(ev.id) : false;
 
   useEffect(() => {
@@ -11889,8 +11900,8 @@ function PageEventDetail({ lang, t, eventId }) {
     }
     if (alreadyRegistered) {
       await dialog.info({
-        title: '申込済み',
-        message: 'すでにこのイベントに申込済みです。',
+        title: st.registered,
+        message: st.alreadyRegistered,
       });
       return;
     }
@@ -11906,7 +11917,7 @@ function PageEventDetail({ lang, t, eventId }) {
       const token = authStore.getToken();
       const result = await authApi.registerEvent(token, eventId, paymentMethod);
       setRegisterStatus('done');
-      setRegisterMessage(result.message || '参加申込が完了しました');
+      setRegisterMessage(result.message || st.completeBody);
       // 自分の申込一覧を更新
       const refreshed = await authApi.getMyRegistrations(token);
       setMyRegistrations(refreshed.registrations || []);
@@ -11914,8 +11925,8 @@ function PageEventDetail({ lang, t, eventId }) {
       if (result.paymentUrl) {
         if (result.paymentUrl === 'TODO_PAYMENT_URL' || result.paymentUrl === '') {
           await dialog.error({
-            title: '決済リンク未設定',
-            message: '決済リンクがまだ設定されていません。\n運営にお問い合わせください。',
+            title: st.paymentLinkMissing,
+            message: st.paymentLinkNotSetBody,
           });
         } else {
           setTimeout(function() { window.location.href = result.paymentUrl; }, 1500);
@@ -11924,8 +11935,8 @@ function PageEventDetail({ lang, t, eventId }) {
       // 無料イベントの場合は即完了ダイアログ
       if (!paymentMethod) {
         await dialog.success({
-          title: '申込完了',
-          message: result.message || '参加申込が完了しました',
+          title: st.complete,
+          message: result.message || st.completeBody,
         });
         setRegisterStatus('');
       }
@@ -12483,7 +12494,7 @@ function PageEventDetail({ lang, t, eventId }) {
                         marginBottom: 6,
                         overflow: 'hidden',
                         textOverflow: 'ellipsis',
-                      }}>{s.name || `Session ${s.order}`}</div>
+                      }}>{(lang === 'easy' ? (s.name_easy || s.name) : lang === 'en' ? (s.name_en || s.name) : s.name) || `Session ${s.order}`}</div>
                       <div style={{
                         fontFamily: 'var(--jp)',
                         fontSize: 13,
@@ -12502,7 +12513,7 @@ function PageEventDetail({ lang, t, eventId }) {
                         {s.venue && (
                           <span style={{ display: 'inline-flex', alignItems: 'center', gap: 4, color:'var(--sky-700)' }}>
                             <IconMapPin size={13}/>
-                            <span style={{color:'var(--ink-mute)'}}>{s.venue}</span>
+                            <span style={{color:'var(--ink-mute)'}}>{lang === 'easy' ? (s.venue_easy || s.venue) : lang === 'en' ? (s.venue_en || s.venue) : s.venue}</span>
                           </span>
                         )}
                       </div>
@@ -13565,6 +13576,121 @@ function localizeNewsCategory(category, lang) {
   const map = NEWS_CATEGORY_LABELS[lang] || NEWS_CATEGORY_LABELS.ja;
   return map[category] || category;
 }
+
+// (Phase 15.S39) ステータス・フォームラベル・visa ステータスの統一翻訳辞書
+// 全ページで使用、 const st = STATUS_T[lang] || STATUS_T.ja;
+const STATUS_T = {
+  ja: {
+    // ステータス
+    cancel: 'キャンセル',
+    cancelled: 'キャンセルしました',
+    registered: '申込済み',
+    unpaid: '未決済',
+    paid: '決済済',
+    complete: '申込完了',
+    completeBody: '参加申込が完了しました',
+    checkedIn: 'チェックイン済',
+    waitlisted: 'キャンセル待ち',
+    full: '満席',
+    closed: '受付終了',
+    // 確認ダイアログ
+    cancelConfirmTitle: '申込をキャンセルしますか?',
+    cancelConfirmBody: '申込をキャンセルすると、 同じ枠への再申込が必要になる場合があります。',
+    cancelDoing: 'キャンセル中...',
+    cancelFail: 'キャンセルに失敗しました',
+    // 既申込
+    alreadyRegistered: 'すでにこのイベントに申込済みです。',
+    paymentLinkMissing: '決済リンク未設定',
+    paymentLinkNotSetBody: '決済リンクがまだ設定されていません。\n運営にお問い合わせください。',
+    // フォームラベル
+    furigana: 'フリガナ',
+    nickname: 'ニックネーム',
+    birthday: '生年月日',
+    visaStatus: '在留資格',
+    foreignResident: '在留外国人',
+    japanese: '日本人',
+    requiredAll: '必須項目をすべて入力してください',
+    saveFailed: '保存に失敗しました',
+    // Footer ナビ
+    navEvents: 'イベント',
+    navNews: 'ニュース',
+    navAbout: '私たちのこと',
+    navSignup: '会員登録',
+    navContact: '質問する',
+    navLogin: 'ログイン',
+    navMyPage: 'マイページ',
+  },
+  easy: {
+    cancel: 'キャンセル',
+    cancelled: 'キャンセルしました',
+    registered: 'もうしこみずみ',
+    unpaid: 'みばらい',
+    paid: 'けっさいずみ',
+    complete: 'もうしこみ かんりょう',
+    completeBody: 'もうしこみが おわりました',
+    checkedIn: 'チェックインずみ',
+    waitlisted: 'キャンセルまち',
+    full: 'まんせき',
+    closed: 'うけつけ おわり',
+    cancelConfirmTitle: 'もうしこみを キャンセル しますか?',
+    cancelConfirmBody: 'キャンセル すると、 もういちど もうしこむのが むずかしい ばあいが あります。',
+    cancelDoing: 'キャンセル ちゅう...',
+    cancelFail: 'キャンセル できませんでした',
+    alreadyRegistered: 'もう このイベントに もうしこみずみです。',
+    paymentLinkMissing: 'けっさい リンク なし',
+    paymentLinkNotSetBody: 'けっさいの リンクが まだ ありません。\nうんえいに きいてください。',
+    furigana: 'ふりがな',
+    nickname: 'ニックネーム',
+    birthday: 'うまれた ひ',
+    visaStatus: 'ざいりゅう しかく',
+    foreignResident: 'にほんに すんでいる がいこくじん',
+    japanese: 'にほんじん',
+    requiredAll: 'ぜんぶ にゅうりょく してください',
+    saveFailed: 'ほぞん できませんでした',
+    navEvents: 'イベント',
+    navNews: 'ニュース',
+    navAbout: 'わたしたち',
+    navSignup: 'かいいんとうろく',
+    navContact: 'しつもんする',
+    navLogin: 'ログイン',
+    navMyPage: 'マイページ',
+  },
+  en: {
+    cancel: 'Cancel',
+    cancelled: 'Cancelled',
+    registered: 'Registered',
+    unpaid: 'Unpaid',
+    paid: 'Paid',
+    complete: 'Registration complete',
+    completeBody: 'Your registration has been received',
+    checkedIn: 'Checked in',
+    waitlisted: 'On waitlist',
+    full: 'Full',
+    closed: 'Registration closed',
+    cancelConfirmTitle: 'Cancel this registration?',
+    cancelConfirmBody: 'Cancelling may require re-registration if you change your mind.',
+    cancelDoing: 'Cancelling...',
+    cancelFail: 'Failed to cancel',
+    alreadyRegistered: 'You have already registered for this event.',
+    paymentLinkMissing: 'Payment link not set',
+    paymentLinkNotSetBody: 'The payment link has not been set yet.\nPlease contact the organizer.',
+    furigana: 'Furigana',
+    nickname: 'Nickname',
+    birthday: 'Date of birth',
+    visaStatus: 'Visa status',
+    foreignResident: 'Foreign resident in Japan',
+    japanese: 'Japanese national',
+    requiredAll: 'Please fill in all required fields',
+    saveFailed: 'Failed to save',
+    navEvents: 'Events',
+    navNews: 'News',
+    navAbout: 'About us',
+    navSignup: 'Sign up',
+    navContact: 'Contact',
+    navLogin: 'Log in',
+    navMyPage: 'My page',
+  },
+};
 
 const AUTH_T = {
   ja: {
@@ -17177,6 +17303,7 @@ function PageMyPage({ lang, t, events }) {
   const auth = useAuth();
   const dialog = useDialog();
   const at = authT(lang);
+  const st = STATUS_T[lang] || STATUS_T.ja;  // (Phase 15.S39) 統一辞書
   const [editing, setEditing] = React.useState(false);
 
   // (Phase A) 自分の参加申込一覧
@@ -18024,6 +18151,7 @@ function PageMyPage({ lang, t, events }) {
       {editing && (
         <ProfileEditModal
           user={user}
+          lang={lang}
           onClose={() => setEditing(false)}
           onSaved={async () => {
             await auth.refresh();
@@ -19224,7 +19352,8 @@ function PageTicket({ regId, lang }) {
 }
 
 // プロフィール編集モーダル
-function ProfileEditModal({ user, onClose, onSaved }) {
+function ProfileEditModal({ user, onClose, onSaved, lang }) {
+  const st = STATUS_T[lang] || STATUS_T.ja;  // (Phase 15.S39)
   const [name, setName] = React.useState(user.name || '');
   const [kana, setKana] = React.useState(user.kana || '');
   const [nickname, setNickname] = React.useState(user.nickname || '');
@@ -19247,7 +19376,7 @@ function ProfileEditModal({ user, onClose, onSaved }) {
   const handleSave = async () => {
     setError('');
     if (!name || !nickname || !residencyStatus || !nationality || !birthdate || !prefecture || !displayLang) {
-      setError('必須項目をすべて入力してください');
+      setError(st.requiredAll);
       return;
     }
     setSubmitting(true);
@@ -19270,7 +19399,7 @@ function ProfileEditModal({ user, onClose, onSaved }) {
       });
       await onSaved();
     } catch (err) {
-      setError(err.message || '保存に失敗しました');
+      setError(err.message || st.saveFailed);
       setSubmitting(false);
     }
   };
@@ -19299,7 +19428,7 @@ function ProfileEditModal({ user, onClose, onSaved }) {
           <h2 style={{
             margin: 0, fontFamily: 'var(--jp)', fontSize: 20, fontWeight: 600, color: '#0a2960',
             letterSpacing: '0.04em',
-          }}>プロフィール編集</h2>
+          }}>{lang === 'en' ? 'Edit Profile' : lang === 'easy' ? 'プロフィール へんしゅう' : 'プロフィール編集'}</h2>
           <button onClick={onClose} style={{
             background: 'transparent', border: 'none', fontSize: 24, color: '#6b7280',
             cursor: 'pointer', padding: 0, lineHeight: 1,
@@ -19307,10 +19436,10 @@ function ProfileEditModal({ user, onClose, onSaved }) {
         </div>
 
         <div style={{ display: 'flex', flexDirection: 'column', gap: 14 }}>
-          <AuthInput label="名前" value={name} onChange={setName} required />
-          <AuthInput label="フリガナ" value={kana} onChange={setKana} placeholder="任意 (名前がローマ字なら省略可)" />
-          <AuthInput label="ニックネーム" value={nickname} onChange={setNickname} required />
-          <AuthInput label="生年月日" type="date" value={birthdate} onChange={setBirthdate} required />
+          <AuthInput label={lang === 'en' ? 'Name' : lang === 'easy' ? 'なまえ' : '名前'} value={name} onChange={setName} required />
+          <AuthInput label={st.furigana} value={kana} onChange={setKana} placeholder={lang === 'en' ? 'Optional (skip if name is in romaji)' : lang === 'easy' ? 'なくても OK (なまえが ローマじ なら)' : '任意 (名前がローマ字なら省略可)'} />
+          <AuthInput label={st.nickname} value={nickname} onChange={setNickname} required />
+          <AuthInput label={st.birthday} type="date" value={birthdate} onChange={setBirthdate} required />
 
           {/* (Phase 15.S12 B5) メールアドレス: 表示のみ + 変更ガイド */}
           <div>
@@ -19321,7 +19450,7 @@ function ProfileEditModal({ user, onClose, onSaved }) {
               fontWeight: 600,
               color: '#374151',
               marginBottom: 6,
-            }}>メールアドレス</label>
+            }}>{lang === 'en' ? 'Email address' : lang === 'easy' ? 'メールアドレス' : 'メールアドレス'}</label>
             <div style={{
               padding: '10px 14px',
               background: '#f9fafb',
@@ -19447,13 +19576,13 @@ function ProfileEditModal({ user, onClose, onSaved }) {
               padding: '12px 24px', fontFamily: 'var(--jp)', fontSize: 13, fontWeight: 600,
               color: '#0a2960', background: '#fff', border: '2px solid #0a2960',
               borderRadius: 0, cursor: 'pointer',
-            }}>キャンセル</button>
+            }}>{st.cancel}</button>
             <button onClick={handleSave} disabled={submitting} style={{
               flex: 1,
               padding: '12px 24px', fontFamily: 'var(--jp)', fontSize: 13, fontWeight: 600,
               color: '#fff', background: submitting ? '#94a3b8' : '#0a2960',
               border: 'none', borderRadius: 0, cursor: submitting ? 'not-allowed' : 'pointer',
-            }}>{submitting ? '保存中...' : '保存する'}</button>
+            }}>{submitting ? (lang === 'en' ? 'Saving...' : lang === 'easy' ? 'ほぞん ちゅう...' : '保存中...') : (lang === 'en' ? 'Save' : lang === 'easy' ? 'ほぞんする' : '保存する')}</button>
           </div>
         </div>
       </div>
@@ -20554,7 +20683,14 @@ function ContactInput({ label, type, value, onChange, placeholder, required, err
 // ============================================================================
 // FOOTER
 // ============================================================================
-function Footer({ lang, t }) {
+function Footer({ lang, t, siteSettings }) {
+  // (Phase 15.S40) Admin 編集対応のヘルパー
+  const s = siteSettings || {};
+  const sx = (key, fallback) => s[key] || fallback || '';
+  const localizedSx = (baseKey, fallbacks) => {
+    const langKey = lang === 'en' ? '_en' : lang === 'easy' ? '_easy' : '_ja';
+    return s[baseKey + langKey] || s[baseKey + '_ja'] || fallbacks[lang] || fallbacks.ja || '';
+  };
   // (Phase 15.S9 新D) モバイル対応 Aman 風 Footer
   // (Phase 15.S25) PC 時は 4 カラム、 モバイル時は 2 カラム
   const vp = useViewport();
@@ -20753,17 +20889,16 @@ function Footer({ lang, t }) {
             lineHeight: 1.8,
             letterSpacing: '0.04em',
           }}>
-            {lang === 'en' ? (
-              <>
-                <div>General Incorporated Association connec+a</div>
-                <div style={{ opacity: 0.7, marginTop: 4 }}>Tokyo, Japan</div>
-              </>
-            ) : (
-              <>
-                <div>一般社団法人 connec+a</div>
-                <div style={{ opacity: 0.7, marginTop: 4 }}>東京都</div>
-              </>
-            )}
+            <div>{localizedSx('footer_legal_name', {
+              ja: '一般社団法人 connec+a',
+              easy: 'いっぱん しゃだん ほうじん connec+a',
+              en: 'General Incorporated Association connec+a',
+            })}</div>
+            <div style={{ opacity: 0.7, marginTop: 4 }}>{localizedSx('footer_legal_address', {
+              ja: '東京都',
+              easy: 'とうきょう',
+              en: 'Tokyo, Japan',
+            })}</div>
           </div>
         </div>
 
@@ -20796,7 +20931,7 @@ function Footer({ lang, t }) {
           color: 'rgba(255,255,255,0.35)',
           fontWeight: 500,
         }}>
-          © 2018-{new Date().getFullYear()} CONNEC+A · ALL RIGHTS RESERVED
+          {sx('footer_copyright', `© 2018-${new Date().getFullYear()} CONNEC+A · ALL RIGHTS RESERVED`)}
         </div>
       </div>
     </footer>
@@ -21218,7 +21353,7 @@ function App() {
         </ErrorBoundary>
       </main>
       <ErrorBoundary label="">
-        <Footer lang={lang} t={t} />
+        <Footer lang={lang} t={t} siteSettings={siteSettings} />
       </ErrorBoundary>
       {/* (Phase 15.S13) モバイル下部クイックアクセス */}
       <BottomNav lang={lang} t={t} currentRoute={route}
