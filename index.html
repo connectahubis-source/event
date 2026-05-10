@@ -2598,26 +2598,48 @@ function openPayPayApp() {
   }, 1500);
 }
 
-// (Phase 15.S51) モーダル表示時に背景のスクロール / タップ反応を完全に無効化するフック
-// 使い方: モーダルコンポーネント内で `useBodyScrollLock(open)` を呼ぶだけ
-// open=true でロック開始、 false (またはアンマウント) で復元
+// (Phase 15.S52) モーダル表示時に背景のスクロール / タップ反応を完全に無効化
+// iOS Safari でも確実に動くパターン: body を position:fixed でフリーズ + scrollY を復元
+// 重要: body の touchAction は触らない (モーダル内のスクロールが死ぬため)
 function useBodyScrollLock(active) {
   React.useEffect(() => {
     if (!active) return;
-    const originalOverflow = document.body.style.overflow;
-    const originalTouchAction = document.body.style.touchAction;
-    const originalPaddingRight = document.body.style.paddingRight;
-    // スクロールバーの幅補正 (PC でモーダル開閉時のレイアウト揺れ防止)
+    // 現在のスクロール位置と元のスタイルを保存
+    const scrollY = window.scrollY || window.pageYOffset || 0;
+    const original = {
+      overflow:        document.body.style.overflow,
+      position:        document.body.style.position,
+      top:             document.body.style.top,
+      left:            document.body.style.left,
+      right:           document.body.style.right,
+      width:           document.body.style.width,
+      paddingRight:    document.body.style.paddingRight,
+    };
+    // PC でモーダル開閉時のレイアウト揺れ防止 (スクロールバー幅補正)
     const scrollbarWidth = window.innerWidth - document.documentElement.clientWidth;
+
+    // iOS Safari でも確実に止まるロック: body を position:fixed
     document.body.style.overflow = 'hidden';
-    document.body.style.touchAction = 'none';
+    document.body.style.position = 'fixed';
+    document.body.style.top = `-${scrollY}px`;
+    document.body.style.left = '0';
+    document.body.style.right = '0';
+    document.body.style.width = '100%';
     if (scrollbarWidth > 0) {
       document.body.style.paddingRight = scrollbarWidth + 'px';
     }
+
     return () => {
-      document.body.style.overflow = originalOverflow;
-      document.body.style.touchAction = originalTouchAction;
-      document.body.style.paddingRight = originalPaddingRight;
+      // 元のスタイルに戻す
+      document.body.style.overflow     = original.overflow;
+      document.body.style.position     = original.position;
+      document.body.style.top          = original.top;
+      document.body.style.left         = original.left;
+      document.body.style.right        = original.right;
+      document.body.style.width        = original.width;
+      document.body.style.paddingRight = original.paddingRight;
+      // スクロール位置を復元
+      window.scrollTo(0, scrollY);
     };
   }, [active]);
 }
@@ -19548,22 +19570,19 @@ function PayPayDisplayNameModal({ lang, onSave, onCancel }) {
         // 背景クリック時のみ閉じる (内部クリックは伝播してこない、 念のため確認)
         if (e.target === e.currentTarget && !submitting) onCancel();
       }}
-      // (Phase 15.S50) 背景タップ防止: タッチイベントもオーバーレイで止める
-      onTouchMove={(e) => { if (e.target === e.currentTarget) e.preventDefault(); }}
       style={{
         position: 'fixed', inset: 0,
         background: 'rgba(10, 41, 96, 0.55)',
         display: 'flex', alignItems: 'center', justifyContent: 'center',
         zIndex: 9999, padding: 20,
-        // 確実に背景の操作を遮断
-        touchAction: 'none',
       }}>
       <div
         onClick={(e) => e.stopPropagation()}
-        onTouchMove={(e) => e.stopPropagation()}
         style={{
           background: '#fff', maxWidth: 480, width: '100%',
           maxHeight: 'calc(100vh - 48px)', overflowY: 'auto',
+          // (Phase 15.S52) iOS Safari でモーダル内スクロールを確実に有効化
+          WebkitOverflowScrolling: 'touch',
           boxShadow: '0 20px 60px rgba(0, 0, 0, 0.3)',
         borderRadius: 4, padding: 28,
       }}>
