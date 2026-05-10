@@ -3470,7 +3470,7 @@ function CountUpInline({ to, suffix = '', duration = 1400, style = {} }) {
 // ============================================================================
 // NAV
 // ============================================================================
-function Nav({ lang, setLang, t, transparent, menuOpen: externalMenuOpen, setMenuOpen: externalSetMenuOpen }) {
+function Nav({ lang, setLang, t, transparent, menuOpen: externalMenuOpen, setMenuOpen: externalSetMenuOpen, siteSettings }) {
   // (Phase 15.S13) menuOpen は外部 state があればそれを使う、 なければ内部 state
   const [internalMenuOpen, setInternalMenuOpen] = useState(false);
   const menuOpen = externalMenuOpen !== undefined ? externalMenuOpen : internalMenuOpen;
@@ -3593,7 +3593,14 @@ function Nav({ lang, setLang, t, transparent, menuOpen: externalMenuOpen, setMen
                 letterSpacing: '0.04em',
                 lineHeight: 1.4,
                 transition: 'color .4s cubic-bezier(0.2, 0.8, 0.2, 1)',
-              }}>connec+a hub</span>
+              }}>{(() => {
+                // (Phase 15.S37) Admin の home_header_tagline_* キーを優先、 フォールバック「connec+a hub」
+                const s = siteSettings || {};
+                const langKey = lang === 'en' ? '_en' : lang === 'easy' ? '_easy' : '_ja';
+                return s['home_header_tagline' + langKey]
+                    || s['home_header_tagline_ja']
+                    || 'connec+a hub';
+              })()}</span>
             </a>
 
             {/* 東京スカイライン装飾 */}
@@ -21181,7 +21188,8 @@ function App() {
       {/* (Phase 15.S25) スクロール進捗バー — Nav の上、 110z で常に最上に */}
       <ScrollProgress />
       <Nav lang={lang} setLang={setLang} t={t} transparent={isHome}
-           menuOpen={globalMenuOpen} setMenuOpen={setGlobalMenuOpen} />
+           menuOpen={globalMenuOpen} setMenuOpen={setGlobalMenuOpen}
+           siteSettings={siteSettings} />
       <main id="main-content" tabIndex={-1} style={{
         // (Phase 15.S13/S14) モバイル時 BottomNav 分の余白を本文下に (BottomNav 非表示画面では不要)
         // BottomNav が非表示の画面でも、 既存の Sticky CTA があるので余白は別途必要 → 0 だと CTA に隠れる
