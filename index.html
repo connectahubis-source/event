@@ -6207,15 +6207,36 @@ function HeroSlideshow({ lang, t, events, heroSlides, loading, frontNews, siteSe
                       // (Phase 15.S6 / S148) borderWidth + opacity
                       const bw = item.borderWidth || 0;
                       const bwVw = (bw * 100 / 1193).toFixed(2);
-                      const op = (item.opacity !== undefined && item.opacity !== null) ? Number(item.opacity) : 1;
+                      const op = (() => {
+                        if (item.opacity !== undefined && item.opacity !== null) return Number(item.opacity);
+                        if (typeof item.color === 'string' && /^rgba/i.test(item.color)) {
+                          const m = item.color.match(/rgba?\([^,]+,[^,]+,[^,]+,\s*([\d.]+)\s*\)/);
+                          if (m) return parseFloat(m[1]);
+                        }
+                        return 1;
+                      })();
                       return <div key={`${idx}-${item.id}`} style={{...baseStyle, borderRadius: '50%', background: item.color || 'transparent', border: `clamp(${Math.round(bw*0.3)}px, ${bwVw}vw, ${bw}px) solid ${item.borderColor || 'transparent'}`, opacity: op}}/>;
                     } else if (item.type === 'rect') {
                       const bw = item.borderWidth || 0;
                       const bwVw = (bw * 100 / 1193).toFixed(2);
-                      const op = (item.opacity !== undefined && item.opacity !== null) ? Number(item.opacity) : 1;
+                      const op = (() => {
+                        if (item.opacity !== undefined && item.opacity !== null) return Number(item.opacity);
+                        if (typeof item.color === 'string' && /^rgba/i.test(item.color)) {
+                          const m = item.color.match(/rgba?\([^,]+,[^,]+,[^,]+,\s*([\d.]+)\s*\)/);
+                          if (m) return parseFloat(m[1]);
+                        }
+                        return 1;
+                      })();
                       return <div key={`${idx}-${item.id}`} style={{...baseStyle, background: item.color || 'transparent', border: `clamp(${Math.round(bw*0.3)}px, ${bwVw}vw, ${bw}px) solid ${item.borderColor || 'transparent'}`, opacity: op}}/>;
                     } else if (item.type === 'triangle') {
-                      const op = (item.opacity !== undefined && item.opacity !== null) ? Number(item.opacity) : 1;
+                      const op = (() => {
+                        if (item.opacity !== undefined && item.opacity !== null) return Number(item.opacity);
+                        if (typeof item.color === 'string' && /^rgba/i.test(item.color)) {
+                          const m = item.color.match(/rgba?\([^,]+,[^,]+,[^,]+,\s*([\d.]+)\s*\)/);
+                          if (m) return parseFloat(m[1]);
+                        }
+                        return 1;
+                      })();
                       return (
                         <div key={`${idx}-${item.id}`} style={{...baseStyle, opacity: op}}>
                           <svg width="100%" height="100%" viewBox="0 0 100 100" preserveAspectRatio="none" style={{display:'block'}}>
@@ -6515,7 +6536,14 @@ function HeroSlideshow({ lang, t, events, heroSlides, loading, frontNews, siteSe
                       );
                     } else if (item.type === 'circle') {
                       // (Phase 15.S148) opacity 対応
-                      const op = (item.opacity !== undefined && item.opacity !== null) ? Number(item.opacity) : 1;
+                      const op = (() => {
+                        if (item.opacity !== undefined && item.opacity !== null) return Number(item.opacity);
+                        if (typeof item.color === 'string' && /^rgba/i.test(item.color)) {
+                          const m = item.color.match(/rgba?\([^,]+,[^,]+,[^,]+,\s*([\d.]+)\s*\)/);
+                          if (m) return parseFloat(m[1]);
+                        }
+                        return 1;
+                      })();
                       return (
                         <div key={`${idx}-${item.id}`} style={{
                           ...baseStyle,
@@ -6526,7 +6554,14 @@ function HeroSlideshow({ lang, t, events, heroSlides, loading, frontNews, siteSe
                         }}/>
                       );
                     } else if (item.type === 'rect') {
-                      const op = (item.opacity !== undefined && item.opacity !== null) ? Number(item.opacity) : 1;
+                      const op = (() => {
+                        if (item.opacity !== undefined && item.opacity !== null) return Number(item.opacity);
+                        if (typeof item.color === 'string' && /^rgba/i.test(item.color)) {
+                          const m = item.color.match(/rgba?\([^,]+,[^,]+,[^,]+,\s*([\d.]+)\s*\)/);
+                          if (m) return parseFloat(m[1]);
+                        }
+                        return 1;
+                      })();
                       return (
                         <div key={`${idx}-${item.id}`} style={{
                           ...baseStyle,
@@ -6536,7 +6571,14 @@ function HeroSlideshow({ lang, t, events, heroSlides, loading, frontNews, siteSe
                         }}/>
                       );
                     } else if (item.type === 'triangle') {
-                      const op = (item.opacity !== undefined && item.opacity !== null) ? Number(item.opacity) : 1;
+                      const op = (() => {
+                        if (item.opacity !== undefined && item.opacity !== null) return Number(item.opacity);
+                        if (typeof item.color === 'string' && /^rgba/i.test(item.color)) {
+                          const m = item.color.match(/rgba?\([^,]+,[^,]+,[^,]+,\s*([\d.]+)\s*\)/);
+                          if (m) return parseFloat(m[1]);
+                        }
+                        return 1;
+                      })();
                       return (
                         <div key={`${idx}-${item.id}`} style={{...baseStyle, opacity: op}}>
                           <svg width="100%" height="100%" viewBox="0 0 100 100" preserveAspectRatio="none" style={{display:'block'}}>
