@@ -1554,7 +1554,7 @@ const I18N = {
     },
     sections: { upcoming: '近日開催のイベント', news: 'お知らせ', viewAll: 'すべて見る →', tagline: '出会いと、対話と、文化の交差点。', allEvents: 'イベント一覧' },
     card: { spots: '残席', register: '申込む', closed: '受付終了', new: 'NEW', full: '満員' },
-    stats: { members: '会員数', events: '開催イベント', countries: '参加国', satisfaction: '満足度' },
+    stats: { events: '開催イベント', countries: '参加国', satisfaction: '満足度' },
     filter: { all: 'すべて', category: 'カテゴリ' },
     detail: {
       back: '← イベント一覧へ',
@@ -1610,7 +1610,7 @@ const I18N = {
     },
     sections: { upcoming: 'これからの イベント', news: 'おしらせ', viewAll: 'もっと みる →', tagline: 'であい・はなし・ぶんかが まじわる ばしょ。', allEvents: 'イベント いちらん' },
     card: { spots: 'のこり', register: 'もうしこむ', closed: 'おわりました', new: 'あたらしい', full: 'まんいん' },
-    stats: { members: 'メンバー', events: 'イベント', countries: 'くに', satisfaction: 'まんぞく' },
+    stats: { events: 'イベント', countries: 'くに', satisfaction: 'まんぞく' },
     filter: { all: 'ぜんぶ', category: 'カテゴリ' },
     detail: {
       back: '← イベント いちらんへ',
@@ -1666,7 +1666,7 @@ const I18N = {
     },
     sections: { upcoming: 'Upcoming events', news: 'News', viewAll: 'View all →', tagline: 'Where meeting, dialogue, and cultures intersect.', allEvents: 'All events' },
     card: { spots: 'spots left', register: 'Register', closed: 'Closed', new: 'NEW', full: 'Full' },
-    stats: { members: 'Members', events: 'Events held', countries: 'Countries', satisfaction: 'Satisfaction' },
+    stats: { events: 'Events held', countries: 'Countries', satisfaction: 'Satisfaction' },
     filter: { all: 'All', category: 'Category' },
     detail: {
       back: '← Back to events',
@@ -10524,7 +10524,6 @@ function PageHome({ lang, t, events, ads, heroSlides, heroSlidesMobile, loading,
               gap: 'clamp(32px, 4vw, 56px)',
               alignItems: 'center',
             }}>
-              <PillStat n={CONFIG.ORG.members} label={t.stats.members} />
               <PillStat n={CONFIG.ORG.events} label={t.stats.events} />
               <PillStat n={CONFIG.ORG.countries} label={t.stats.countries} />
               <PillStat n={CONFIG.ORG.satisfaction} suffix="%" label={t.stats.satisfaction} />
