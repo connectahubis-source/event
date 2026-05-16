@@ -13593,32 +13593,27 @@ function PageEventDetail({ lang, t, eventId }) {
                 )}
                 {/* ステータスバッジ (常に表示) */}
                 {(() => {
-                  // (Phase 15.S127 / S131 / S134) 集約判定: 返金待ち > 返金済み > 決済済み > 未決済
-                  // 「一部決済済」 は廃止 (uniform の一括決済が前提)
+                  // (Phase 15.S127 / S131 / S134 / S157) 集約判定: 返金済 > 決済済 > 未決済
+                  // 「返金待ち」 と「返金」 を区別せず、 refundAmount > 0 なら 全て「返金済」
                   const allRegsHere = myRegsForEvent.length > 0 ? myRegsForEvent : [myReg];
                   const anyRefundPending = allRegsHere.some(r => r.status === '返金待ち');
                   const totalRefundAmount = allRegsHere.reduce((sum, r) => sum + (Number(r.refundAmount) || 0), 0);
                   const anyPaid = allRegsHere.some(r => r.paid);
 
-                  const isRefundPendingMine = anyRefundPending;
-                  const isRefunded = totalRefundAmount > 0;
+                  // (S157) 返金関連は 1 つにまとめる: 返金待ち or 返金額あり → 「返金済」
+                  const isRefunded = anyRefundPending || totalRefundAmount > 0;
 
-                  const bgColor = isRefundPendingMine ? '#ffedd5'
-                    : isRefunded ? '#fef2f2'
+                  const bgColor = isRefunded ? '#fef2f2'
                     : anyPaid ? '#ecfdf5'
                     : '#fef3c7';
-                  const fgColor = isRefundPendingMine ? '#c2410c'
-                    : isRefunded ? '#991b1b'
+                  const fgColor = isRefunded ? '#991b1b'
                     : anyPaid ? '#16a34a'
                     : '#92400e';
-                  const borderColor = isRefundPendingMine ? '#f59e0b'
-                    : isRefunded ? '#dc2626'
+                  const borderColor = isRefunded ? '#dc2626'
                     : anyPaid ? '#16a34a'
                     : '#fbbf24';
-                  const label = isRefundPendingMine
-                    ? (lang === 'en' ? 'Refund Pending' : '返金待ち')
-                    : isRefunded
-                    ? (lang === 'en' ? 'Refunded' : '返金済み')
+                  const label = isRefunded
+                    ? (lang === 'en' ? 'Refunded' : '返金済')
                     : anyPaid
                     ? (st.paid || (lang === 'en' ? 'Paid' : '決済済み'))
                     : isOnsiteMethod
@@ -19955,14 +19950,19 @@ function PageCancel({ regId, lang, t, events }) {
     return (cached.registrations || []).find(r => r.regId === regId) || null;
   });
   // (Phase 15.S108) 同じ eventId の全 registration (複数日対応)
+  // (Phase 17.G3) Application 単位、 全 status (= キャンセル済も Day 名表示するため除外しない)
   const [siblingRegs, setSiblingRegs] = React.useState(() => {
     if (!regId) return [];
     const cached = readRegsCache();
     if (!cached) return [];
     const me = (cached.registrations || []).find(r => r.regId === regId);
-    if (!me || !me.eventId) return [];
+    if (!me) return [];
+    const groupKey = me.applicationId || me.eventId;
     return (cached.registrations || [])
-      .filter(r => r.eventId === me.eventId && r.status !== 'キャンセル');
+      .filter(r => {
+        const rKey = r.applicationId || r.eventId;
+        return rKey === groupKey;
+      });
   });
   // (Phase 15.S108) セッション詳細 (sessionId → date/venue)
   const [sessionDetails, setSessionDetails] = React.useState({});
@@ -19999,7 +19999,11 @@ function PageCancel({ regId, lang, t, events }) {
             const found = list.find(r => r.regId === regId);
             if (found) {
               setReg(found);
-              setSiblingRegs(list.filter(r => r.eventId === found.eventId && r.status !== 'キャンセル'));
+              setSiblingRegs(list.filter(r => {
+                const groupKey = found.applicationId || found.eventId;
+                const rKey = r.applicationId || r.eventId;
+                return rKey === groupKey;
+              }));
             }
             else if (!reg) setError(lang === 'en' ? 'Registration not found' : '申込情報が見つかりません');
           },
@@ -20009,7 +20013,11 @@ function PageCancel({ regId, lang, t, events }) {
         const found = list.find(r => r.regId === regId);
         if (found) {
           setReg(found);
-          setSiblingRegs(list.filter(r => r.eventId === found.eventId && r.status !== 'キャンセル'));
+          setSiblingRegs(list.filter(r => {
+                const groupKey = found.applicationId || found.eventId;
+                const rKey = r.applicationId || r.eventId;
+                return rKey === groupKey;
+              }));
         }
         else if (!reg) setError(lang === 'en' ? 'Registration not found' : '申込情報が見つかりません');
       } catch (err) {
@@ -20046,7 +20054,12 @@ function PageCancel({ regId, lang, t, events }) {
       return next;
     });
   };
-  const selectAll = () => setSelectedRegIds(new Set(siblingRegs.map(r => r.regId)));
+  // (Phase 17.G4) 全選択は active な reg のみ (キャンセル済 / 返金待ち は disabled)
+  const selectAll = () => setSelectedRegIds(new Set(
+    siblingRegs
+      .filter(r => r.status !== 'キャンセル' && r.status !== '返金' && r.status !== '返金待ち')
+      .map(r => r.regId)
+  ));
   const clearAll = () => setSelectedRegIds(new Set());
 
   const handleConfirmCancel = async () => {
@@ -20297,25 +20310,41 @@ function PageCancel({ regId, lang, t, events }) {
                         const sTime = (sDetail && sDetail.startTime)
                           ? `${sDetail.startTime}${sDetail.endTime ? `〜${sDetail.endTime}` : ''}`
                           : (sr.event && sr.event.time ? `${sr.event.time}${sr.event.endTime ? `〜${sr.event.endTime}` : ''}` : '');
+                        // (Phase 17.G4) 状態判定 — キャンセル済は disabled、 セクション名は表示
+                        const srIsCancelled = sr.status === 'キャンセル' || sr.status === '返金';
+                        const srIsPending   = sr.status === '返金待ち';
+                        const srIsDisabled  = srIsCancelled || srIsPending;
                         const isSelected = selectedRegIds.has(sr.regId);
+                        const srLabel = srIsCancelled ? (lang === 'en' ? 'Cancelled' : 'キャンセル済')
+                                      : srIsPending   ? (lang === 'en' ? 'Refunding'  : '返金処理中')
+                                      :                 '';
+                        const srLabelColor = srIsCancelled ? '#5C7186'
+                                           : srIsPending   ? '#E64530'
+                                           :                 '';
                         return (
                           <label key={sr.regId} style={{
                             display: 'flex', alignItems: 'flex-start', gap: 12,
                             padding: 14,
-                            background: isSelected ? '#fef2f2' : 'var(--paper-2)',
-                            border: `1.5px solid ${isSelected ? '#dc2626' : 'var(--brand-line)'}`,
+                            background: srIsDisabled ? '#F4F6F8'
+                                      : isSelected ? '#fef2f2'
+                                      : 'var(--paper-2)',
+                            border: `1.5px solid ${srIsDisabled ? '#D8E4ED'
+                                                : isSelected ? '#dc2626'
+                                                : 'var(--brand-line)'}`,
                             borderRadius: 6,
-                            cursor: 'pointer',
+                            cursor: srIsDisabled ? 'not-allowed' : 'pointer',
                             transition: 'all .15s',
+                            opacity: srIsDisabled ? 0.65 : 1,
                           }}>
                             <input
                               type="checkbox"
                               checked={isSelected}
-                              onChange={() => toggleSelected(sr.regId)}
+                              disabled={srIsDisabled}
+                              onChange={() => { if (!srIsDisabled) toggleSelected(sr.regId); }}
                               style={{
                                 width: 20, height: 20,
                                 accentColor: '#dc2626',
-                                cursor: 'pointer',
+                                cursor: srIsDisabled ? 'not-allowed' : 'pointer',
                                 marginTop: 2,
                                 flexShrink: 0,
                               }}
@@ -20328,7 +20357,7 @@ function PageCancel({ regId, lang, t, events }) {
                                 <span style={{
                                   display: 'inline-flex',
                                   minWidth: 22, height: 22,
-                                  background: 'var(--brand-navy)',
+                                  background: srIsCancelled ? '#A8BBCC' : srIsPending ? '#E64530' : 'var(--brand-navy)',
                                   color: '#fff', borderRadius: '50%',
                                   fontSize: 11, fontWeight: 800,
                                   alignItems: 'center', justifyContent: 'center',
@@ -20336,13 +20365,29 @@ function PageCancel({ regId, lang, t, events }) {
                                   flexShrink: 0,
                                 }}>{i + 1}</span>
                                 <span style={{
-                                  fontSize: 14, fontWeight: 700, color: 'var(--brand-navy)',
+                                  fontSize: 14, fontWeight: 700, color: srIsDisabled ? '#5C7186' : 'var(--brand-navy)',
                                   fontFamily: 'var(--jp)',
+                                  textDecoration: srIsCancelled ? 'line-through' : 'none',
                                 }}>{formatDate(sDate)}</span>
                                 {sTime && (
                                   <span style={{
-                                    fontSize: 13, color: '#374151', fontFamily: 'var(--mono)',
+                                    fontSize: 13, color: srIsDisabled ? '#9ca3af' : '#374151', fontFamily: 'var(--mono)',
                                   }}>{sTime}</span>
+                                )}
+                                {/* (Phase 17.G4) 状態 pill */}
+                                {srLabel && (
+                                  <span style={{
+                                    marginLeft:'auto',
+                                    padding:'2px 10px',
+                                    background:'#fff',
+                                    color: srLabelColor,
+                                    border:`1px solid ${srLabelColor}`,
+                                    borderRadius:999,
+                                    fontSize:10,fontWeight:700,
+                                    letterSpacing:'0.08em',
+                                    fontFamily:'var(--mono)',
+                                    whiteSpace:'nowrap',
+                                  }}>{srLabel}</span>
                                 )}
                               </div>
                               {sVenue && (
@@ -20925,36 +20970,55 @@ function PageMyPage({ lang, t, events }) {
     return r.event;
   });
 
-  // (Step A) 参加予定: キャンセル除外 + 未来日のみ
-  const upcomingEventsRaw = allRegsWithEvent
-    .filter(function(r) {
-      if (r.status === 'キャンセル') return false;  // (Step A) キャンセル除外
-      const endStr = r.event.endDate || r.event.date;
-      if (!endStr) return true;  // 日付不明なら予定扱い
-      const endDate = new Date(String(endStr) + 'T23:59:59');
-      return !isNaN(endDate.getTime()) && endDate >= todayStart;
-    })
-    .sort(function(a, b) {
-      const ad = new Date(a.event.date || '9999-12-31');
-      const bd = new Date(b.event.date || '9999-12-31');
-      return ad - bd;  // 昇順 (近い順)
-    });
+  // (Step A / Phase 15.S157) 参加予定: アクティブ reg のあるイベントのみ + 未来日
+  // アクティブ = キャンセル / 返金 / 返金待ち でない (= まだ参加予定がある)
+  const isActive = (r) => r.status !== 'キャンセル' && r.status !== '返金' && r.status !== '返金待ち';
 
-  // (Phase 15.S110) 同じ eventId の registration を 1 つのカードにグルーピング
-  // 各グループ = { representative: 最初の reg, siblings: 全 regs (同 eventId) }
-  const groupByEventId = (regs) => {
+  const upcomingEventsRaw = allRegsWithEvent.filter(function(r) {
+    if (!isActive(r)) return false;  // アクティブ reg のみ
+    const endStr = r.event.endDate || r.event.date;
+    if (!endStr) return true;
+    const endDate = new Date(String(endStr) + 'T23:59:59');
+    return !isNaN(endDate.getTime()) && endDate >= todayStart;
+  }).sort(function(a, b) {
+    const ad = new Date(a.event.date || '9999-12-31');
+    const bd = new Date(b.event.date || '9999-12-31');
+    return ad - bd;
+  });
+
+  // (Phase 17.E / 17.G) Application 単位の reg グループ化 + 状態判定
+  const groupByApplicationId = (regs) => {
     const map = new Map();
     regs.forEach(r => {
-      if (!r.eventId) return;
-      if (!map.has(r.eventId)) {
-        map.set(r.eventId, { representative: r, siblings: [r] });
-      } else {
-        map.get(r.eventId).siblings.push(r);
+      const appId = r.applicationId || r.eventId;  // fallback: 旧データ用
+      if (!appId) return;
+      if (!map.has(appId)) {
+        const sameAppRegs = allRegsWithEvent.filter(rr => (rr.applicationId || rr.eventId) === appId);
+        const activeRegs    = sameAppRegs.filter(rr => isActive(rr));
+        const pendingRegs   = sameAppRegs.filter(rr => rr.status === '返金待ち');
+        const cancelledRegs = sameAppRegs.filter(rr => rr.status === 'キャンセル' || rr.status === '返金');
+        map.set(appId, {
+          representative: r,
+          siblings: sameAppRegs,
+          applicationId: appId,
+          activeRegs,
+          pendingRegs,
+          cancelledRegs,
+          isAllActive: activeRegs.length === sameAppRegs.length,
+          isAllCancelled: activeRegs.length === 0,
+          isPartialCancelled: activeRegs.length > 0 && activeRegs.length < sameAppRegs.length,
+          hasPendingRefund: pendingRegs.length > 0,
+          // (Phase 17.G) Application 情報
+          feeMode: r.feeMode || 'per_session',
+          applicationKind: r.applicationKind || 'original',
+          sourceApplicationId: r.sourceApplicationId || '',
+          applicationTotalAmount: r.applicationTotalAmount || 0,
+        });
       }
     });
     return Array.from(map.values());
   };
-  const upcomingEvents = groupByEventId(upcomingEventsRaw);
+  const upcomingEvents = groupByApplicationId(upcomingEventsRaw);
 
   // (Step A) 参加履歴: キャンセル除外 + 過去日のみ
   const pastEvents = allRegsWithEvent
@@ -20971,14 +21035,22 @@ function PageMyPage({ lang, t, events }) {
       return bd - ad;  // 降順 (新しい順)
     });
 
-  // (Step A) キャンセル済み: 全期間
-  const cancelledEvents = allRegsWithEvent
-    .filter(function(r) { return r.status === 'キャンセル'; })
+  // (Phase 17.G) キャンセル済 / 返金済 を Application 単位で groupBy
+  // 全 reg が cancelled-final or pending-refund な Application のみ表示
+  const cancelledRegsRaw = allRegsWithEvent
+    .filter(function(r) {
+      return r.status === 'キャンセル' || r.status === '返金' || r.status === '返金待ち';
+    })
     .sort(function(a, b) {
       const ad = new Date(a.event.date || '0000-01-01');
       const bd = new Date(b.event.date || '0000-01-01');
-      return bd - ad;  // 降順 (新しい順)
+      return bd - ad;
     });
+  // Application 単位で groupBy + isAllCancelled な Application だけ抽出
+  const cancelledEventGroups = groupByApplicationId(cancelledRegsRaw)
+    .filter(g => g.isAllCancelled);  // active が 1 つもない Application のみ
+  // 旧名で参照される箇所のため alias を残す
+  const cancelledEvents = cancelledEventGroups;
 
   // (Phase 8 C2 / 15.S110) 次のイベントまでの日数 — upcomingEvents は {representative, siblings} 形式
   const nextEventDays = (() => {
@@ -21606,9 +21678,10 @@ function PageMyPage({ lang, t, events }) {
               <div style={{ display: 'grid', gap: 12 }}>
                 {upcomingEvents.map(group => (
                   <MyEventCard
-                    key={group.representative.eventId}
+                    key={group.applicationId}
                     registration={group.representative}
                     siblings={group.siblings}
+                    appState={group}
                     onCancel={handleCancel}
                     lang={lang}
                   />
@@ -21820,8 +21893,14 @@ function PageMyPage({ lang, t, events }) {
                 }}>({cancelledEvents.length})</span>
               </h2>
               <div style={{ display: 'grid', gap: 12 }}>
-                {cancelledEvents.map(reg => (
-                  <MyEventCard key={reg.regId} registration={reg} lang={lang} />
+                {cancelledEvents.map(group => (
+                  <MyEventCard
+                    key={group.applicationId}
+                    registration={group.representative}
+                    siblings={group.siblings}
+                    appState={group}
+                    lang={lang}
+                  />
                 ))}
               </div>
             </section>
@@ -22099,7 +22178,7 @@ function QRTicketModal({ registration, lang, onClose, isTodayQuick }) {
   );
 }
 
-function MyEventCard({ registration, siblings, past, onCancel, lang }) {
+function MyEventCard({ registration, siblings, appState, past, onCancel, lang }) {
   const at = authT(lang);
   const vp = useViewport();
   const event = registration.event;
@@ -22177,8 +22256,8 @@ function MyEventCard({ registration, siblings, past, onCancel, lang }) {
     const allCancelled = allRegs.every(r => r.status === 'キャンセル');
 
     if (allCancelled) return { bg: '#f3f4f6', fg: '#6b7280', label: at.badgeCancelled };
-    if (anyRefundPending) return { bg: '#ffedd5', fg: '#c2410c', label: lang === 'en' ? 'Refund Pending' : '返金待ち' };
-    if (anyRefunded) return { bg: '#fef2f2', fg: '#991b1b', label: lang === 'en' ? 'Refunded' : '返金済み' };
+    // (Phase 15.S157) 返金待ち + 返金 + 部分返金額あり をすべて「返金済」 に統一
+    if (anyRefundPending || anyRefunded) return { bg: '#fef2f2', fg: '#991b1b', label: lang === 'en' ? 'Refunded' : '返金済' };
     // (Phase 15.S134) anyPaid なら 決済済 扱い (「一部決済済」 は廃止 — 一括決済が前提)
     if (anyPaid) return { bg: '#ecfdf5', fg: '#065f46', label: lang === 'en' ? 'Paid' : '決済済み' };
 
@@ -22270,6 +22349,38 @@ function MyEventCard({ registration, siblings, past, onCancel, lang }) {
             paddingRight: daysRemaining ? (vp.isMobile ? 60 : 80) : 0,
           }}>{event.title}</div>
 
+          {/* (Phase 17.E) Application 状態バッジ — 一部キャンセル / 返金処理中 を区別 */}
+          {appState && (appState.isPartialCancelled || appState.hasPendingRefund) && (
+            <div style={{display:'flex',gap:6,flexWrap:'wrap',marginTop:6,marginBottom:4}}>
+              {appState.isPartialCancelled && (
+                <span style={{
+                  padding:'2px 8px',
+                  background:'#E5F5FC',
+                  color:'#006FA6',
+                  borderRadius:999,
+                  fontFamily:'var(--mono)',fontSize:9,fontWeight:700,letterSpacing:'0.08em',
+                  display:'inline-flex',alignItems:'center',gap:4,
+                }}>
+                  <svg width="9" height="9" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><path d="M3 6h18M3 12h18M3 18h18"/></svg>
+                  一部キャンセル ({appState.activeRegs.length} / {appState.siblings.length})
+                </span>
+              )}
+              {appState.hasPendingRefund && (
+                <span style={{
+                  padding:'2px 8px',
+                  background:'#FCE4DF',
+                  color:'#E64530',
+                  borderRadius:999,
+                  fontFamily:'var(--mono)',fontSize:9,fontWeight:700,letterSpacing:'0.08em',
+                  display:'inline-flex',alignItems:'center',gap:4,
+                }}>
+                  <svg width="9" height="9" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>
+                  返金処理中 ({appState.pendingRegs.length} 件)
+                </span>
+              )}
+            </div>
+          )}
+
           {/* 日時 + 会場 (複数日対応 Phase 15.S110) */}
           {(() => {
             const formatDate = (dateStr) => {
@@ -22300,29 +22411,64 @@ function MyEventCard({ registration, siblings, past, onCancel, lang }) {
                       ? `${sDetail.startTime}${sDetail.endTime ? `〜${sDetail.endTime}` : ''}`
                       : (r.event && r.event.time ? `${r.event.time}${r.event.endTime ? `〜${r.event.endTime}` : ''}` : '');
                     const fd = formatDate(sDate);
+                    // (Phase 17.G2) 個別 reg の状態区別
+                    const rIsCancelled = r.status === 'キャンセル' || r.status === '返金';
+                    const rIsPending = r.status === '返金待ち';
+                    const rIsActive = !rIsCancelled && !rIsPending;
+                    const sBg = rIsCancelled ? '#F4F6F8'
+                              : rIsPending   ? '#FCE4DF'
+                              :                '#E5F5FC';
+                    const sBorder = rIsCancelled ? '#D8E4ED'
+                                  : rIsPending   ? '#E64530'
+                                  :                '#B8E4F4';
+                    const sNumBg = rIsCancelled ? '#A8BBCC'
+                                 : rIsPending   ? '#E64530'
+                                 :                '#00A8E1';
+                    const sLabel = rIsCancelled ? (lang === 'en' ? 'Cancelled' : 'キャンセル済')
+                                 : rIsPending   ? (lang === 'en' ? 'Refunding'  : '返金処理中')
+                                 :                (lang === 'en' ? 'Joining'    : '参加予定');
+                    const sLabelColor = rIsCancelled ? '#5C7186'
+                                      : rIsPending   ? '#E64530'
+                                      :                '#009D6A';
                     return (
                       <div key={r.regId} style={{
                         display: 'flex', flexDirection: 'column', gap: 4,
                         padding: '8px 12px',
-                        background: '#f0f7ff',
-                        border: '1px solid #cfe4ff',
+                        background: sBg,
+                        border: `1px solid ${sBorder}`,
+                        borderLeft: `3px solid ${sBorder}`,
                         borderRadius: 4,
+                        opacity: rIsCancelled ? 0.6 : 1,
                       }}>
                         <div style={{
                           display: 'flex', alignItems: 'center', gap: 8, flexWrap: 'wrap',
                           fontFamily: 'var(--mono)', fontSize: 13,
-                          color: '#1f2937', fontWeight: 700,
+                          color: rIsCancelled ? '#5C7186' : '#1f2937', fontWeight: 700,
+                          textDecoration: rIsCancelled ? 'line-through' : 'none',
                         }}>
                           <span style={{
                             display: 'inline-flex',
                             minWidth: 20, height: 20,
-                            background: 'var(--brand-navy)', color: '#fff',
+                            background: sNumBg, color: '#fff',
                             borderRadius: '50%',
                             fontSize: 10, fontWeight: 800,
                             alignItems: 'center', justifyContent: 'center',
                           }}>{i + 1}</span>
                           {fd && <><span>{fd.mm}.{fd.dd}</span><span style={{ color: '#6b7280', fontSize: 11 }}>({fd.day})</span></>}
                           {sTime && <span style={{ color: '#6b7280' }}>{sTime}</span>}
+                          {/* (Phase 17.G2) ステータスバッジ */}
+                          <span style={{
+                            marginLeft:'auto',
+                            padding: '2px 8px',
+                            background: '#fff',
+                            color: sLabelColor,
+                            border: `1px solid ${sLabelColor}`,
+                            borderRadius: 999,
+                            fontSize: 9, fontWeight: 700,
+                            letterSpacing: '0.06em',
+                            fontFamily: 'var(--mono)',
+                            whiteSpace:'nowrap',
+                          }}>{sLabel}</span>
                         </div>
                         {sVenue && (
                           <div style={{
@@ -22331,7 +22477,7 @@ function MyEventCard({ registration, siblings, past, onCancel, lang }) {
                           }}>
                             <PIcon.MapPin size={11} color="#6b7280"/>
                             <span style={{ fontWeight: 600 }}>{sVenue}</span>
-                            {!(sDetail && sDetail.online) && sVenue !== '—' && (
+                            {!(sDetail && sDetail.online) && sVenue !== '—' && !rIsCancelled && (
                               <a
                                 href={`https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(sVenue)}`}
                                 target="_blank"
@@ -22501,45 +22647,62 @@ function MyEventCard({ registration, siblings, past, onCancel, lang }) {
           </div>
         )}
 
-        {/* キャンセル可能な場合のみ */}
-        {!past && !isCancelled && onCancel && registration.status !== 'チェックイン済' && (
+        {/* (Phase 17.G2) キャンセル可能: active な reg が 1 件以上ある時のみ */}
+        {!past && !isCancelled && onCancel && registration.status !== 'チェックイン済'
+         && (!appState || appState.activeRegs.length > 0) && (
           <button onClick={(e) => { e.stopPropagation(); onCancel(registration); }} style={{
             flexShrink: 0,
             padding: '6px 12px',
             fontSize: 11,
             fontFamily: 'var(--jp)',
-            color: '#dc2626',
+            color: '#E64530',
             background: 'transparent',
-            border: '1px solid #fecaca',
+            border: '1px solid #FCE4DF',
             borderRadius: 0,
             cursor: 'pointer',
             alignSelf: 'center',
             letterSpacing: '0.04em',
           }}
-          onMouseEnter={(e) => { e.currentTarget.style.background = '#fef2f2'; }}
+          onMouseEnter={(e) => { e.currentTarget.style.background = '#FCE4DF'; }}
           onMouseLeave={(e) => { e.currentTarget.style.background = 'transparent'; }}>
-            {at.cancelBtn}
+            {appState && appState.activeRegs.length > 1
+              ? (lang === 'en' ? `Cancel all (${appState.activeRegs.length})` : `全${appState.activeRegs.length}件キャンセル`)
+              : at.cancelBtn}
           </button>
         )}
 
-        {/* キャンセル済みなら「再申込」リンク */}
-        {!past && isCancelled && (
+        {/* (Phase 17.G) Application 状態に応じた再申込ボタン
+            ガード: 返金処理中 (hasPendingRefund) があれば 非表示 (= 安全のため)
+            全 cancelled-final → 「再申込」 / 一部 cancelled → 「一部再申込」 */}
+        {!past && appState && !appState.hasPendingRefund && appState.cancelledRegs.length > 0 && (
           <a href={`#/events/${event.id}`}
              onClick={(e) => e.stopPropagation()}
              style={{
-            flexShrink: 0,
-            padding: '6px 12px',
-            fontSize: 11,
-            fontFamily: 'var(--jp)',
-            color: '#2c89e8',
-            background: 'transparent',
-            border: '1px solid #bfdbfe',
-            borderRadius: 0,
-            alignSelf: 'center',
-            letterSpacing: '0.04em',
-            textDecoration: 'none',
-          }}>{at.rebookBtn}</a>
+               flexShrink: 0,
+               padding: '6px 12px',
+               fontSize: 11,
+               fontFamily: 'var(--jp)',
+               color: '#00A8E1',
+               background: 'transparent',
+               border: '1px solid #B8E4F4',
+               borderRadius: 0,
+               alignSelf: 'center',
+               letterSpacing: '0.04em',
+               textDecoration: 'none',
+               display:'inline-flex',
+               alignItems:'center',
+               gap:4,
+             }}
+             onMouseEnter={(e) => { e.currentTarget.style.background = '#E5F5FC'; }}
+             onMouseLeave={(e) => { e.currentTarget.style.background = 'transparent'; }}>
+            <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><path d="M3 12a9 9 0 1 0 9-9"/><path d="M3 4v5h5"/></svg>
+            {appState.isAllCancelled
+              ? (lang === 'en' ? 'Re-apply' : '再申込')
+              : (lang === 'en' ? 'Partial re-apply' : '一部再申込')}
+          </a>
         )}
+
+        {/* (Phase 17.G) 旧 isCancelled 単体判定の再申込リンクは appState 経由に置換 → 削除済 */}
       </div>
 
       {/* (A2 改) 下段: 一体感のあるアクション行 (Cancelled以外で表示) */}
