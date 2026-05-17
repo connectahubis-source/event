@@ -3,10 +3,10 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
-<title>connec+a — 交流から、つながりへ。</title>
-<meta name="description" content="在留外国人と日本人をつなぐ、connec+a。">
-<meta name="keywords" content="connec+a">
-<meta name="author" content="connec+a">
+<title>connec+a — 出会いが、まちを変えていく。</title>
+<meta name="description" content="在日外国人留学生と日本人をつなぐ、参加型の国際交流プラットフォーム。一般社団法人connec+a。">
+<meta name="keywords" content="国際交流,留学生,東京,イベント,Japan,Tokyo,exchange,students,foreign,connec+a">
+<meta name="author" content="一般社団法人connec+a">
 <meta name="robots" content="index, follow">
 
 <!-- (L9) ブランドカラー (PWA・モバイルブラウザのテーマ) -->
@@ -1533,10 +1533,11 @@ const CONFIG = {
   GAS_URL: 'https://script.google.com/macros/s/AKfycbxCJQ6miz5JecF7W_W0bc2QogrJFKuZ_aNZ0crQmJFm9o7I7GsjVQZ3knlzbNCx7aw5/exec',
   ORG: {
     name: 'connec+a',
-    nameEn: 'connec+a',
-    events: 30,
-    countries: 44,
-    satisfaction: 90,
+    nameEn: 'connec+a · Tokyo NPO',
+    members: 2840,
+    events: 186,
+    countries: 42,
+    satisfaction: 98,
   },
 };
 
@@ -1547,14 +1548,15 @@ const I18N = {
   ja: {
     nav: { events: 'イベント', about: '私たちについて', news: 'ニュース', contact: 'お問い合わせ', login: 'ログイン', signup: '会員登録' },
     hero: {
-      eyebrow: 'connec+a',
-      title: '交流から、\nつながりへ。',
+      eyebrow: '一般社団法人 connec+a',
+      title: '出会いが、\nまちを変えていく。',
+      sub: '在日外国人留学生と日本人をつなぐ、参加型の国際交流プラットフォーム。',
       cta1: '直近のイベントを見る',
       cta2: '私たちについて',
     },
     sections: { upcoming: '近日開催のイベント', news: 'お知らせ', viewAll: 'すべて見る →', tagline: '出会いと、対話と、文化の交差点。', allEvents: 'イベント一覧' },
     card: { spots: '残席', register: '申込む', closed: '受付終了', new: 'NEW', full: '満員' },
-    stats: { events: '開催イベント', countries: '参加国', satisfaction: '満足度' },
+    stats: { members: '会員数', events: '開催イベント', countries: '参加国', satisfaction: '満足度' },
     filter: { all: 'すべて', category: 'カテゴリ' },
     detail: {
       back: '← イベント一覧へ',
@@ -1604,13 +1606,14 @@ const I18N = {
     nav: { events: 'イベント', about: 'わたしたちのこと', news: 'おしらせ', contact: 'といあわせ', login: 'ログイン', signup: 'とうろく' },
     hero: {
       eyebrow: 'connec+a（コネクタ）',
-      title: 'であいから、\nつながりへ。',
+      title: 'であいで、\nまちが かわる。',
+      sub: 'にほんに すんでいる がいこく人 と にほん人 が、いっしょに たのしむ ばしょ です。',
       cta1: 'イベントを みる',
       cta2: 'わたしたちのこと',
     },
     sections: { upcoming: 'これからの イベント', news: 'おしらせ', viewAll: 'もっと みる →', tagline: 'であい・はなし・ぶんかが まじわる ばしょ。', allEvents: 'イベント いちらん' },
     card: { spots: 'のこり', register: 'もうしこむ', closed: 'おわりました', new: 'あたらしい', full: 'まんいん' },
-    stats: { events: 'イベント', countries: 'くに', satisfaction: 'まんぞく' },
+    stats: { members: 'メンバー', events: 'イベント', countries: 'くに', satisfaction: 'まんぞく' },
     filter: { all: 'ぜんぶ', category: 'カテゴリ' },
     detail: {
       back: '← イベント いちらんへ',
@@ -1661,12 +1664,13 @@ const I18N = {
     hero: {
       eyebrow: 'connec+a · Tokyo NPO',
       title: 'Where meetings\nreshape the city.',
+      sub: 'A participatory cross-cultural platform connecting international students living in Japan with locals.',
       cta1: 'See upcoming events',
       cta2: 'About us',
     },
     sections: { upcoming: 'Upcoming events', news: 'News', viewAll: 'View all →', tagline: 'Where meeting, dialogue, and cultures intersect.', allEvents: 'All events' },
     card: { spots: 'spots left', register: 'Register', closed: 'Closed', new: 'NEW', full: 'Full' },
-    stats: { events: 'Events held', countries: 'Countries', satisfaction: 'Satisfaction' },
+    stats: { members: 'Members', events: 'Events held', countries: 'Countries', satisfaction: 'Satisfaction' },
     filter: { all: 'All', category: 'Category' },
     detail: {
       back: '← Back to events',
@@ -4230,7 +4234,7 @@ function Nav({ lang, setLang, t, transparent, menuOpen: externalMenuOpen, setMen
                 letterSpacing: '0.22em',
                 color: 'rgba(255,255,255,0.35)',
                 fontWeight: 500,
-              }}>EST. 2025 · TOKYO · JP</div>
+              }}>EST. 2018 · TOKYO · JP</div>
             </div>
           </div>
         </div>
@@ -5489,7 +5493,7 @@ function PageHero({
           zIndex: 5,
           fontWeight: 600,
         }}>
-          <span>2025 — 2026</span>
+          <span>2018 — 2026</span>
           <span style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
             <span>SCROLL ↓</span>
             <span style={{
@@ -6089,7 +6093,7 @@ function HeroSlideshow({ lang, t, events, heroSlides, loading, frontNews, siteSe
             color: 'var(--ink-4)',
             fontWeight: 500,
             marginBottom: 'var(--space-4)',
-          }}>EST. 2025 · TOKYO</div>
+          }}>EST. 2018 · TOKYO</div>
           <div style={{
             width: 24, height: 1,
             background: 'var(--brand-blue)',
@@ -9557,7 +9561,7 @@ function PageHomeMobile({ lang, t, events, ads, heroSlides, heroSlidesMobile, lo
               marginBottom: 'var(--space-4)',
               opacity: 0,
               animation: 'cca-flow-up 1.0s cubic-bezier(0.2,0.8,0.2,1) 0.7s forwards',
-            }}>EST. 2025· TOKYO · JP</div>
+            }}>EST. 2018 · TOKYO · JP</div>
             <h1 style={{
               fontFamily: 'var(--serif)',
               fontSize: 'clamp(36px, 11vw, 56px)',
@@ -10184,7 +10188,7 @@ function PageHomeMobile({ lang, t, events, ads, heroSlides, heroSlidesMobile, lo
               letterSpacing: 'var(--ls-mono-xxl)',
               color: 'var(--ink-4)',
               fontWeight: 500,
-            }}>EST. 2025</div>
+            }}>EST. 2018</div>
             <div style={{ width: 4, height: 4, borderRadius: '50%', background: 'var(--ink-5)' }}/>
             <div style={{
               fontFamily: 'var(--mono)',
@@ -10444,7 +10448,7 @@ function PageHomeMobile({ lang, t, events, ads, heroSlides, heroSlidesMobile, lo
           fontFamily: 'var(--mono)',
           color: 'var(--ink-5)',
           fontWeight: 500,
-        }}>EST. 2025 · TOKYO · JP</div>
+        }}>EST. 2018 · TOKYO · JP</div>
       </div>
     </div>
   );
@@ -10524,6 +10528,7 @@ function PageHome({ lang, t, events, ads, heroSlides, heroSlidesMobile, loading,
               gap: 'clamp(32px, 4vw, 56px)',
               alignItems: 'center',
             }}>
+              <PillStat n={CONFIG.ORG.members} label={t.stats.members} />
               <PillStat n={CONFIG.ORG.events} label={t.stats.events} />
               <PillStat n={CONFIG.ORG.countries} label={t.stats.countries} />
               <PillStat n={CONFIG.ORG.satisfaction} suffix="%" label={t.stats.satisfaction} />
@@ -12476,6 +12481,7 @@ function MovieStyleSessionList({
   lang,
   t,
   myReg,
+  myRegsForEvent,      // (Phase 17.H) 同イベント内の自分の全 reg (active + cancelled 含む)
   selectedSessionIds,
   onToggleSession,
   onRegister,          // 単発イベント用申込ハンドラ (sessions 不要)
@@ -12488,7 +12494,35 @@ function MovieStyleSessionList({
   const isMulti = ev.format === 'multi' && sessions && sessions.length > 0;
   const isPaid = !!(myReg && myReg.paid);
   const isAlreadyRegistered = !!(myReg && (myReg.status === '確定' || myReg.status === '申込済み'));
-  const isLocked = isPaid || isAlreadyRegistered;
+  // (Phase 17.H) sessionId → 自分の reg の状態マップ
+  // 'active'    = 既申込 (= active reg あり、 チェック不可)
+  // 'cancelled' = キャンセル / 返金 (= 再申込可、 強調表示)
+  // 'pending'   = 返金処理中 (= 操作不可、 アラート表示)
+  // 'available' = 未申込 (= 通常)
+  const sessionStates = React.useMemo(() => {
+    const map = {};
+    if (!Array.isArray(myRegsForEvent) || !sessions) return map;
+    sessions.forEach(s => {
+      const matching = myRegsForEvent.filter(r => r.sessionId === s.id);
+      if (matching.length === 0) { map[s.id] = 'available'; return; }
+      // 優先順: active > pending > cancelled
+      const hasActive = matching.some(r => r.status !== 'キャンセル' && r.status !== '返金' && r.status !== '返金待ち');
+      const hasPending = matching.some(r => r.status === '返金待ち');
+      if (hasActive) map[s.id] = 'active';
+      else if (hasPending) map[s.id] = 'pending';
+      else map[s.id] = 'cancelled';
+    });
+    return map;
+  }, [myRegsForEvent, sessions]);
+
+  // (Phase 17.K2) multi の場合は available / cancelled な Day が 1 つでもあれば ロック解除
+  // → 追加申込 / 一部再申込 を可能にする
+  const hasAvailableDayInEvent = isMulti
+    && sessionStates
+    && Object.values(sessionStates).some(state => state === 'available' || state === 'cancelled');
+  const isLocked = isMulti
+    ? (isAlreadyRegistered && !hasAvailableDayInEvent)  // multi: 申込可能 Day が残っていれば 非ロック
+    : (isPaid || isAlreadyRegistered);                   // 単発: 既存ロジック
   // (Phase 15.S120) 一律料金モード判定 — 既定は uniform、 per_session 指定時のみ個別料金
   const feeMode = ev.feeMode || 'uniform';
   const isUniformFee = feeMode === 'uniform';
@@ -12672,7 +12706,14 @@ function MovieStyleSessionList({
           const sym = seatSymbol(cap, reg);
           const symColor = seatSymbolColor(sym);
           const sFull = cap > 0 && reg >= cap;
-          const selected = isMulti ? selectedSessionIds.includes(s.id) : true; // 単発は常に「選択」
+          // (Phase 17.H) 個別 Day の自分のステータス
+          const sState = isMulti && sessionStates ? (sessionStates[s.id] || 'available') : 'available';
+          const sIsMyActive    = sState === 'active';
+          const sIsMyPending   = sState === 'pending';
+          const sIsMyCancelled = sState === 'cancelled';
+          // チェック不可: 既申込 / 返金処理中 / 満席 / Locked
+          const sDisabled = sIsMyActive || sIsMyPending || sFull || isLocked;
+          const selected = isMulti ? selectedSessionIds.includes(s.id) : true;
           const monthDay = formatMonthDay(s.date);
           const dayLabel = formatDayLabel(s.date);
           const venue = s.online
@@ -12690,16 +12731,44 @@ function MovieStyleSessionList({
               gap: vp && vp.isMobile ? 12 : 16,
               flexDirection: 'row',
               padding: vp && vp.isMobile ? '14px 12px' : '20px',
-              background: '#fff',
-              border: `1px solid ${selected && isMulti ? 'var(--coral)' : 'var(--line)'}`,
+              background: sIsMyActive    ? '#F4FBF7'        // 既申込: 淡緑
+                       : sIsMyPending   ? '#FCE4DF'        // 返金処理中: 赤
+                       : sIsMyCancelled ? '#FFF7E5'        // キャンセル済: 黄
+                       : '#fff',
+              border: `1px solid ${
+                sIsMyActive    ? '#009D6A' :
+                sIsMyPending   ? '#E64530' :
+                sIsMyCancelled ? '#F0A500' :
+                (selected && isMulti ? 'var(--coral)' : 'var(--line)')
+              }`,
               borderRadius: 8,
               marginBottom: 12,
-              boxShadow: selected && isMulti ? '0 4px 16px rgba(255, 91, 91, 0.12)' : '0 1px 3px rgba(0,0,0,0.04)',
-              opacity: sFull && !isLocked ? 0.6 : 1,
+              boxShadow: selected && isMulti && !sDisabled ? '0 4px 16px rgba(255, 91, 91, 0.12)' : '0 1px 3px rgba(0,0,0,0.04)',
+              opacity: (sFull && !isLocked) || sIsMyPending ? 0.7 : 1,
               transition: 'all .2s',
-              cursor: isMulti && !isLocked && !sFull ? 'pointer' : 'default',
+              cursor: isMulti && !sDisabled ? 'pointer' : 'default',
+              position: 'relative',
             }}
-            onClick={isMulti && !isLocked && !sFull ? () => onToggleSession(s.id) : undefined}>
+            onClick={isMulti && !sDisabled ? () => onToggleSession(s.id) : undefined}>
+
+              {/* (Phase 17.H) 自分のステータスバッジ — 右上 */}
+              {isMulti && sState !== 'available' && (
+                <span style={{
+                  position:'absolute',top:8,right:8,
+                  padding:'2px 8px',
+                  background: sIsMyActive ? '#009D6A' : sIsMyPending ? '#E64530' : '#F0A500',
+                  color:'#fff',
+                  borderRadius:999,
+                  fontSize:9,fontWeight:800,
+                  letterSpacing:'0.08em',
+                  fontFamily:'var(--mono)',
+                  zIndex:2,
+                }}>
+                  {sIsMyActive    ? (lang === 'en' ? 'Joining'    : '申込済')
+                  : sIsMyPending  ? (lang === 'en' ? 'Refunding'  : '返金処理中')
+                  : (lang === 'en' ? 'Re-apply'   : '再申込可')}
+                </span>
+              )}
 
               {/* 左: チェックボックス (複数日のみ) */}
               {isMulti && (
@@ -12938,11 +13007,30 @@ function MovieStyleSessionList({
               boxShadow: !(cantRegister || selectedSessionIds.length === 0) ? '0 6px 16px rgba(232, 36, 59, 0.3)' : 'none',
             }}>
             <span style={{ fontSize: 22 }}>◉</span>
-            <span>{
-              cantRegister ? (regStatus && regStatus.label) || '—' :
-              selectedSessionIds.length === 0 ? (lang === 'en' ? 'Select sessions first' : lang === 'easy' ? 'セッションを えらんで ください' : 'セッションを選んでください') :
-              (lang === 'en' ? `Reserve ${selectedSessionIds.length} session${selectedSessionIds.length > 1 ? 's' : ''}` : lang === 'easy' ? `${selectedSessionIds.length} かい もうしこむ` : `${selectedSessionIds.length} セッションを予約/購入`)
-            }</span>
+            <span>{(() => {
+              if (cantRegister) return (regStatus && regStatus.label) || '—';
+              if (selectedSessionIds.length === 0) return lang === 'en' ? 'Select sessions first' : lang === 'easy' ? 'セッションを えらんで ください' : 'セッションを選んでください';
+              // (Phase 17.H2) 既申込状態から ボタンラベルを切り替え
+              const stateValues = sessionStates ? Object.values(sessionStates) : [];
+              const hasActive    = stateValues.includes('active');
+              const hasCancelled = stateValues.includes('cancelled');
+              const allCancelled = stateValues.length > 0 && stateValues.every(s => s === 'cancelled' || s === 'pending');
+              const n = selectedSessionIds.length;
+              const plural = n > 1;
+              if (allCancelled) {
+                // 全 Day cancelled → 「再申込」
+                return lang === 'en' ? `Re-apply ${n} session${plural ? 's' : ''}` : lang === 'easy' ? `${n} かい さいもうしこみ` : `${n} セッションを再申込`;
+              }
+              if (hasActive) {
+                // 一部 active あり → 「追加申込」
+                return lang === 'en' ? `Add ${n} session${plural ? 's' : ''}` : lang === 'easy' ? `${n} かい ついか もうしこみ` : `${n} セッションを追加申込`;
+              }
+              if (hasCancelled) {
+                // 過去 cancel あるが 今回は available の Day も含めて選択 → 「申込」 (= 通常)
+                return lang === 'en' ? `Reserve ${n} session${plural ? 's' : ''}` : lang === 'easy' ? `${n} かい もうしこむ` : `${n} セッションを予約/購入`;
+              }
+              return lang === 'en' ? `Reserve ${n} session${plural ? 's' : ''}` : lang === 'easy' ? `${n} かい もうしこむ` : `${n} セッションを予約/購入`;
+            })()}</span>
           </button>
         </div>
       )}
@@ -13001,7 +13089,18 @@ function PageEventDetail({ lang, t, eventId }) {
   const [ev, setEv] = useState(null);
   const [sessions, setSessions] = useState([]);
   const [loading, setLoading] = useState(true);
-  const [selectedSessionIds, setSelectedSessionIds] = useState([]);  // 複数選択対応 (配列)
+  // (Phase 17.H2) URL の ?sessions=S-001,S-002 を 初期選択に反映 (= 一部再申込からの遷移時)
+  const initialSelectedSessions = (() => {
+    try {
+      const hash = window.location.hash || '';
+      const qIdx = hash.indexOf('?');
+      if (qIdx < 0) return [];
+      const qs = new URLSearchParams(hash.substring(qIdx + 1));
+      const v = qs.get('sessions');
+      return v ? v.split(',').filter(Boolean) : [];
+    } catch (e) { return []; }
+  })();
+  const [selectedSessionIds, setSelectedSessionIds] = useState(initialSelectedSessions);
 
   // (Phase 7.7) 認証 + 参加申込関連
   const auth = useAuth();
@@ -13054,6 +13153,28 @@ function PageEventDetail({ lang, t, eventId }) {
     })();
     return () => { cancelled = true; };
   }, [auth.user, eventId]);
+
+  // (Phase 17.H2) myRegistrations + sessions ロード後、 selectedSessionIds から
+  //   - 既 active reg のある Day → 除外 (= 重複申込防止、 UI でもチェック不可)
+  //   - 返金処理中の Day → 除外 (= 操作不可)
+  //   - 存在しない sessionId → 除外 (= URL パラメータの不正値ガード)
+  // 一回だけ実行 (sessions/regs が揃った後)、 ユーザー手動操作 は破壊しない
+  const sessionsHydratedRef = React.useRef(false);
+  useEffect(() => {
+    if (sessionsHydratedRef.current) return;
+    if (!sessions || sessions.length === 0) return;
+    if (!Array.isArray(myRegistrations)) return;
+    sessionsHydratedRef.current = true;
+    const validIds = new Set(sessions.map(s => s.id));
+    const myEventRegs = myRegistrations.filter(r => r.eventId === eventId);
+    const blockedIds = new Set(
+      myEventRegs
+        .filter(r => r.status !== 'キャンセル' && r.status !== '返金')  // 返金待ちは block (操作不可)
+        .map(r => r.sessionId)
+        .filter(Boolean)
+    );
+    setSelectedSessionIds(prev => prev.filter(sid => validIds.has(sid) && !blockedIds.has(sid)));
+  }, [sessions, myRegistrations, eventId]);
 
   // (Phase 15.S45) PayPay 表示名 入力モーダル state — Hooks は早期リターン前に
   // (Phase 15.S49) 早期リターン後に置くと Hooks 規則違反になるため上に移動
@@ -13117,12 +13238,15 @@ function PageEventDetail({ lang, t, eventId }) {
   // 2. 既に申込済み → 何もしない (UI側で「申込済み」表示)
   // 3. 確認ダイアログ → OK で確定
   // 4. 無料: 即確定 / 有料: 決済選択モーダル
+  // (Phase 17.G6) status 判定を 全終了状態除外に → キャンセル / 返金 / 返金待ち の reg は無視
+  const isActiveRegStatus = (r) =>
+    r.status !== 'キャンセル' && r.status !== '返金' && r.status !== '返金待ち';
   const myReg = myRegistrations.find(function(r) {
-    return r.eventId === eventId && r.status !== 'キャンセル';
+    return r.eventId === eventId && isActiveRegStatus(r);
   });
   // (Phase 15.S131) multi イベント用に同イベントの全 reg を取得
   const myRegsForEvent = myRegistrations.filter(function(r) {
-    return r.eventId === eventId && r.status !== 'キャンセル';
+    return r.eventId === eventId && isActiveRegStatus(r);
   });
   const alreadyRegistered = !!myReg;
 
@@ -13138,7 +13262,15 @@ function PageEventDetail({ lang, t, eventId }) {
       window.location.hash = '/login';
       return;
     }
-    if (alreadyRegistered) {
+    // (Phase 17.K3) multi で 「追加申込 / 再申込」 可能な Day が選択されている場合は 進ませる
+    const isMultiEvt = ev && ev.format === 'multi';
+    const hasAddOrReapplyTarget = isMultiEvt && selectedSessionIds.length > 0 && selectedSessionIds.some(sid => {
+      const matching = myRegistrations.filter(r => r.sessionId === sid);
+      if (matching.length === 0) return true;  // 未申込 (= available)
+      // active / pending が無ければ cancelled だけ → 再申込 OK
+      return !matching.some(r => isActiveRegStatus(r) || r.status === '返金待ち');
+    });
+    if (alreadyRegistered && !hasAddOrReapplyTarget) {
       await dialog.info({
         title: st.registered,
         message: st.alreadyRegistered,
@@ -13146,9 +13278,8 @@ function PageEventDetail({ lang, t, eventId }) {
       return;
     }
     // (Phase 15.S77) 複数日イベントは選択セッション ID を URL クエリに付ける
-    const isMulti = ev && ev.format === 'multi';
     let registerUrl = `/events/${eventId}/register`;
-    if (isMulti && selectedSessionIds.length > 0) {
+    if (isMultiEvt && selectedSessionIds.length > 0) {
       registerUrl += `?sessions=${selectedSessionIds.join(',')}`;
     }
     window.location.hash = registerUrl;
@@ -13242,6 +13373,7 @@ function PageEventDetail({ lang, t, eventId }) {
           lang={lang}
           t={t}
           myReg={myReg}
+          myRegsForEvent={myRegistrations.filter(r => r.eventId === eventId)}
           selectedSessionIds={selectedSessionIds}
           onToggleSession={(sid) => {
             if (selectedSessionIds.includes(sid)) {
@@ -14484,9 +14616,9 @@ function PageAbout({ lang, t, siteSettings }) {
             margin: '0 0 var(--space-7)',
             letterSpacing: '-0.01em',
           }}>{localized('about_story_title', {
-            ja: '2025 年、 一人の学生の素朴な疑問から。',
-            easy: '2025 ねん、 ひとりの がくせいの しつもんから。',
-            en: 'It started in 2025, with a simple question.',
+            ja: '2018 年、 一人の学生の素朴な疑問から。',
+            easy: '2018 ねん、 ひとりの がくせいの しつもんから。',
+            en: 'It started in 2018, with a simple question.',
           })}</h2>
 
           {/* 数字グリッド */}
@@ -14497,9 +14629,10 @@ function PageAbout({ lang, t, siteSettings }) {
             marginTop: 'var(--space-7)',
           }}>
             {[
-              { num: '2025', labelJa: '設立', labelEasy: 'せつりつ', labelEn: 'Founded' },
+              { num: '2018', labelJa: '設立', labelEasy: 'せつりつ', labelEn: 'Founded' },
               { num: '40+', labelJa: 'メンバー', labelEasy: 'メンバー', labelEn: 'Members' },
-              { num: '30+', labelJa: '最大イベント参加者数', labelEasy: 'いちばん おおい イベント の さんかしゃ', labelEn: 'Largest event' },
+              { num: '300+', labelJa: '最大イベント参加者数', labelEasy: 'いちばん おおい イベント の さんかしゃ', labelEn: 'Largest event' },
+              { num: '60%+', labelJa: 'リピート参加率', labelEasy: 'もういちど さんかする ひとの わりあい', labelEn: 'Return rate' },
             ].map((stat, idx) => (
               <div key={idx} style={{
                 padding: 'var(--space-5)',
@@ -14559,7 +14692,7 @@ function PageAbout({ lang, t, siteSettings }) {
             lineHeight: 1.6,
           }}>
             {[
-              { k: lang === 'en' ? 'Established' : '設立', v: '2025' },
+              { k: lang === 'en' ? 'Established' : '設立', v: '2018' },
               { k: lang === 'en' ? 'Location'    : '所在地', v: lang === 'en' ? 'Tokyo, Japan' : '東京都' },
               { k: lang === 'en' ? 'Type'        : '法人種別', v: lang === 'en' ? 'General Incorporated Association' : '一般社団法人' },
               { k: lang === 'en' ? 'Members'     : 'メンバー', v: '40+' },
@@ -20023,9 +20156,12 @@ function PageCancel({ regId, lang, t, events }) {
     return () => { cancelled = true; };
   }, [auth.user, regId, lang]);
 
-  // (Phase 15.S108) 複数日イベントなら listEventSessions でセッション詳細取得
+  // (Phase 15.S108 / 17.K6) reg に sessionId があれば listEventSessions でセッション詳細取得
   React.useEffect(() => {
-    if (!reg || !reg.eventId || siblingRegs.length <= 1) return;
+    if (!reg || !reg.eventId) return;
+    // multi (= siblingRegs > 1) または reg 自身に sessionId あり (= multi の 1 件申込) ならロード
+    const needsSessionDetails = siblingRegs.length > 1 || !!reg.sessionId;
+    if (!needsSessionDetails) return;
     let cancelled = false;
     (async () => {
       try {
@@ -20409,49 +20545,96 @@ function PageCancel({ regId, lang, t, events }) {
                       })}
                     </div>
 
-                    {/* 選択件数表示 */}
+                    {/* (Phase 17.K5) 選択件数表示 + 選択中の Day を明示 */}
                     <div style={{
-                      marginTop: 14, padding: '10px 14px',
+                      marginTop: 14, padding: '12px 14px',
                       background: selectedRegIds.size > 0 ? '#fef2f2' : '#f9fafb',
                       borderRadius: 6,
-                      fontSize: 13, fontWeight: 700,
-                      color: selectedRegIds.size > 0 ? '#991b1b' : '#6b7280',
                       fontFamily: 'var(--jp)',
-                      textAlign: 'center',
                       border: `1px solid ${selectedRegIds.size > 0 ? '#fecaca' : '#e5e7eb'}`,
                     }}>
-                      {lang === 'en'
-                        ? `${selectedRegIds.size} of ${siblingRegs.length} sessions selected to cancel`
-                        : `${siblingRegs.length} セッション中 ${selectedRegIds.size} セッションをキャンセル対象`}
+                      <div style={{
+                        fontSize: 13, fontWeight: 700,
+                        color: selectedRegIds.size > 0 ? '#991b1b' : '#6b7280',
+                        textAlign:'center',
+                      }}>
+                        {lang === 'en'
+                          ? `${selectedRegIds.size} of ${siblingRegs.length} sessions selected to cancel`
+                          : `${siblingRegs.length} セッション中 ${selectedRegIds.size} セッションをキャンセル対象`}
+                      </div>
+                      {/* 選択中の Day を pill で表示 */}
+                      {selectedRegIds.size > 0 && (
+                        <div style={{display:'flex',flexWrap:'wrap',gap:5,justifyContent:'center',marginTop:8,paddingTop:8,borderTop:'1px dashed #fecaca'}}>
+                          {siblingRegs
+                            .filter(sr => selectedRegIds.has(sr.regId))
+                            .map(sr => {
+                              const sDet = sr.sessionId ? sessionDetails[sr.sessionId] : null;
+                              const sD = (sDet && sDet.date) || (sr.event && sr.event.date) || '';
+                              const fd = formatDate(sD);
+                              return (
+                                <span key={sr.regId} style={{
+                                  padding:'2px 9px',
+                                  background:'#dc2626',color:'#fff',
+                                  borderRadius:999,
+                                  fontSize:11,fontWeight:700,
+                                  letterSpacing:'0.03em',
+                                  fontFamily:'var(--mono)',
+                                }}>{fd ? `${fd.mm}.${fd.dd}` : sr.regId}</span>
+                              );
+                            })}
+                        </div>
+                      )}
                     </div>
                   </>
                 ) : (
-                  /* 単発: 日時 + 会場のみ */
+                  /* (Phase 17.K6) 単発 or multi 1 件: reg.sessionId があれば session 詳細を優先表示 */
                   <>
-                    {reg.event && reg.event.date && (
-                      <div style={{
-                        display: 'flex', alignItems: 'center', gap: 10,
-                        fontSize: 14, color: '#1f2937', fontWeight: 700,
-                        fontFamily: 'var(--mono)', marginBottom: 10,
-                        padding: '8px 12px',
-                        background: '#f0f7ff',
-                        borderRadius: 6,
-                      }}>
-                        <PIcon.Calendar size={14} color="#2c89e8"/>
-                        <span>{formatDate(reg.event.date)}</span>
-                        {reg.event.time && <span style={{ color: '#6b7280', marginLeft: 6 }}>{reg.event.time}{reg.event.endTime ? `〜${reg.event.endTime}` : ''}</span>}
-                      </div>
-                    )}
-                    {reg.event && reg.event.venue && (
-                      <div style={{
-                        display: 'flex', alignItems: 'center', gap: 8,
-                        fontSize: 13, color: '#374151',
-                        fontFamily: 'var(--jp)', marginBottom: 12,
-                      }}>
-                        <PIcon.MapPin size={13} color="#6b7280"/>
-                        <span style={{ fontWeight: 600 }}>{reg.event.venue}</span>
-                      </div>
-                    )}
+                    {(() => {
+                      // multi の 1 件申込: session 詳細を取得して表示
+                      const sDet = reg.sessionId ? sessionDetails[reg.sessionId] : null;
+                      const useSessionInfo = !!sDet;
+                      const dispDate = useSessionInfo ? sDet.date : (reg.event && reg.event.date);
+                      const dispTime = useSessionInfo
+                        ? (sDet.startTime ? `${sDet.startTime}${sDet.endTime ? `〜${sDet.endTime}` : ''}` : '')
+                        : (reg.event && reg.event.time ? `${reg.event.time}${reg.event.endTime ? `〜${reg.event.endTime}` : ''}` : '');
+                      const dispVenue = useSessionInfo ? sDet.venue : (reg.event && reg.event.venue);
+                      const dispName = useSessionInfo ? sDet.name : '';
+                      return (
+                        <>
+                          {dispDate && (
+                            <div style={{
+                              display: 'flex', alignItems: 'center', gap: 10,
+                              fontSize: 14, color: '#1f2937', fontWeight: 700,
+                              fontFamily: 'var(--mono)', marginBottom: 10,
+                              padding: '10px 14px',
+                              background: '#fef2f2',
+                              border: '1.5px solid #fecaca',
+                              borderRadius: 6,
+                            }}>
+                              <PIcon.Calendar size={15} color="#dc2626"/>
+                              <span style={{color:'#991b1b'}}>{formatDate(dispDate)}</span>
+                              {dispTime && <span style={{ color: '#dc2626', marginLeft: 6 }}>{dispTime}</span>}
+                            </div>
+                          )}
+                          {dispName && (
+                            <div style={{
+                              fontFamily: 'var(--jp)', fontSize: 13, fontWeight: 700,
+                              color: 'var(--brand-navy)', marginBottom: 8,
+                            }}>{dispName}</div>
+                          )}
+                          {dispVenue && (
+                            <div style={{
+                              display: 'flex', alignItems: 'center', gap: 8,
+                              fontSize: 13, color: '#374151',
+                              fontFamily: 'var(--jp)', marginBottom: 12,
+                            }}>
+                              <PIcon.MapPin size={13} color="#6b7280"/>
+                              <span style={{ fontWeight: 600 }}>{dispVenue}</span>
+                            </div>
+                          )}
+                        </>
+                      );
+                    })()}
                     <div style={{
                       paddingTop: 12, borderTop: '1px solid #e5e7eb',
                       fontSize: 11, color: '#9ca3af',
@@ -22200,9 +22383,11 @@ function MyEventCard({ registration, siblings, appState, past, onCancel, lang })
     });
   })();
   const isMultiSession = allRegs.length > 1;
+  // (Phase 17.K4) 1 件でも sessionId があれば session 詳細をロード (= multi イベントの 1 Day 申込でも Day 表示)
+  const hasAnySessionId = allRegs.some(r => r.sessionId);
 
   React.useEffect(() => {
-    if (!isMultiSession || !registration.eventId) return;
+    if (!hasAnySessionId || !registration.eventId) return;
     let cancelled = false;
     (async () => {
       try {
@@ -22214,7 +22399,7 @@ function MyEventCard({ registration, siblings, appState, past, onCancel, lang })
       } catch (e) {}
     })();
     return () => { cancelled = true; };
-  }, [isMultiSession, registration.eventId]);
+  }, [hasAnySessionId, registration.eventId]);
 
   if (!event) return null;
 
@@ -22389,8 +22574,8 @@ function MyEventCard({ registration, siblings, appState, past, onCancel, lang })
               return { mm, dd, day };
             };
 
-            // (Phase 15.S110) 複数 session 参加 = セッションリスト表示
-            if (isMultiSession) {
+            // (Phase 15.S110 / 17.K4) multi イベントの場合は スケジュールリスト表示 (= 1 セッションでも Day 情報を見せる)
+            if (isMultiSession || hasAnySessionId) {
               return (
                 <div style={{ display: 'flex', flexDirection: 'column', gap: 6, marginTop: 2 }}>
                   <div style={{
@@ -22526,8 +22711,8 @@ function MyEventCard({ registration, siblings, appState, past, onCancel, lang })
             );
           })()}
 
-          {/* 会場 + Google Map ボタン (Phase 15.S110: 単発時のみ。 複数日は session カード内で表示) */}
-          {!isMultiSession && event.venue && (
+          {/* 会場 + Google Map ボタン (Phase 15.S110 / 17.K4: 単発時のみ。 multi (= sessionId あり) は schedule カード内で表示) */}
+          {!isMultiSession && !hasAnySessionId && event.venue && (
             <div style={{
               display: 'inline-flex', alignItems: 'center', gap: 6, flexWrap: 'wrap',
               fontSize: 12, color: '#4b5563', fontFamily: 'var(--jp)',
@@ -22665,36 +22850,45 @@ function MyEventCard({ registration, siblings, appState, past, onCancel, lang })
           </button>
         )}
 
-        {/* (Phase 17.G) Application 状態に応じた再申込ボタン
+        {/* (Phase 17.G / 17.H2) Application 状態に応じた再申込ボタン
             ガード: 返金処理中 (hasPendingRefund) があれば 非表示 (= 安全のため)
-            全 cancelled-final → 「再申込」 / 一部 cancelled → 「一部再申込」 */}
-        {!past && appState && !appState.hasPendingRefund && appState.cancelledRegs.length > 0 && (
-          <a href={`#/events/${event.id}`}
-             onClick={(e) => e.stopPropagation()}
-             style={{
-               flexShrink: 0,
-               padding: '6px 12px',
-               fontSize: 11,
-               fontFamily: 'var(--jp)',
-               color: '#00A8E1',
-               background: 'transparent',
-               border: '1px solid #B8E4F4',
-               borderRadius: 0,
-               alignSelf: 'center',
-               letterSpacing: '0.04em',
-               textDecoration: 'none',
-               display:'inline-flex',
-               alignItems:'center',
-               gap:4,
-             }}
-             onMouseEnter={(e) => { e.currentTarget.style.background = '#E5F5FC'; }}
-             onMouseLeave={(e) => { e.currentTarget.style.background = 'transparent'; }}>
-            <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><path d="M3 12a9 9 0 1 0 9-9"/><path d="M3 4v5h5"/></svg>
-            {appState.isAllCancelled
-              ? (lang === 'en' ? 'Re-apply' : '再申込')
-              : (lang === 'en' ? 'Partial re-apply' : '一部再申込')}
-          </a>
-        )}
+            全 cancelled-final → 「再申込」 / 一部 cancelled → 「一部再申込」
+            URL に sessions= で cancelled な sessionId を付与 → EventDetail で自動チェック */}
+        {!past && appState && !appState.hasPendingRefund && appState.cancelledRegs.length > 0 && (() => {
+          const cancelledSessionIds = appState.cancelledRegs
+            .map(r => r.sessionId)
+            .filter(Boolean);
+          const sessionsParam = cancelledSessionIds.length > 0
+            ? `?sessions=${cancelledSessionIds.join(',')}`
+            : '';
+          return (
+            <a href={`#/events/${event.id}${sessionsParam}`}
+               onClick={(e) => e.stopPropagation()}
+               style={{
+                 flexShrink: 0,
+                 padding: '6px 12px',
+                 fontSize: 11,
+                 fontFamily: 'var(--jp)',
+                 color: '#00A8E1',
+                 background: 'transparent',
+                 border: '1px solid #B8E4F4',
+                 borderRadius: 0,
+                 alignSelf: 'center',
+                 letterSpacing: '0.04em',
+                 textDecoration: 'none',
+                 display:'inline-flex',
+                 alignItems:'center',
+                 gap:4,
+               }}
+               onMouseEnter={(e) => { e.currentTarget.style.background = '#E5F5FC'; }}
+               onMouseLeave={(e) => { e.currentTarget.style.background = 'transparent'; }}>
+              <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><path d="M3 12a9 9 0 1 0 9-9"/><path d="M3 4v5h5"/></svg>
+              {appState.isAllCancelled
+                ? (lang === 'en' ? 'Re-apply' : '再申込')
+                : (lang === 'en' ? 'Partial re-apply' : '一部再申込')}
+            </a>
+          );
+        })()}
 
         {/* (Phase 17.G) 旧 isCancelled 単体判定の再申込リンクは appState 経由に置換 → 削除済 */}
       </div>
@@ -22877,12 +23071,12 @@ function FavoriteEventCard({ event, lang, fav, at: atProp, isFirst, isLast, onMo
   const vp = useViewport();
   const [hover, setHover] = React.useState(false);
 
-  // (Phase 11.3) 既に申込済か判定
+  // (Phase 11.3 / 17.G6) 既に申込済か判定 — 全終了状態 (キャンセル / 返金 / 返金待ち) を除外
   const isAlreadyRegistered = React.useMemo(() => {
     if (!Array.isArray(myRegistrations)) return false;
     return myRegistrations.some(r =>
       String(r.eventId) === String(event.id) &&
-      r.status !== 'キャンセル'
+      r.status !== 'キャンセル' && r.status !== '返金' && r.status !== '返金待ち'
     );
   }, [myRegistrations, event.id]);
 
@@ -25219,7 +25413,7 @@ function Footer({ lang, t, siteSettings }) {
           }}>{(() => {
             // (Phase 15.S62) Admin の footer_est_line で編集可能、 フォールバックは元の値
             const s = siteSettings || {};
-            return s['footer_est_line'] || 'EST. 2025 · TOKYO · JP';
+            return s['footer_est_line'] || 'EST. 2018 · TOKYO · JP';
           })()}</div>
           <p style={{
             fontFamily: 'var(--jp)',
@@ -25345,9 +25539,10 @@ function Footer({ lang, t, siteSettings }) {
             flexWrap: 'wrap',
           }}>
             {[
-              { href: 'https://www.instagram.com/connecta_if/', label: 'Instagram', short: 'IG' },
-              { href: 'https://note.com/connecta2022', label: 'Note', short: 'Nt' },
-              { href: 'https://lin.ee/6XeGC7S', label: 'LINE', short: 'LI' },
+              { href: 'https://www.instagram.com/connecta_official/', label: 'Instagram', short: 'IG' },
+              { href: 'https://twitter.com/connecta_jp', label: 'X (Twitter)', short: 'X' },
+              { href: 'https://www.facebook.com/connectaofficial', label: 'Facebook', short: 'FB' },
+              { href: 'https://www.linkedin.com/company/connecta-jp', label: 'LinkedIn', short: 'IN' },
             ].map(sns => (
               <a key={sns.label} href={sns.href} target="_blank" rel="noopener noreferrer"
                 aria-label={sns.label}
@@ -25389,9 +25584,9 @@ function Footer({ lang, t, siteSettings }) {
             letterSpacing: '0.04em',
           }}>
             <div>{localizedSx('footer_legal_name', {
-              ja: 'connec+a',
-              easy: 'connec+a',
-              en: 'connec+a',
+              ja: '一般社団法人 connec+a',
+              easy: 'いっぱん しゃだん ほうじん connec+a',
+              en: 'General Incorporated Association connec+a',
             })}</div>
             <div style={{ opacity: 0.7, marginTop: 4 }}>{localizedSx('footer_legal_address', {
               ja: '東京都',
@@ -25430,7 +25625,7 @@ function Footer({ lang, t, siteSettings }) {
           color: 'rgba(255,255,255,0.35)',
           fontWeight: 500,
         }}>
-          {sx('footer_copyright', `© 2025-${new Date().getFullYear()} CONNEC+A · ALL RIGHTS RESERVED`)}
+          {sx('footer_copyright', `© 2018-${new Date().getFullYear()} CONNEC+A · ALL RIGHTS RESERVED`)}
         </div>
       </div>
     </footer>
