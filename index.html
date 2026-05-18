@@ -1972,6 +1972,41 @@ const favoritesStore = {
 };
 
 /**
+ * (Phase 17.L) playChime — Web Audio API で 2 連続トーンを再生
+ * 880Hz → 1100Hz の 0.18s ずつ、 音量 0.5
+ * QR 未決済警告で使う (= エラーではないが目立つ音)
+ */
+window.playChime = function(opts) {
+  opts = opts || {};
+  const volume = typeof opts.volume === 'number' ? opts.volume : 0.5;
+  try {
+    const Ctx = window.AudioContext || window.webkitAudioContext;
+    if (!Ctx) return;
+    const ctx = new Ctx();
+    const tones = [880, 1100];
+    const duration = 0.18;
+    tones.forEach(function(freq, i) {
+      const t0 = ctx.currentTime + i * (duration + 0.05);
+      const osc = ctx.createOscillator();
+      const gain = ctx.createGain();
+      osc.type = 'sine';
+      osc.frequency.value = freq;
+      gain.gain.setValueAtTime(0, t0);
+      gain.gain.linearRampToValueAtTime(volume, t0 + 0.01);
+      gain.gain.linearRampToValueAtTime(volume, t0 + duration - 0.04);
+      gain.gain.linearRampToValueAtTime(0, t0 + duration);
+      osc.connect(gain);
+      gain.connect(ctx.destination);
+      osc.start(t0);
+      osc.stop(t0 + duration);
+    });
+    setTimeout(function() { try { ctx.close(); } catch (e) {} }, (tones.length * (duration + 0.05) + 0.2) * 1000);
+  } catch (e) {
+    console.warn('playChime failed', e);
+  }
+};
+
+/**
  * 認証API: 7つのエンドポイントをラップ
  */
 const authApi = {
@@ -2020,6 +2055,10 @@ const authApi = {
   // 自分の参加申込一覧
   async getMyRegistrations(sessionToken) {
     return postToGAS('auth.getMyRegistrations', { sessionToken });
+  },
+  // (Phase 17.M-A4) 当日決済方法を申告
+  async declarePaymentMethod(sessionToken, regId, method) {
+    return postToGAS('auth.declarePaymentMethod', { sessionToken, regId, method });
   },
   // (Phase 15.S113/S115) クーポン関連
   async validateCoupon(sessionToken, code, eventId, amount) {
@@ -21054,6 +21093,125 @@ function PageMyPage({ lang, t, events }) {
     });
   }, []);
 
+  // (Phase 17.L) QR チェックイン後の同期状態
+  // 「チェックイン保留」 = Admin が QR 読取済、 決済確認待ち → 赤バナー
+  // 「チェックイン済」  = 直後 (= 5 分以内に保留→済 に変化) → 緑「入場完了」 バナー
+  const pendingPaymentRegs = React.useMemo(() => {
+    return (myRegistrations || []).filter(r => r && r.status === 'チェックイン保留');
+  }, [myRegistrations]);
+
+  // 「直近に決済完了 → チェックイン済 になった reg」 を localStorage 差分で検出
+  const [justCheckedInRegIds, setJustCheckedInRegIds] = React.useState(() => {
+    try {
+      const raw = localStorage.getItem('connecta_just_checked_in_v1');
+      if (!raw) return new Set();
+      const arr = JSON.parse(raw);
+      // 5 分以内のものだけ残す
+      const now = Date.now();
+      const valid = arr.filter(item => (now - item.at) < 5 * 60 * 1000);
+      return new Set(valid.map(item => item.regId));
+    } catch (e) { return new Set(); }
+  });
+
+  // ポーリング結果から: pending → 'チェックイン済' に変化した reg を検出
+  const prevStatusMapRef = React.useRef({});
+  React.useEffect(() => {
+    if (!myRegistrations || myRegistrations.length === 0) return;
+    const prev = prevStatusMapRef.current;
+    const newlyCompleted = [];
+    myRegistrations.forEach(r => {
+      const id = r.regId || r.id;
+      if (!id) return;
+      const oldStatus = prev[id];
+      // 'チェックイン保留' → 'チェックイン済' に変化したら 入場完了
+      if (oldStatus === 'チェックイン保留' && r.status === 'チェックイン済') {
+        newlyCompleted.push(id);
+      }
+      prev[id] = r.status;
+    });
+    if (newlyCompleted.length > 0) {
+      setJustCheckedInRegIds(prev => {
+        const next = new Set(prev);
+        newlyCompleted.forEach(id => next.add(id));
+        // localStorage に保存 (= 5 分 TTL)
+        try {
+          const data = Array.from(next).map(id => ({ regId: id, at: Date.now() }));
+          localStorage.setItem('connecta_just_checked_in_v1', JSON.stringify(data));
+        } catch (e) {}
+        return next;
+      });
+      // 入場完了の チャイム (= 軽め)
+      if (window.playChime) window.playChime({ volume: 0.4 });
+    }
+  }, [myRegistrations]);
+
+  // 「入場完了」 バナーで表示する reg
+  const justCheckedInRegs = React.useMemo(() => {
+    return (myRegistrations || []).filter(r =>
+      r && r.status === 'チェックイン済' && justCheckedInRegIds.has(r.regId || r.id)
+    );
+  }, [myRegistrations, justCheckedInRegIds]);
+
+  // 音を 1 度だけ鳴らす制御 (= 保留状態の reg を 新規検知した時のみ)
+  React.useEffect(() => {
+    if (!pendingPaymentRegs || pendingPaymentRegs.length === 0) return;
+    const STORAGE_KEY = 'connecta_checkin_pending_chime_v1';
+    let played = {};
+    try { played = JSON.parse(localStorage.getItem(STORAGE_KEY) || '{}'); } catch (e) {}
+    const newOnes = pendingPaymentRegs.filter(r => !played[r.regId || r.id]);
+    if (newOnes.length > 0 && window.playChime) {
+      window.playChime({ volume: 0.6 });
+      newOnes.forEach(r => { played[r.regId || r.id] = Date.now(); });
+      try { localStorage.setItem(STORAGE_KEY, JSON.stringify(played)); } catch (e) {}
+    }
+  }, [pendingPaymentRegs]);
+
+  // (Phase 17.L) Admin の checkin / confirmPayment を高頻度ポーリングで検知
+  // QR 表示中 = 2秒、 通常 = 3秒、 タブ非アクティブ = 停止
+  const [qrOpenCount, setQrOpenCount] = React.useState(0);
+  React.useEffect(() => {
+    const onOpen = () => setQrOpenCount(c => c + 1);
+    const onClose = () => setQrOpenCount(c => Math.max(0, c - 1));
+    window.addEventListener('connecta-qr-open', onOpen);
+    window.addEventListener('connecta-qr-close', onClose);
+    return () => {
+      window.removeEventListener('connecta-qr-open', onOpen);
+      window.removeEventListener('connecta-qr-close', onClose);
+    };
+  }, []);
+
+  React.useEffect(() => {
+    if (!auth.user) return;
+    let intervalId = null;
+    const intervalMs = qrOpenCount > 0 ? 2000 : 3000;
+    const startPolling = () => {
+      if (intervalId) return;
+      intervalId = setInterval(async () => {
+        try {
+          const token = authStore.getToken();
+          if (!token) return;
+          const fresh = await authApi.getMyRegistrations(token);
+          if (fresh && Array.isArray(fresh.registrations)) {
+            setMyRegistrations(fresh.registrations);
+          }
+        } catch (e) { /* silent — ポーリング失敗時は次回再試行 */ }
+      }, intervalMs);
+    };
+    const stopPolling = () => {
+      if (intervalId) { clearInterval(intervalId); intervalId = null; }
+    };
+    const onVisibilityChange = () => {
+      if (document.visibilityState === 'visible') startPolling();
+      else stopPolling();
+    };
+    if (document.visibilityState === 'visible') startPolling();
+    document.addEventListener('visibilitychange', onVisibilityChange);
+    return () => {
+      stopPolling();
+      document.removeEventListener('visibilitychange', onVisibilityChange);
+    };
+  }, [auth.user, qrOpenCount]);
+
   // (Phase 15.S20) 未決済 (= 申込済みかつ paid=false) の申込を抽出
   // (Phase 15.S48) 早期リターンより前に移動、 内部で myRegistrations と todayStart を完結
   const unpaidRegistrations = React.useMemo(() => {
@@ -21354,6 +21512,202 @@ function PageMyPage({ lang, t, events }) {
         maxWidth: 1100,
         margin: '0 auto',
       }}>
+        {/* (Phase 17.L) 入場完了バナー — 直前に「チェックイン保留」 → 「チェックイン済」 に変化 */}
+        {justCheckedInRegs.length > 0 && (
+          <div style={{
+            background: 'linear-gradient(135deg, #d4f0e2 0%, #e8f8ef 100%)',
+            border: '3px solid #009D6A',
+            borderRadius: 8,
+            padding: vp.isMobile ? '18px 18px' : '22px 26px',
+            marginBottom: 18,
+            display: 'flex',
+            alignItems: 'center',
+            gap: 14,
+            flexDirection: vp.isMobile ? 'column' : 'row',
+            boxShadow: '0 8px 24px rgba(0, 157, 106, 0.18)',
+          }}>
+            <div style={{
+              flexShrink: 0,
+              width: 52, height: 52,
+              background: '#009D6A',
+              color: '#fff',
+              fontSize: 28, fontWeight: 800,
+              borderRadius: '50%',
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+            }}>✓</div>
+            <div style={{ flex: 1, fontFamily: 'var(--jp)' }}>
+              <div style={{
+                fontSize: vp.isMobile ? 18 : 22,
+                fontWeight: 800,
+                color: '#065f3f',
+                letterSpacing: '0.02em',
+                marginBottom: 4,
+              }}>{lang === 'en' ? 'Check-in complete' : '入場完了'}</div>
+              <div style={{
+                fontSize: 13,
+                color: '#065f3f',
+                lineHeight: 1.6,
+              }}>
+                {lang === 'en'
+                  ? `Payment confirmed. Welcome!`
+                  : `決済が確認されました。 ${justCheckedInRegs.length} 件のセッションにご参加いただけます。`}
+              </div>
+              <div style={{
+                marginTop: 8,
+                display: 'flex', flexWrap: 'wrap', gap: 6,
+              }}>
+                {justCheckedInRegs.slice(0, 5).map(r => (
+                  <span key={r.regId || r.id} style={{
+                    padding: '4px 10px',
+                    background: '#009D6A',
+                    color: '#fff',
+                    fontSize: 11,
+                    fontWeight: 700,
+                    borderRadius: 999,
+                    fontFamily: 'var(--mono)',
+                    letterSpacing: '0.04em',
+                  }}>
+                    {r.event && r.event.title ? r.event.title.substring(0, 24) : (r.regId || r.id)}
+                  </span>
+                ))}
+              </div>
+            </div>
+          </div>
+        )}
+
+        {/* (Phase 17.L) QR 読取後 決済確認待ち — Admin が決済を確認するまでの間、 大型赤バナー */}
+        {pendingPaymentRegs.length > 0 && (
+          <div style={{
+            background: 'linear-gradient(135deg, #fef2f2 0%, #fee2e2 100%)',
+            border: '3px solid #dc2626',
+            borderRadius: 8,
+            padding: vp.isMobile ? '18px 18px' : '22px 26px',
+            marginBottom: 18,
+            display: 'flex',
+            alignItems: 'center',
+            gap: 14,
+            flexDirection: vp.isMobile ? 'column' : 'row',
+            boxShadow: '0 8px 24px rgba(220, 38, 38, 0.18)',
+            animation: 'jbPulseRed 1.6s ease-in-out infinite',
+          }}>
+            <style>{`
+              @keyframes jbPulseRed {
+                0%, 100% { box-shadow: 0 8px 24px rgba(220, 38, 38, 0.18); }
+                50%      { box-shadow: 0 8px 28px rgba(220, 38, 38, 0.42); }
+              }
+            `}</style>
+            <div style={{
+              flexShrink: 0,
+              width: 52, height: 52,
+              background: '#dc2626',
+              color: '#fff',
+              fontSize: 28, fontWeight: 800,
+              borderRadius: '50%',
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+            }}>!</div>
+            <div style={{ flex: 1, fontFamily: 'var(--jp)' }}>
+              <div style={{
+                fontSize: vp.isMobile ? 16 : 18,
+                fontWeight: 800,
+                color: '#991b1b',
+                letterSpacing: '0.02em',
+                marginBottom: 6,
+              }}>{lang === 'en' ? 'Please pay at the venue' : '会場にて 決済をお願いします'}</div>
+              <div style={{
+                fontSize: 13,
+                color: '#7f1d1d',
+                lineHeight: 1.6,
+              }}>
+                {lang === 'en'
+                  ? `Your QR has been scanned but ${pendingPaymentRegs.length} session(s) are unpaid. Staff is waiting for payment.`
+                  : `QR が読み取られました。 ${pendingPaymentRegs.length} 件のセッションが未決済です。 スタッフに「当日 現金」 や「PayPay」 で決済をお伝えください。`
+                }
+              </div>
+              <div style={{
+                marginTop: 10,
+                display: 'flex', flexWrap: 'wrap', gap: 6,
+              }}>
+                {pendingPaymentRegs.slice(0, 5).map(r => (
+                  <span key={r.regId || r.id} style={{
+                    padding: '4px 10px',
+                    background: '#dc2626',
+                    color: '#fff',
+                    fontSize: 11,
+                    fontWeight: 700,
+                    borderRadius: 999,
+                    fontFamily: 'var(--mono)',
+                    letterSpacing: '0.04em',
+                  }}>
+                    {r.event && r.event.title ? r.event.title.substring(0, 20) : (r.regId || r.id)}
+                    {r.amount ? ` · ¥${Number(r.amount).toLocaleString()}` : ''}
+                  </span>
+                ))}
+                {pendingPaymentRegs.length > 5 && (
+                  <span style={{
+                    padding: '4px 10px',
+                    background: '#7f1d1d',
+                    color: '#fff',
+                    fontSize: 11,
+                    fontWeight: 700,
+                    borderRadius: 999,
+                    fontFamily: 'var(--mono)',
+                  }}>+{pendingPaymentRegs.length - 5}</span>
+                )}
+              </div>
+              {/* (Phase 17.M-A4) 決済方法を申告 — スタッフへの意思表示 */}
+              <div style={{
+                marginTop: 14,
+                paddingTop: 12,
+                borderTop: '1px dashed #fca5a5',
+              }}>
+                <div style={{
+                  fontSize: 11, fontWeight: 700, color: '#7f1d1d',
+                  marginBottom: 6, letterSpacing: '0.04em',
+                  fontFamily: 'var(--jp)',
+                }}>{lang === 'en' ? 'How will you pay? (= staff will see)' : 'スタッフへ — 決済方法を選んでください'}</div>
+                <div style={{display:'flex',gap:8,flexWrap:'wrap'}}>
+                  {['現金', 'PayPay'].map(method => {
+                    const declaredOnAny = pendingPaymentRegs.some(r => String(r.note || '').includes('[当日申告] ' + method));
+                    return (
+                      <button key={method}
+                        onClick={async () => {
+                          try {
+                            const token = authStore.getToken();
+                            await Promise.all(pendingPaymentRegs.map(r =>
+                              authApi.declarePaymentMethod(token, r.regId || r.id, method).catch(() => {})
+                            ));
+                            // フレッシュ
+                            const fresh = await authApi.getMyRegistrations(token);
+                            if (fresh && Array.isArray(fresh.registrations)) {
+                              setMyRegistrations(fresh.registrations);
+                            }
+                          } catch (e) {}
+                        }}
+                        style={{
+                          padding: '8px 18px',
+                          background: declaredOnAny ? '#fff' : (method === '現金' ? '#65a30d' : '#dc2626'),
+                          color: declaredOnAny ? (method === '現金' ? '#65a30d' : '#dc2626') : '#fff',
+                          border: `2px solid ${method === '現金' ? '#65a30d' : '#dc2626'}`,
+                          borderRadius: 6,
+                          fontSize: 13, fontWeight: 800,
+                          fontFamily: 'var(--jp)',
+                          letterSpacing: '0.04em',
+                          cursor: 'pointer',
+                        }}>
+                        {declaredOnAny && '✓ '}{lang === 'en' ? (method === '現金' ? 'Cash' : 'PayPay') : (method === '現金' ? '現金' : 'PayPay')}
+                      </button>
+                    );
+                  })}
+                </div>
+              </div>
+            </div>
+          </div>
+        )}
+
         {/* (Phase 15.S11 A2) 未決済アラート — マイページの最上部に目立つ警告 */}
         {unpaidRegistrations.length > 0 && (
           <div style={{
@@ -22145,6 +22499,14 @@ function QRTicketModal({ registration, lang, onClose, isTodayQuick }) {
     const prevOverflow = document.body.style.overflow;
     document.body.style.overflow = 'hidden';
     return () => { document.body.style.overflow = prevOverflow; };
+  }, []);
+
+  // (Phase 17.L) QR 表示中は ポーリング頻度を上げる (= 2秒)
+  React.useEffect(() => {
+    try { window.dispatchEvent(new CustomEvent('connecta-qr-open')); } catch (e) {}
+    return () => {
+      try { window.dispatchEvent(new CustomEvent('connecta-qr-close')); } catch (e) {}
+    };
   }, []);
 
   // ESC で閉じる
