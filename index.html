@@ -2704,6 +2704,27 @@ async function fetchEvent(eventId) {
   }
 }
 
+// (Phase 17.M-B3) アクティビティ一覧取得 — 参加者向けタイムテーブル公開
+async function fetchEventActivities(eventId) {
+  const controller = new AbortController();
+  const timeoutId = setTimeout(() => controller.abort(), 15000);
+  try {
+    const params = encodeURIComponent(JSON.stringify({ eventId }));
+    const url = `${CONFIG.GAS_URL}?action=listActivities&params=${params}&_t=${Date.now()}`;
+    const res = await fetch(url, { signal: controller.signal });
+    clearTimeout(timeoutId);
+    if (!res.ok) return [];
+    const json = await res.json();
+    if (json && json.ok && Array.isArray(json.data)) return json.data;
+    return [];
+  } catch (err) {
+    clearTimeout(timeoutId);
+    if (err && err.name === 'AbortError') return [];
+    console.error('[Participants] fetchEventActivities error:', err);
+    return [];
+  }
+}
+
 // セッション一覧取得 (multi イベント用)
 async function fetchEventSessions(eventId) {
   const controller = new AbortController();
@@ -12514,6 +12535,196 @@ function MovieStyleHeader({ ev, lang, t, sessionCount, onBack, onToggleFav, isFa
 // =============================================================================
 // 各セッションを 1 行のカードに: 会場 + 日付/曜日 + 時間 + ◎ + 予約ボタン
 // 単発イベントも「セッション 1 つ」として同じ UI に統一
+// =============================================================================
+// (Phase 17.M-B3) PublicTimetable — 参加者向けタイムテーブル (読み取り専用、 staff 非表示)
+// =============================================================================
+function PublicTimetable({ sessions, activities, lang }) {
+  const toMin = (t) => {
+    if (!t) return null;
+    const m = String(t).match(/^(\d{1,2}):(\d{2})/);
+    if (!m) return null;
+    return parseInt(m[1], 10) * 60 + parseInt(m[2], 10);
+  };
+
+  // staff (= 運営) と other (= 内部) は 参加者には非表示。 program / meal / break のみ
+  const publicActs = (activities || []).filter(a =>
+    a && (a.kind === 'program' || a.kind === 'meal' || a.kind === 'break')
+  );
+
+  const sessionTimes = sessions.flatMap(s => [toMin(s.startTime), toMin(s.endTime)]).filter(v => v != null);
+  const activityTimes = publicActs.flatMap(a => [toMin(a.startTime), toMin(a.endTime)]).filter(v => v != null);
+  const allTimes = [...sessionTimes, ...activityTimes];
+  if (allTimes.length === 0 || sessions.length === 0) return null;
+
+  let minT = Math.min(...allTimes);
+  let maxT = Math.max(...allTimes);
+  minT = Math.max(0, Math.floor((minT - 30) / 30) * 30);
+  maxT = Math.min(24 * 60, Math.ceil((maxT + 30) / 30) * 30);
+  const range = Math.max(60, maxT - minT);
+  const hourMarks = [];
+  for (let m = Math.ceil(minT / 60) * 60; m <= maxT; m += 60) hourMarks.push(m);
+  const fmt = (m) => `${String(Math.floor(m / 60)).padStart(2, '0')}:${String(m % 60).padStart(2, '0')}`;
+
+  const KIND_COLORS = {
+    program: 'linear-gradient(135deg, #2563eb, #38bdf8)',
+    meal:    'linear-gradient(135deg, #F0A500, #FFC04A)',
+    break:   'linear-gradient(135deg, #9CA8B2, #C0CAD3)',
+  };
+  const KIND_LABEL = lang === 'en'
+    ? { program: 'Program', meal: 'Meal', break: 'Break' }
+    : { program: 'プログラム', meal: '食事', break: '休憩' };
+
+  function layoutActivities(acts) {
+    const sorted = acts.slice().sort((a, b) => {
+      const aS = toMin(a.startTime) || 0;
+      const bS = toMin(b.startTime) || 0;
+      return aS !== bS ? aS - bS : (a.order || 0) - (b.order || 0);
+    });
+    const colEndTimes = [];
+    const result = {};
+    sorted.forEach(a => {
+      const s = toMin(a.startTime) || 0;
+      const e = toMin(a.endTime) || s + 30;
+      let assigned = -1;
+      for (let c = 0; c < colEndTimes.length; c++) {
+        if (colEndTimes[c] <= s) { assigned = c; break; }
+      }
+      if (assigned < 0) { assigned = colEndTimes.length; colEndTimes.push(e); }
+      else { colEndTimes[assigned] = e; }
+      result[a.activityId] = { subCol: assigned };
+    });
+    const subTotal = Math.max(1, colEndTimes.length);
+    Object.keys(result).forEach(k => { result[k].subTotal = subTotal; });
+    return result;
+  }
+
+  const CHART_HEIGHT = 360;
+
+  return (
+    <section style={{
+      margin: '40px 0',
+      padding: '24px 26px',
+      background: '#fff',
+      border: '1px solid #e5e7eb',
+      borderRadius: 8,
+    }}>
+      <div style={{
+        display: 'flex',
+        justifyContent: 'space-between',
+        alignItems: 'baseline',
+        marginBottom: 14,
+        flexWrap: 'wrap',
+        gap: 8,
+      }}>
+        <h3 style={{
+          fontFamily: 'var(--jp)',
+          fontSize: 18, fontWeight: 800,
+          margin: 0,
+          color: 'var(--brand-navy)',
+          letterSpacing: '0.02em',
+        }}>{lang === 'en' ? 'Timetable' : 'タイムテーブル'}</h3>
+        <div style={{display:'flex',gap:10,fontSize:10,fontFamily:'var(--mono)',color:'#6b7280',letterSpacing:'0.04em'}}>
+          {['program','meal','break'].map(k => (
+            <span key={k} style={{display:'inline-flex',alignItems:'center',gap:4}}>
+              <span style={{width:10,height:10,background:KIND_COLORS[k],borderRadius:2}}/>
+              {KIND_LABEL[k]}
+            </span>
+          ))}
+        </div>
+      </div>
+      <div style={{overflow:'auto'}}>
+        <div style={{display:'flex',gap:0,minWidth:Math.max(500, sessions.length * 180 + 60),paddingTop:24}}>
+          <div style={{flexShrink:0,width:50,position:'relative',height:CHART_HEIGHT}}>
+            {hourMarks.map(m => (
+              <div key={m} style={{
+                position:'absolute',
+                top:`${((m - minT) / range) * 100}%`,
+                right:6,
+                transform:'translateY(-50%)',
+                fontFamily:'var(--mono)',fontSize:9,color:'#6b7280',letterSpacing:'0.04em',
+              }}>{fmt(m)}</div>
+            ))}
+          </div>
+          {sessions.map((s, i) => {
+            const sessActs = publicActs.filter(a => String(a.sessionId || '') === String(s.id || ''));
+            const layout = layoutActivities(sessActs);
+            const startM = toMin(s.startTime);
+            const endM = toMin(s.endTime);
+            const sessValid = startM != null && endM != null;
+            return (
+              <div key={s.id || i} style={{
+                flex:1,minWidth:160,
+                position:'relative',
+                height:CHART_HEIGHT,
+                borderLeft:'1px solid #e5e7eb',
+              }}>
+                {hourMarks.map(m => (
+                  <div key={m} style={{
+                    position:'absolute',
+                    top:`${((m - minT) / range) * 100}%`,
+                    left:0,right:0,
+                    borderTop:'1px dashed #f3f4f6',
+                    pointerEvents:'none',
+                  }}/>
+                ))}
+                <div style={{
+                  position:'absolute',top:-24,left:4,right:4,textAlign:'center',
+                }}>
+                  <span style={{fontFamily:'var(--jp)',fontSize:12,fontWeight:800,color:'var(--brand-navy)'}}>Day {s.order || (i+1)}</span>
+                  <span style={{fontFamily:'var(--mono)',fontSize:9,color:'#6b7280',marginLeft:6}}>{s.date || ''}</span>
+                </div>
+                {sessValid && (
+                  <div style={{
+                    position:'absolute',
+                    top:`${((startM - minT) / range) * 100}%`,
+                    height:`${((endM - startM) / range) * 100}%`,
+                    left:0,right:0,
+                    background:'#eff6ff',
+                    borderTop:'1px solid #93c5fd',
+                    borderBottom:'1px solid #93c5fd',
+                    opacity:0.6,
+                    pointerEvents:'none',
+                  }}/>
+                )}
+                {sessActs.map(a => {
+                  const aS = toMin(a.startTime);
+                  const aE = toMin(a.endTime);
+                  if (aS == null || aE == null) return null;
+                  const { subCol = 0, subTotal = 1 } = layout[a.activityId] || {};
+                  const widthPct = 100 / subTotal;
+                  const leftPct = subCol * widthPct;
+                  return (
+                    <div key={a.activityId}
+                      title={`${a.title} ${a.startTime}〜${a.endTime}${a.place ? ' @ ' + a.place : ''}`}
+                      style={{
+                        position:'absolute',
+                        top:`${((aS - minT) / range) * 100}%`,
+                        height:`${((aE - aS) / range) * 100}%`,
+                        left:`calc(${leftPct}% + 2px)`,
+                        width:`calc(${widthPct}% - 4px)`,
+                        background:KIND_COLORS[a.kind] || KIND_COLORS.program,
+                        color:'#fff',
+                        borderRadius:3,
+                        padding:'4px 6px',
+                        overflow:'hidden',
+                        boxShadow:'0 1px 3px rgba(0, 0, 0, 0.12)',
+                        zIndex:2,
+                      }}>
+                      <div style={{fontFamily:'var(--mono)',fontSize:8,fontWeight:700,opacity:0.95,whiteSpace:'nowrap',overflow:'hidden',textOverflow:'ellipsis'}}>{a.startTime}-{a.endTime}</div>
+                      <div style={{fontFamily:'var(--jp)',fontSize:10,fontWeight:700,lineHeight:1.2,marginTop:2,wordBreak:'break-all',display:'-webkit-box',WebkitLineClamp:3,WebkitBoxOrient:'vertical',overflow:'hidden'}}>{a.title}</div>
+                      {a.place && <div style={{fontFamily:'var(--mono)',fontSize:7,opacity:0.85,marginTop:2,whiteSpace:'nowrap',overflow:'hidden',textOverflow:'ellipsis'}}>@ {a.place}</div>}
+                    </div>
+                  );
+                })}
+              </div>
+            );
+          })}
+        </div>
+      </div>
+    </section>
+  );
+}
+
 function MovieStyleSessionList({
   ev,
   sessions,            // 複数日イベントなら sessions 配列、 単発なら null
@@ -13127,6 +13338,7 @@ function MovieStyleSessionList({
 function PageEventDetail({ lang, t, eventId }) {
   const [ev, setEv] = useState(null);
   const [sessions, setSessions] = useState([]);
+  const [activities, setActivities] = useState([]);  // (Phase 17.M-B3) タイムテーブル公開
   const [loading, setLoading] = useState(true);
   // (Phase 17.H2) URL の ?sessions=S-001,S-002 を 初期選択に反映 (= 一部再申込からの遷移時)
   const initialSelectedSessions = (() => {
@@ -13167,6 +13379,11 @@ function PageEventDetail({ lang, t, eventId }) {
         const sessData = await fetchEventSessions(eventId);
         if (!cancelled) setSessions(sessData);
       }
+      // (Phase 17.M-B3) 参加者向けタイムテーブル — listActivities を読み取り (= 認証不要 GET)
+      try {
+        const acts = await fetchEventActivities(eventId);
+        if (!cancelled) setActivities(acts);
+      } catch (e) { /* silent */ }
       setLoading(false);
     }
     load();
@@ -13437,6 +13654,10 @@ function PageEventDetail({ lang, t, eventId }) {
         margin: '0 auto',
         padding: 'clamp(40px, 6vh, 70px) clamp(24px, 6vw, 40px) 160px',
       }}>
+        {/* (Phase 17.M-B3) 参加者向けタイムテーブル — multi イベント + activities 1 件以上 */}
+        {ev.format === 'multi' && activities.length > 0 && sessions.length > 0 && (
+          <PublicTimetable sessions={sessions} activities={activities} lang={lang}/>
+        )}
         {/* ポスター画像 (Phase 6.1: 縦長ポスターを大きく掲示) */}
         {/* (Phase 15.S74) 本文中の大型ポスター画像は削除 — ヘッダーのポスター画像と重複していたため */}
 
@@ -21506,10 +21727,12 @@ function PageMyPage({ lang, t, events }) {
       minHeight: 'calc(100vh - 130px)',
       marginTop: 130,
       background: '#fafbfc',
-      padding: 'clamp(40px, 6vh, 80px) clamp(24px, 4vw, 80px)',
+      padding: vp.isMobile
+        ? '20px 8px 40px'
+        : 'clamp(40px, 6vh, 80px) clamp(24px, 4vw, 80px)',
     }}>
       <div style={{
-        maxWidth: 1100,
+        maxWidth: vp.isMobile ? '100%' : 1100,
         margin: '0 auto',
       }}>
         {/* (Phase 17.L) 入場完了バナー — 直前に「チェックイン保留」 → 「チェックイン済」 に変化 */}
@@ -21517,9 +21740,9 @@ function PageMyPage({ lang, t, events }) {
           <div style={{
             background: 'linear-gradient(135deg, #d4f0e2 0%, #e8f8ef 100%)',
             border: '3px solid #009D6A',
-            borderRadius: 8,
-            padding: vp.isMobile ? '18px 18px' : '22px 26px',
-            marginBottom: 18,
+            borderRadius: vp.isMobile ? 18 : 16,
+            padding: vp.isMobile ? '18px 16px' : '22px 26px',
+            marginBottom: 14,
             display: 'flex',
             alignItems: 'center',
             gap: 14,
@@ -21582,9 +21805,9 @@ function PageMyPage({ lang, t, events }) {
           <div style={{
             background: 'linear-gradient(135deg, #fef2f2 0%, #fee2e2 100%)',
             border: '3px solid #dc2626',
-            borderRadius: 8,
-            padding: vp.isMobile ? '18px 18px' : '22px 26px',
-            marginBottom: 18,
+            borderRadius: vp.isMobile ? 18 : 16,
+            padding: vp.isMobile ? '18px 16px' : '22px 26px',
+            marginBottom: 14,
             display: 'flex',
             alignItems: 'center',
             gap: 14,
@@ -22037,6 +22260,7 @@ function PageMyPage({ lang, t, events }) {
                   background: '#fff',
                   border: '1px solid #e5e7eb',
                   borderTop: '3px solid #2c89e8',
+                  borderRadius: vp.isMobile ? 14 : 10,
                   padding: vp.isMobile ? '14px 10px' : '20px 18px',
                   transform: hoveredStat === 'upcoming' ? 'translateY(-2px)' : 'translateY(0)',
                   boxShadow: hoveredStat === 'upcoming' ? '0 6px 18px rgba(44, 137, 232, 0.10)' : 'none',
@@ -22082,6 +22306,7 @@ function PageMyPage({ lang, t, events }) {
                   background: '#fff',
                   border: '1px solid #e5e7eb',
                   borderTop: '3px solid #0a2960',
+                  borderRadius: vp.isMobile ? 14 : 10,
                   padding: vp.isMobile ? '14px 10px' : '20px 18px',
                   transform: hoveredStat === 'attended' ? 'translateY(-2px)' : 'translateY(0)',
                   boxShadow: hoveredStat === 'attended' ? '0 6px 18px rgba(10, 41, 96, 0.10)' : 'none',
@@ -22113,6 +22338,7 @@ function PageMyPage({ lang, t, events }) {
                     background: '#fff',
                     border: '1px solid #e5e7eb',
                     borderTop: '3px solid #9ca3af',
+                  borderRadius: vp.isMobile ? 14 : 10,
                     padding: vp.isMobile ? '14px 10px' : '20px 18px',
                     transform: hoveredStat === 'cancelled' ? 'translateY(-2px)' : 'translateY(0)',
                     boxShadow: hoveredStat === 'cancelled' ? '0 6px 18px rgba(0, 0, 0, 0.06)' : 'none',
@@ -22387,7 +22613,7 @@ function PageMyPage({ lang, t, events }) {
                       }}>{at.monthEventsCount.replace('%n%', group.items.length)}</span>
                     </div>
                     {/* 月内のカード */}
-                    <div style={{ paddingLeft: vp.isMobile ? 24 : 32, display: 'grid', gap: 12 }}>
+                    <div style={{ paddingLeft: vp.isMobile ? 0 : 32, display: 'grid', gap: 12 }}>
                       {group.items.map(reg => (
                         <MyEventCard key={reg.regId} registration={reg} past lang={lang} />
                       ))}
@@ -22838,10 +23064,10 @@ function MyEventCard({ registration, siblings, appState, past, onCancel, lang })
         position: 'relative',
         display: 'flex',
         flexDirection: 'column',
-        padding: 16,
+        padding: vp.isMobile ? '18px 16px' : 16,
         background: '#fff',
         border: hover && !isCancelled ? '1px solid #2c89e8' : '1px solid #e5e7eb',
-        borderRadius: 6,
+        borderRadius: vp.isMobile ? 18 : 12,
         boxShadow: hover && !isCancelled ? '0 12px 32px rgba(44, 137, 232, 0.15)' : '0 2px 8px rgba(0, 0, 0, 0.04)',
         cursor: 'pointer',
         transition: 'all .22s ease',
