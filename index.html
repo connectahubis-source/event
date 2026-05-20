@@ -2006,13 +2006,44 @@ window.playChime = function(opts) {
   }
 };
 
+// (Phase 17.P) 流入経路 — URL パラメータ ?ref=...&campaign=... を localStorage に 永続化
+function captureReferralFromUrl() {
+  try {
+    const params = new URLSearchParams(window.location.search);
+    const ref = params.get('ref') || params.get('utm_source') || '';
+    const campaign = params.get('campaign') || params.get('utm_campaign') || '';
+    if (ref || campaign) {
+      const data = {
+        ref: ref,
+        campaign: campaign,
+        referrer: document.referrer || '',
+        firstSeenAt: new Date().toISOString(),
+      };
+      try { localStorage.setItem('connecta_referral', JSON.stringify(data)); } catch (e) {}
+    }
+  } catch (e) { console.warn('captureReferralFromUrl failed:', e); }
+}
+function getStoredReferral() {
+  try {
+    const raw = localStorage.getItem('connecta_referral');
+    if (!raw) return null;
+    return JSON.parse(raw);
+  } catch (e) { return null; }
+}
+if (typeof window !== 'undefined') {
+  try { captureReferralFromUrl(); } catch (e) {}
+}
+
 /**
  * 認証API: 7つのエンドポイントをラップ
  */
 const authApi = {
   // ステップ1: メール+パスワードを送信して認証メール送信
   async signupStart(email, password, lang) {
-    return postToGAS('auth.signupStart', { email, password, lang: lang || 'ja' });
+    return postToGAS('auth.signupStart', {
+      email, password, lang: lang || 'ja',
+      referral: getStoredReferral(),  // (Phase 17.P)
+    });
   },
   // メール認証リンクのトークンを検証
   async verifyEmail(token) {
@@ -4294,7 +4325,7 @@ function Nav({ lang, setLang, t, transparent, menuOpen: externalMenuOpen, setMen
                 letterSpacing: '0.22em',
                 color: 'rgba(255,255,255,0.35)',
                 fontWeight: 500,
-              }}>EST. 2018 · TOKYO · JP</div>
+              }}>EST. 2025 · TOKYO · JP</div>
             </div>
           </div>
         </div>
@@ -6153,7 +6184,7 @@ function HeroSlideshow({ lang, t, events, heroSlides, loading, frontNews, siteSe
             color: 'var(--ink-4)',
             fontWeight: 500,
             marginBottom: 'var(--space-4)',
-          }}>EST. 2018 · TOKYO</div>
+          }}>EST. 2025 · TOKYO</div>
           <div style={{
             width: 24, height: 1,
             background: 'var(--brand-blue)',
@@ -9621,7 +9652,7 @@ function PageHomeMobile({ lang, t, events, ads, heroSlides, heroSlidesMobile, lo
               marginBottom: 'var(--space-4)',
               opacity: 0,
               animation: 'cca-flow-up 1.0s cubic-bezier(0.2,0.8,0.2,1) 0.7s forwards',
-            }}>EST. 2018 · TOKYO · JP</div>
+            }}>EST. 2025 · TOKYO · JP</div>
             <h1 style={{
               fontFamily: 'var(--serif)',
               fontSize: 'clamp(36px, 11vw, 56px)',
@@ -10248,7 +10279,7 @@ function PageHomeMobile({ lang, t, events, ads, heroSlides, heroSlidesMobile, lo
               letterSpacing: 'var(--ls-mono-xxl)',
               color: 'var(--ink-4)',
               fontWeight: 500,
-            }}>EST. 2018</div>
+            }}>EST. 2025</div>
             <div style={{ width: 4, height: 4, borderRadius: '50%', background: 'var(--ink-5)' }}/>
             <div style={{
               fontFamily: 'var(--mono)',
@@ -10508,7 +10539,7 @@ function PageHomeMobile({ lang, t, events, ads, heroSlides, heroSlidesMobile, lo
           fontFamily: 'var(--mono)',
           color: 'var(--ink-5)',
           fontWeight: 500,
-        }}>EST. 2018 · TOKYO · JP</div>
+        }}>EST. 2025 · TOKYO · JP</div>
       </div>
     </div>
   );
@@ -13652,7 +13683,9 @@ function PageEventDetail({ lang, t, eventId }) {
       <main style={{
         maxWidth: 720,
         margin: '0 auto',
-        padding: 'clamp(40px, 6vh, 70px) clamp(24px, 6vw, 40px) 160px',
+        padding: detailVp.isMobile
+          ? `${detailVp.isXs ? 20 : 28}px ${detailVp.isXs ? 10 : 14}px 120px`
+          : 'clamp(40px, 6vh, 70px) clamp(24px, 6vw, 40px) 160px',
       }}>
         {/* (Phase 17.M-B3) 参加者向けタイムテーブル — multi イベント + activities 1 件以上 */}
         {ev.format === 'multi' && activities.length > 0 && sessions.length > 0 && (
@@ -17516,8 +17549,17 @@ const PIcon = {
 };
 
 // (Phase 12.1) ブレークポイント定数
+// (Phase 17.M-mobile) ブレークポイント 細分化 — 主要モバイル機種対応
+//   xs : 〜 360px  (= 旧 Android 小型 / iPhone SE 1st gen)
+//   sm : 〜 390px  (= iPhone SE 2/3 gen / iPhone 12 mini / 旧 Android)
+//   md : 〜 430px  (= iPhone 12-15 標準 / Pro / Plus / Pro Max)
+//   tablet: 〜 880px
+//   desktop: > 880px
 const BP = {
-  mobile: 640,    // <= 640px はスマホ
+  xs:     360,
+  sm:     390,
+  md:     430,
+  mobile: 640,    // <= 640px はスマホ (= 既存 isMobile 維持)
   tablet: 880,    // 641-880 はタブレット (既存hero-grid と整合)
 };
 
@@ -17541,12 +17583,30 @@ function useViewport() {
       if (timer) clearTimeout(timer);
     };
   }, []);
+  const w = vp.width;
   return {
-    width: vp.width,
+    width: w,
     height: vp.height,
-    isMobile: vp.width <= BP.mobile,
-    isTablet: vp.width > BP.mobile && vp.width <= BP.tablet,
-    isDesktop: vp.width > BP.tablet,
+    // (Phase 17.M-mobile) 細分化フラグ
+    isXs:        w <= BP.xs,
+    isSm:        w > BP.xs && w <= BP.sm,
+    isMd:        w > BP.sm && w <= BP.md,
+    isMobileXs:  w <= BP.xs,                            // 〜 360
+    isMobileSm:  w <= BP.sm,                            // 〜 390
+    isMobileMd:  w <= BP.md,                            // 〜 430
+    isMobile:    w <= BP.mobile,                        // 〜 640 (= 既存)
+    isTablet:    w > BP.mobile && w <= BP.tablet,
+    isDesktop:   w > BP.tablet,
+    // 機種別 fontSize ヘルパー (= 簡易マルチサイズ)
+    fs: (xs, sm, md, base) =>
+      w <= BP.xs ? xs :
+      w <= BP.sm ? sm :
+      w <= BP.md ? md : base,
+    // 機種別 padding ヘルパー
+    pad: (xs, sm, md, base) =>
+      w <= BP.xs ? xs :
+      w <= BP.sm ? sm :
+      w <= BP.md ? md : base,
   };
 }
 
@@ -21728,7 +21788,7 @@ function PageMyPage({ lang, t, events }) {
       marginTop: 130,
       background: '#fafbfc',
       padding: vp.isMobile
-        ? '20px 8px 40px'
+        ? `${vp.isXs ? 14 : vp.isSm ? 16 : 20}px ${vp.isXs ? 6 : 8}px ${vp.isXs ? 28 : 40}px`
         : 'clamp(40px, 6vh, 80px) clamp(24px, 4vw, 80px)',
     }}>
       <div style={{
@@ -22272,7 +22332,7 @@ function PageMyPage({ lang, t, events }) {
                   textTransform: 'uppercase', fontWeight: 500,
                 }}>Upcoming</div>
                 <div style={{
-                  fontSize: vp.isMobile ? 24 : 32, fontWeight: 600,
+                  fontSize: vp.isXs ? 20 : vp.isSm ? 22 : vp.isMobile ? 24 : 32, fontWeight: 600,
                   color: hoveredStat === 'upcoming' ? '#2c89e8' : '#0a2960',
                   fontFamily: 'var(--jp)', lineHeight: 1,
                   letterSpacing: '-0.02em',
@@ -22318,7 +22378,7 @@ function PageMyPage({ lang, t, events }) {
                   textTransform: 'uppercase', fontWeight: 500,
                 }}>Attended</div>
                 <div style={{
-                  fontSize: vp.isMobile ? 24 : 32, fontWeight: 600,
+                  fontSize: vp.isXs ? 20 : vp.isSm ? 22 : vp.isMobile ? 24 : 32, fontWeight: 600,
                   color: '#0a2960',
                   fontFamily: 'var(--jp)', lineHeight: 1,
                   letterSpacing: '-0.02em',
@@ -22350,7 +22410,7 @@ function PageMyPage({ lang, t, events }) {
                     textTransform: 'uppercase', fontWeight: 500,
                   }}>Cancelled</div>
                   <div style={{
-                    fontSize: vp.isMobile ? 24 : 32, fontWeight: 600, color: '#9ca3af',
+                    fontSize: vp.isXs ? 20 : vp.isSm ? 22 : vp.isMobile ? 24 : 32, fontWeight: 600, color: '#9ca3af',
                     fontFamily: 'var(--jp)', lineHeight: 1,
                     letterSpacing: '-0.02em',
                   }}>{cancelledEvents.length}</div>
@@ -23064,7 +23124,7 @@ function MyEventCard({ registration, siblings, appState, past, onCancel, lang })
         position: 'relative',
         display: 'flex',
         flexDirection: 'column',
-        padding: vp.isMobile ? '18px 16px' : 16,
+        padding: vp.isXs ? '14px 12px' : vp.isSm ? '16px 14px' : vp.isMobile ? '18px 16px' : 16,
         background: '#fff',
         border: hover && !isCancelled ? '1px solid #2c89e8' : '1px solid #e5e7eb',
         borderRadius: vp.isMobile ? 18 : 12,
@@ -23110,7 +23170,9 @@ function MyEventCard({ registration, siblings, appState, past, onCancel, lang })
         <div style={{ flex: 1, minWidth: 0, display: 'flex', flexDirection: 'column', gap: 8 }}>
           {/* タイトル (折り返し可、 視認性 up) */}
           <div style={{
-            fontFamily: 'var(--jp)', fontSize: 15, fontWeight: 700,
+            fontFamily: 'var(--jp)',
+            fontSize: vp.isXs ? 13 : vp.isSm ? 14 : 15,
+            fontWeight: 700,
             color: '#0a2960', textDecoration: isCancelled ? 'line-through' : 'none',
             lineHeight: 1.4,
             paddingRight: daysRemaining ? (vp.isMobile ? 60 : 80) : 0,
@@ -26001,7 +26063,7 @@ function Footer({ lang, t, siteSettings }) {
           }}>{(() => {
             // (Phase 15.S62) Admin の footer_est_line で編集可能、 フォールバックは元の値
             const s = siteSettings || {};
-            return s['footer_est_line'] || 'EST. 2018 · TOKYO · JP';
+            return s['footer_est_line'] || 'EST. 2025 · TOKYO · JP';
           })()}</div>
           <p style={{
             fontFamily: 'var(--jp)',
@@ -26264,7 +26326,7 @@ function OpeningCurtain({ phase, settings, lang }) {
   // P1 (0.3s): 細い水平線が中央から伸びる
   // P2 (0.7s): ロゴフェードイン (中央)
   // P3 (1.3s): タグライン "WELCOME TO TOKYO" 下に小さく
-  // P4 (1.9s): "EST. 2018" 装飾完了
+  // P4 (1.9s): "EST. 2025" 装飾完了
   React.useEffect(() => {
     const timers = [];
     timers.push(setTimeout(() => setInnerPhase(1), 300));
@@ -26367,12 +26429,12 @@ function OpeningCurtain({ phase, settings, lang }) {
         color: 'var(--ink-4)',
         textAlign: 'center',
       }}>{(() => {
-        // (Phase 15.S38) Admin の opening_subtitle_* キー優先、 フォールバック「EST. 2018 · TOKYO · JP」
+        // (Phase 15.S38) Admin の opening_subtitle_* キー優先、 フォールバック「EST. 2025 · TOKYO · JP」
         const s = settings || {};
         const langKey = lang === 'en' ? '_en' : lang === 'easy' ? '_easy' : '_ja';
         return s['opening_subtitle' + langKey]
             || s['opening_subtitle_ja']
-            || 'EST. 2018 · TOKYO · JP';
+            || 'EST. 2025 · TOKYO · JP';
       })()}</div>
     </div>
   );
@@ -26538,6 +26600,61 @@ function App() {
   useEffect(() => {
     captureUTM();
   }, []);
+
+  // (Phase 17.R) 自動リダイレクト — URL を開いた瞬間に 適切な画面へ
+  //   1. ?event=E-XXX パラメータ → そのイベント詳細に直行
+  //   2. ルート (= '/') かつ 未ログイン → ログイン画面
+  //   3. ルート (= '/') かつ ログイン済み → イベント一覧
+  //   ※ 開く時の 1 度だけ判定 (= ナビゲーション後は 通常 動作)
+  const auth = React.useContext(AuthContext);
+  const [autoRedirected, setAutoRedirected] = useState(false);
+  useEffect(() => {
+    if (autoRedirected) return;
+    if (auth && auth.loading) return;  // 認証判定中は 待つ
+    try {
+      const params = new URLSearchParams(window.location.search);
+      const eventParam = params.get('event');
+      const currentHash = (window.location.hash || '').replace(/^#/, '') || '/';
+      // 1. ?event=E-XXX → ハッシュを 該当イベントに 書き換え (= ref / campaign は 残す)
+      if (eventParam && currentHash === '/') {
+        const keepParams = new URLSearchParams();
+        ['ref','campaign','utm_source','utm_medium','utm_campaign','utm_content'].forEach(k => {
+          const v = params.get(k);
+          if (v) keepParams.set(k, v);
+        });
+        const qs = keepParams.toString();
+        const targetHash = '/events/' + encodeURIComponent(eventParam);
+        if (auth && auth.user) {
+          // ログイン済 → 即 イベント詳細へ
+          const newUrl = window.location.pathname + (qs ? '?' + qs : '') + '#' + targetHash;
+          window.history.replaceState(null, '', newUrl);
+          window.location.hash = targetHash;
+        } else {
+          // 未ログイン → redirect 先を保存して ログイン画面へ
+          try {
+            sessionStorage.setItem('connecta_redirect_after_login', targetHash);
+          } catch (e) {}
+          window.location.hash = '/login';
+        }
+        setAutoRedirected(true);
+        return;
+      }
+      // 2 + 3. ルート '/' のとき 認証状態で 分岐
+      if (currentHash === '/') {
+        if (auth && auth.user) {
+          window.location.hash = '/events';
+        } else {
+          window.location.hash = '/login';
+        }
+        setAutoRedirected(true);
+        return;
+      }
+      setAutoRedirected(true);
+    } catch (e) {
+      console.warn('auto-redirect failed:', e);
+      setAutoRedirected(true);
+    }
+  }, [auth && auth.loading, auth && auth.user, autoRedirected]);
 
   // イベント + 広告 + ヒーロースライド + Settings + News (並列)
   // (Phase 15.S9 #25) SWR キャッシュ: sessionStorage の古いデータを即時表示、 裏で fresh 取得
