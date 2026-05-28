@@ -4,9 +4,9 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
 <title>connec+a — 出会いが、まちを変えていく。</title>
-<meta name="description" content="在日外国人留学生と日本人をつなぐ、参加型の国際交流プラットフォーム。一般社団法人connec+a。">
+<meta name="description" content="在留外国人と日本人をつなぐconnec+a。">
 <meta name="keywords" content="国際交流,留学生,東京,イベント,Japan,Tokyo,exchange,students,foreign,connec+a">
-<meta name="author" content="一般社団法人connec+a">
+<meta name="author" content="connec+a">
 <meta name="robots" content="index, follow">
 
 <!-- (L9) ブランドカラー (PWA・モバイルブラウザのテーマ) -->
@@ -27,7 +27,7 @@
 
 <!-- (L9) OGP -->
 <meta property="og:title" content="connec+a — 出会いが、まちを変えていく。">
-<meta property="og:description" content="在日外国人留学生と日本人をつなぐ、参加型の国際交流プラットフォーム。一般社団法人connec+a。">
+<meta property="og:description" content="connec+a。">
 <meta property="og:type" content="website">
 <meta property="og:site_name" content="connec+a">
 <meta property="og:locale" content="ja_JP">
@@ -52,7 +52,7 @@
 {
   "@context": "https://schema.org",
   "@type": "Organization",
-  "name": "一般社団法人connec+a",
+  "name": "connec+a",
   "alternateName": "connec+a",
   "url": "https://connectahubis-source.github.io/event/",
   "description": "在日外国人留学生と日本人をつなぐ、参加型の国際交流プラットフォーム",
@@ -1548,7 +1548,7 @@ const I18N = {
   ja: {
     nav: { events: 'イベント', about: '私たちについて', news: 'ニュース', contact: 'お問い合わせ', login: 'ログイン', signup: '会員登録' },
     hero: {
-      eyebrow: '一般社団法人 connec+a',
+      eyebrow: 'connec+a',
       title: '出会いが、\nまちを変えていく。',
       sub: '在日外国人留学生と日本人をつなぐ、参加型の国際交流プラットフォーム。',
       cta1: '直近のイベントを見る',
@@ -1595,7 +1595,7 @@ const I18N = {
       day: '日目',
       eventClosed: 'このイベントは満員です',
     },
-    footer: { newsletter: 'ニュースレター', email: 'メールアドレス', subscribe: '登録', rights: '© 2026 一般社団法人 connec+a' },
+    footer: { newsletter: 'ニュースレター', email: 'メールアドレス', subscribe: '登録', rights: '© 2026 connec+a' },
     lang: { ja: '日本語', easy: 'やさしい日本語', en: 'English' },
     words: ['出会い', '対話', '文化', '仲間'],
     loading: '読み込み中...',
@@ -14974,7 +14974,7 @@ function PageAbout({ lang, t, siteSettings }) {
             color: 'var(--ink-1)',
             margin: '0 0 var(--space-6)',
             letterSpacing: '-0.01em',
-          }}>{lang === 'en' ? 'General Incorporated Association connec+a' : '一般社団法人 connec+a'}</h2>
+          }}>{lang === 'en' ? 'General Incorporated Association connec+a' : 'connec+a'}</h2>
           <dl style={{
             display: 'grid',
             gridTemplateColumns: 'auto 1fr',
@@ -14987,7 +14987,7 @@ function PageAbout({ lang, t, siteSettings }) {
             {[
               { k: lang === 'en' ? 'Established' : '設立', v: '2018' },
               { k: lang === 'en' ? 'Location'    : '所在地', v: lang === 'en' ? 'Tokyo, Japan' : '東京都' },
-              { k: lang === 'en' ? 'Type'        : '法人種別', v: lang === 'en' ? 'General Incorporated Association' : '一般社団法人' },
+              { k: lang === 'en' ? 'Type'        : '法人種別', v: lang === 'en' ? 'General Incorporated Association' : '非営利活動法人' },
               { k: lang === 'en' ? 'Members'     : 'メンバー', v: '40+' },
             ].map((row, idx) => (
               <React.Fragment key={idx}>
@@ -26234,7 +26234,7 @@ function Footer({ lang, t, siteSettings }) {
             letterSpacing: '0.04em',
           }}>
             <div>{localizedSx('footer_legal_name', {
-              ja: '一般社団法人 connec+a',
+              ja: 'connec+a',
               easy: 'いっぱん しゃだん ほうじん connec+a',
               en: 'General Incorporated Association connec+a',
             })}</div>
