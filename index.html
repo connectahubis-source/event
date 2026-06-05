@@ -3952,7 +3952,13 @@ async function enablePushNotifications() {
   }
   const perm = await Notification.requestPermission();
   if (perm !== 'granted') throw new Error('denied');
-  const reg = await navigator.serviceWorker.ready;
+  // SW が未登録/未活性だと serviceWorker.ready は永久に保留になるため、登録確認＋タイムアウトで防ぐ
+  const existingReg = await navigator.serviceWorker.getRegistration();
+  if (!existingReg) throw new Error('sw_unavailable');
+  const reg = await Promise.race([
+    navigator.serviceWorker.ready,
+    new Promise((_, rej) => setTimeout(() => rej(new Error('sw_timeout')), 8000)),
+  ]);
   let sub = await reg.pushManager.getSubscription();
   if (!sub) {
     sub = await reg.pushManager.subscribe({
@@ -4004,6 +4010,7 @@ function NotificationBell({ lang }) {
       if (msg === 'denied' || (typeof Notification !== 'undefined' && Notification.permission === 'denied')) setPushState('denied');
       else if (msg === 'unsupported') setPushState('unsupported');
       else if (msg === 'not_configured') setPushState('not_configured');
+      else if (msg === 'sw_unavailable' || msg === 'sw_timeout') setPushState('sw_error');
       else setPushState('default');
     }
   };
@@ -4058,7 +4065,7 @@ function NotificationBell({ lang }) {
           key: 'promoted:' + p.regId, kind: 'promoted',
           title: lang === 'en' ? 'Moved off the waitlist' : 'キャンセル待ちが繰り上がりました',
           body: p.title || '', date: '',
-          href: p.eventId ? ('#/event/' + p.eventId) : '#/mypage',
+          href: p.eventId ? ('#/events/' + p.eventId) : '#/mypage',
         });
       });
       localStorage.setItem('connecta_promoted', JSON.stringify(promoted));
@@ -4081,7 +4088,7 @@ function NotificationBell({ lang }) {
         out.push({
           key: 'deadline:' + eid, kind: 'deadline',
           title: lang === 'en' ? 'Registration closing soon' : 'まもなく申込締切',
-          body: t2 + tail, date: '', href: '#/event/' + eid,
+          body: t2 + tail, date: '', href: '#/events/' + eid,
         });
       }
     });
@@ -4129,7 +4136,7 @@ function NotificationBell({ lang }) {
       out.push({
         key: 'evt:' + id, kind: 'event',
         title: lang === 'en' ? 'Upcoming event' : '開催予定のイベント',
-        body: e.title || '', date: e.date || '', href: '#/event/' + id,
+        body: e.title || '', date: e.date || '', href: '#/events/' + id,
       });
     });
 
@@ -4209,7 +4216,9 @@ function NotificationBell({ lang }) {
                       ? (lang === 'en' ? 'Notifications blocked' : '通知がブロックされています')
                       : pushState === 'not_configured'
                         ? (lang === 'en' ? 'Push not ready yet' : 'プッシュ通知は準備中です')
-                        : (lang === 'en' ? '🔔 Turn on push notifications' : '🔔 プッシュ通知をオンにする')}
+                        : pushState === 'sw_error'
+                          ? (lang === 'en' ? 'Reload and try again' : '再読み込みして再試行')
+                          : (lang === 'en' ? '🔔 Turn on push notifications' : '🔔 プッシュ通知をオンにする')}
                 </button>
               </div>
             )}
