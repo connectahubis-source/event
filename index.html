@@ -3943,7 +3943,7 @@ function urlBase64ToUint8Array(base64String) {
   return arr;
 }
 
-async function enablePushNotifications() {
+async function enablePushNotifications(lang) {
   if (!('serviceWorker' in navigator) || !('PushManager' in window) || !('Notification' in window)) {
     throw new Error('unsupported');
   }
@@ -3968,7 +3968,7 @@ async function enablePushNotifications() {
   }
   const token = (typeof authStore !== 'undefined') ? authStore.getToken() : null;
   try {
-    await postToGAS('savePushSubscription', { subscription: sub.toJSON(), token: token, ua: navigator.userAgent });
+    await postToGAS('savePushSubscription', { subscription: sub.toJSON(), token: token, ua: navigator.userAgent, lang: lang || '' });
   } catch (e) {
     // 購読自体は成立しているので、保存失敗はログのみ
     console.warn('[Push] savePushSubscription failed', e);
@@ -3976,8 +3976,22 @@ async function enablePushNotifications() {
   return sub;
 }
 
+// 既存購読の通知言語だけを更新 (許可プロンプトや再購読なし)
+async function updatePushLang(lang) {
+  try {
+    if (!('serviceWorker' in navigator)) return;
+    const reg = await navigator.serviceWorker.getRegistration();
+    if (!reg) return;
+    const sub = await reg.pushManager.getSubscription();
+    if (!sub) return;
+    const token = (typeof authStore !== 'undefined') ? authStore.getToken() : null;
+    await postToGAS('savePushSubscription', { subscription: sub.toJSON(), token: token, ua: navigator.userAgent, lang: lang || '' });
+  } catch (e) {}
+}
+
 function NotificationBell({ lang }) {
   const auth = useAuth();
+  const vp = useViewport();
   const [open, setOpen] = React.useState(false);
   const [items, setItems] = React.useState([]);
   const [loaded, setLoaded] = React.useState(false);
@@ -4003,7 +4017,7 @@ function NotificationBell({ lang }) {
   const handleEnablePush = async () => {
     setPushState('configuring');
     try {
-      await enablePushNotifications();
+      await enablePushNotifications(lang);
       setPushState('on');
     } catch (e) {
       const msg = (e && e.message) || '';
@@ -4014,6 +4028,11 @@ function NotificationBell({ lang }) {
       else setPushState('default');
     }
   };
+
+  // 購読済みなら、表示言語を購読情報へ反映 (起動時・言語変更時)
+  React.useEffect(() => {
+    if (pushState === 'on') updatePushLang(lang);
+  }, [pushState, lang]);
 
   const persistSeen = (set) => {
     try { localStorage.setItem('connecta_notif_seen', JSON.stringify([...set])); } catch (e) {}
@@ -4102,7 +4121,7 @@ function NotificationBell({ lang }) {
           if (!s.answered) out.push({
             key: 'survey:' + (s.surveyId || s.id || s.eventId), kind: 'survey',
             title: lang === 'en' ? 'Survey awaiting response' : 'アンケート回答のお願い',
-            body: s.eventTitle || '', date: '', href: '#/mypage',
+            body: (getI18nField(s, 'title', lang) || s.title || s.eventTitle || ''), date: '', href: '#/mypage',
           });
         });
       } catch (e) {}
@@ -4131,14 +4150,32 @@ function NotificationBell({ lang }) {
       const d = e.date ? new Date(e.date) : null;
       return d && !isNaN(d) && d >= today;
     }).sort((a, b) => new Date(a.date) - new Date(b.date)).slice(0, 6);
-    upcoming.forEach(e => {
+    for (const e of upcoming) {
       const id = e.id || e.eventId;
+      let dateStr = e.date || '';
+      if (e.format === 'multi') {
+        try {
+          const sess = await fetchEventSessions(id);
+          const dates = (sess || []).map(s => s.date).filter(Boolean);
+          if (dates.length >= 2) {
+            const shown = dates.slice(0, 3).join(' / ');
+            const extra = dates.length - 3;
+            dateStr = extra > 0
+              ? (shown + ' ' + (lang === 'en' ? '+' + extra + ' more' : lang === 'easy' ? 'ほか' + extra + 'にち' : '他' + extra + '日'))
+              : shown;
+          } else if (dates.length === 1) {
+            dateStr = dates[0];
+          } else if (e.endDate) {
+            dateStr = e.date + ' 〜 ' + e.endDate;
+          }
+        } catch (err) {}
+      }
       out.push({
         key: 'evt:' + id, kind: 'event',
         title: lang === 'en' ? 'Upcoming event' : '開催予定のイベント',
-        body: e.title || '', date: e.date || '', href: '#/events/' + id,
+        body: e.title || '', date: dateStr, href: '#/events/' + id,
       });
-    });
+    }
 
     const dedup = [];
     const seenK = new Set();
@@ -4190,7 +4227,10 @@ function NotificationBell({ lang }) {
         <React.Fragment>
           <div onClick={() => setOpen(false)} style={{ position: 'fixed', inset: 0, zIndex: 60 }}/>
           <div style={{
-            position: 'absolute', right: 0, top: 48, width: 320, maxWidth: '88vw', maxHeight: '70vh', overflowY: 'auto',
+            ...(vp.isMobile
+              ? { position: 'fixed', top: 64, left: 12, right: 12, width: 'auto', maxWidth: 'none' }
+              : { position: 'absolute', right: 0, top: 48, width: 320, maxWidth: '88vw' }),
+            maxHeight: '70vh', overflowY: 'auto',
             background: '#ffffff', borderRadius: 16, border: '1px solid #e6edf6',
             boxShadow: '0 30px 60px -24px rgba(10,41,96,0.5)', zIndex: 61, padding: '6px 0',
           }}>
@@ -22476,7 +22516,7 @@ function SurveyAnswerModal({ survey, token, lang, onClose, onDone }) {
         overflow: 'auto', boxShadow: '0 30px 80px -20px rgba(0,0,0,0.5)',
       }}>
         <div style={{ padding: '18px 22px', borderBottom: '1px solid #eef1f5', position: 'sticky', top: 0, background: 'var(--paper)' }}>
-          <div style={{ fontSize: 16, fontWeight: 800, color: 'var(--brand-navy)' }}>{survey.title}</div>
+          <div style={{ fontSize: 16, fontWeight: 800, color: 'var(--brand-navy)' }}>{getI18nField(survey, 'title', lang) || survey.title}</div>
           {survey.eventTitle && <div style={{ fontSize: 12, color: 'var(--ink-4)', marginTop: 2 }}>{survey.eventTitle}</div>}
         </div>
 
@@ -22493,7 +22533,7 @@ function SurveyAnswerModal({ survey, token, lang, onClose, onDone }) {
               {questions.map((q, i) => (
                 <div key={q.id || i}>
                   <div style={{ fontSize: 14, fontWeight: 700, color: 'var(--ink-2)', marginBottom: 10 }}>
-                    {q.label}
+                    {(lang === 'easy' && q.label_easy) || (lang === 'en' && q.label_en) || q.label}
                     {q.required && <span style={{ color: '#ef4444', fontSize: 11, marginLeft: 6 }}>{tt.required}</span>}
                   </div>
 
@@ -22592,7 +22632,7 @@ function MySurveysSection({ token, lang }) {
           fontSize: 13, color: 'var(--ink-4)', textAlign: 'center', fontFamily: 'var(--jp)',
           boxShadow: '0 12px 30px -22px rgba(10,41,96,0.4)', minHeight: 20,
         }}>
-          {loaded ? (lang === 'en' ? 'No surveys awaiting a response right now.' : '現在、回答待ちのアンケートはありません') : ''}
+          {loaded ? (lang === 'en' ? 'No surveys awaiting a response right now.' : lang === 'easy' ? 'いま こたえる アンケートは ありません' : '現在、回答待ちのアンケートはありません') : ''}
         </div>
       ) : (
         <div style={{ display: 'flex', gap: 14, overflowX: 'auto', padding: '4px 2px 10px', scrollSnapType: 'x mandatory', WebkitOverflowScrolling: 'touch' }}>
@@ -22621,7 +22661,10 @@ function MySurveysSection({ token, lang }) {
               {/* 情報 */}
               <div style={{ padding: '14px 16px 16px' }}>
                 <div style={{ fontFamily: 'var(--mono)', fontSize: 10, fontWeight: 700, letterSpacing: '0.08em', color: 'var(--ink-4)' }}>SURVEY</div>
-                <div style={{ fontSize: 15.5, fontWeight: 800, color: 'var(--brand-navy)', marginTop: 6, lineHeight: 1.4 }}>{s.eventTitle || s.title}</div>
+                <div style={{ fontSize: 15.5, fontWeight: 800, color: 'var(--brand-navy)', marginTop: 6, lineHeight: 1.4 }}>{getI18nField(s, 'title', lang) || s.title || s.eventTitle}</div>
+                {s.eventTitle && (getI18nField(s, 'title', lang) || s.title) && (
+                  <div style={{ fontSize: 12, fontWeight: 600, color: 'var(--ink-4)', marginTop: 3, lineHeight: 1.3 }}>{s.eventTitle}</div>
+                )}
                 <div style={{ marginTop: 14 }}>
                   {s.answered ? (
                     <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 7, color: '#059669', fontWeight: 800, fontSize: 13, background: '#ecfdf5', padding: '12px', borderRadius: 12 }}>
@@ -23119,7 +23162,7 @@ function PageMyPage({ lang, t, events }) {
               color: 'var(--brand-navy)',
               letterSpacing: '0.04em',
             }}>
-              {lang === 'en' ? 'Cancelling...' : 'キャンセル処理中...'}
+              {lang === 'en' ? 'Cancelling...' : lang === 'easy' ? 'キャンセル しています...' : 'キャンセル処理中...'}
             </div>
             <div style={{
               fontSize: 11,
@@ -23127,7 +23170,7 @@ function PageMyPage({ lang, t, events }) {
               fontFamily: 'var(--mono)',
               letterSpacing: '0.06em',
             }}>
-              {lang === 'en' ? 'Please wait' : 'しばらくお待ちください'}
+              {lang === 'en' ? 'Please wait' : lang === 'easy' ? 'すこし まってください' : 'しばらくお待ちください'}
             </div>
           </div>
         </div>,
@@ -23171,9 +23214,9 @@ function PageMyPage({ lang, t, events }) {
           </div>
           <div style={{ position: 'relative', display: 'flex', gap: 10, marginTop: 18 }}>
             {[
-              { n: pastEvents.length, l: (lang === 'en' ? 'Joined' : '参加') },
-              { n: upcomingEvents.length, l: (lang === 'en' ? 'Upcoming' : '今後の予定') },
-              { n: favoriteEvents.length, l: (lang === 'en' ? 'Favorites' : 'お気に入り') },
+              { n: pastEvents.length, l: (lang === 'en' ? 'Joined' : lang === 'easy' ? 'さんか' : '参加') },
+              { n: upcomingEvents.length, l: (lang === 'en' ? 'Upcoming' : lang === 'easy' ? 'これからの よてい' : '今後の予定') },
+              { n: favoriteEvents.length, l: (lang === 'en' ? 'Favorites' : lang === 'easy' ? 'おきにいり' : 'お気に入り') },
             ].map((s, i) => (
               <div key={i} style={{
                 flex: 1, background: 'rgba(255,255,255,0.14)', border: '1px solid rgba(255,255,255,0.24)',
@@ -23208,7 +23251,7 @@ function PageMyPage({ lang, t, events }) {
                 border: 'none', cursor: 'pointer', fontFamily: 'var(--jp)', fontWeight: 900, fontSize: 14, color: '#0a2960',
                 background: 'linear-gradient(180deg, #ffffff, #dfeafb)', boxShadow: 'inset 0 1px 0 rgba(255,255,255,0.9), 0 10px 22px -10px rgba(0,0,0,0.5)',
               }}>
-                <PIcon.QRCode size={16} color="#0a2960" /> {lang === 'en' ? 'Show QR' : 'QRを表示'}
+                <PIcon.QRCode size={16} color="#0a2960" /> {lang === 'en' ? 'Show QR' : lang === 'easy' ? 'QRを ひょうじ' : 'QRを表示'}
               </button>
             </div>
           </div>
@@ -23252,7 +23295,7 @@ function PageMyPage({ lang, t, events }) {
                 color: '#065f3f',
                 letterSpacing: '0.02em',
                 marginBottom: 4,
-              }}>{lang === 'en' ? 'Check-in complete' : '入場完了'}</div>
+              }}>{lang === 'en' ? 'Check-in complete' : lang === 'easy' ? 'にゅうじょう かんりょう' : '入場完了'}</div>
               <div style={{
                 fontSize: 13,
                 color: '#065f3f',
@@ -23324,7 +23367,7 @@ function PageMyPage({ lang, t, events }) {
                 color: '#991b1b',
                 letterSpacing: '0.02em',
                 marginBottom: 6,
-              }}>{lang === 'en' ? 'Please pay at the venue' : '会場にて 決済をお願いします'}</div>
+              }}>{lang === 'en' ? 'Please pay at the venue' : lang === 'easy' ? 'かいじょうで おしはらい ください' : '会場にて 決済をお願いします'}</div>
               <div style={{
                 fontSize: 13,
                 color: '#7f1d1d',
@@ -23376,7 +23419,7 @@ function PageMyPage({ lang, t, events }) {
                   fontSize: 11, fontWeight: 700, color: '#7f1d1d',
                   marginBottom: 6, letterSpacing: '0.04em',
                   fontFamily: 'var(--jp)',
-                }}>{lang === 'en' ? 'How will you pay? (= staff will see)' : 'スタッフへ — 決済方法を選んでください'}</div>
+                }}>{lang === 'en' ? 'How will you pay? (= staff will see)' : lang === 'easy' ? 'スタッフへ — おしはらい ほうほうを えらんでください' : 'スタッフへ — 決済方法を選んでください'}</div>
                 <div style={{display:'flex',gap:8,flexWrap:'wrap'}}>
                   {['現金', 'PayPay'].map(method => {
                     const declaredOnAny = pendingPaymentRegs.some(r => String(r.note || '').includes('[当日申告] ' + method));
@@ -23406,7 +23449,7 @@ function PageMyPage({ lang, t, events }) {
                           letterSpacing: '0.04em',
                           cursor: 'pointer',
                         }}>
-                        {declaredOnAny && '✓ '}{lang === 'en' ? (method === '現金' ? 'Cash' : 'PayPay') : (method === '現金' ? '現金' : 'PayPay')}
+                        {declaredOnAny && '✓ '}{lang === 'en' ? (method === '現金' ? 'Cash' : 'PayPay') : lang === 'easy' ? (method === '現金' ? 'げんきん' : 'PayPay') : (method === '現金' ? '現金' : 'PayPay')}
                       </button>
                     );
                   })}
@@ -23499,7 +23542,7 @@ function PageMyPage({ lang, t, events }) {
                   marginTop: 6,
                   opacity: 0.7,
                 }}>
-                  {lang === 'en' ? `... and ${unpaidRegistrations.length - 3} more` : `他 ${unpaidRegistrations.length - 3} 件`}
+                  {lang === 'en' ? `... and ${unpaidRegistrations.length - 3} more` : lang === 'easy' ? `ほか ${unpaidRegistrations.length - 3} けん` : `他 ${unpaidRegistrations.length - 3} 件`}
                 </div>
               )}
             </div>
@@ -23928,7 +23971,7 @@ function PageMyPage({ lang, t, events }) {
                   width:4, height:18, background:'#15803d',
                   display:'inline-block', borderRadius:2,
                 }}/>
-                <span>{lang === 'en' ? 'My Coupons' : 'マイクーポン'}</span>
+                <span>{lang === 'en' ? 'My Coupons' : lang === 'easy' ? 'マイ クーポン' : 'マイクーポン'}</span>
                 <span style={{fontSize:12,color:'var(--ink-4)',fontWeight:400}}>
                   ({myCoupons.filter(c => c.usable).length} / {myCoupons.length})
                 </span>
@@ -23956,10 +23999,10 @@ function PageMyPage({ lang, t, events }) {
                           background:'#fee2e2', color:'#991b1b',
                           borderRadius:999, fontWeight:700,
                         }}>{c.claimUsed
-                          ? (lang === 'en' ? 'Used' : '使用済み')
+                          ? (lang === 'en' ? 'Used' : lang === 'easy' ? 'つかいました' : '使用済み')
                           : (c.expiresAt && new Date(c.expiresAt) < new Date())
-                            ? (lang === 'en' ? 'Expired' : '期限切れ')
-                            : (lang === 'en' ? 'Unavailable' : '利用不可')}</div>
+                            ? (lang === 'en' ? 'Expired' : lang === 'easy' ? 'きげんぎれ' : '期限切れ')
+                            : (lang === 'en' ? 'Unavailable' : lang === 'easy' ? 'つかえません' : '利用不可')}</div>
                       )}
                       <div style={{
                         fontFamily:'var(--mono)', fontSize:16, fontWeight:800,
@@ -23982,7 +24025,7 @@ function PageMyPage({ lang, t, events }) {
                       </div>
                       {c.expiresAt && (
                         <div style={{fontSize:10,color:'var(--ink-4)',marginTop:8,fontFamily:'var(--mono)'}}>
-                          {lang === 'en' ? 'Expires:' : '期限:'} {new Date(c.expiresAt).toLocaleDateString(lang === 'en' ? 'en-US' : 'ja-JP')}
+                          {lang === 'en' ? 'Expires:' : lang === 'easy' ? 'きげん:' : '期限:'} {new Date(c.expiresAt).toLocaleDateString(lang === 'en' ? 'en-US' : 'ja-JP')}
                         </div>
                       )}
                     </div>
@@ -24003,7 +24046,7 @@ function PageMyPage({ lang, t, events }) {
               display: 'flex', alignItems: 'center', gap: 8,
             }}>
               <span style={{ display: 'inline-block', width: 4, height: 18, borderRadius: 2, background: 'linear-gradient(180deg, var(--sky-400), var(--brand-navy))' }}/>
-              {lang === 'en' ? 'Mementos' : '参加記念コレクション'}
+              {lang === 'en' ? 'Mementos' : lang === 'easy' ? 'さんか きねん コレクション' : '参加記念コレクション'}
               {pastEvents.length > 0 && (
                 <span style={{ fontSize: 11, color: 'var(--ink-4)', fontWeight: 400, marginLeft: 6 }}>({pastEvents.length})</span>
               )}
@@ -24129,11 +24172,12 @@ function autoSealForCategory(cat) {
     default: return 'classic';
   }
 }
-function MementoSeal({ variant, date, color, size }) {
+function MementoSeal({ variant, date, color, size, lang }) {
   const uid = React.useId().replace(/:/g, '');
   const c = color || '#0a2960';
   const s = size || 56;
   const v = variant || 'classic';
+  const sealLabel = lang === 'en' ? 'CONNEC+A · MEMENTO' : lang === 'easy' ? 'CONNEC+A さんかきねん' : 'CONNEC+A 参加記念';
   let inner;
   if (v === 'beaded') {
     inner = (
@@ -24186,7 +24230,7 @@ function MementoSeal({ variant, date, color, size }) {
         <circle cx="60" cy="60" r="55" fill="none" stroke="currentColor" strokeWidth="2.4"/>
         <circle cx="60" cy="60" r="49" fill="none" stroke="currentColor" strokeWidth="1"/>
         <text fontSize="9.5" fontWeight="700" letterSpacing="2.5" fill="currentColor" style={{ fontFamily: 'var(--mono)' }}>
-          <textPath href={`#mseal${uid}`} startOffset="50%" textAnchor="middle">CONNEC+A 参加記念</textPath>
+          <textPath href={`#mseal${uid}`} startOffset="50%" textAnchor="middle">{sealLabel}</textPath>
         </text>
         <path d="M45 56 l9 9 18 -20" fill="none" stroke="currentColor" strokeWidth="5" strokeLinecap="round" strokeLinejoin="round"/>
         <path d="M34 76 h52" stroke="currentColor" strokeWidth="1" opacity="0.55"/>
@@ -24202,8 +24246,12 @@ function MementoSeal({ variant, date, color, size }) {
 function MementoCard({ reg, lang, onOpen }) {
   const ev = (reg && reg.event) || {};
   const [imgOk, setImgOk] = React.useState(true);
-  const mImg = ev.mementoPhotoUrl || ev.heroImageUrl || ev.posterUrl;
+  const isSession = !!(reg && reg.sessionId);
+  const sessLive = isSession && reg.sessionMementoPhotoUrl && (!reg.sessionMementoPublishAt || new Date(reg.sessionMementoPublishAt) <= new Date());
+  const eventLive = !ev.mementoPublishAt || new Date(ev.mementoPublishAt) <= new Date();
+  const mImg = (sessLive && reg.sessionMementoPhotoUrl) || (eventLive && ev.mementoPhotoUrl) || ev.heroImageUrl || ev.posterUrl;
   const hasImg = !!(mImg && imgOk);
+  const cardDate = (isSession && reg.sessionDate) || ev.date || '';
   return (
     <div onClick={onOpen} role="button" tabIndex={0}
       onKeyDown={(e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); onOpen(); } }}
@@ -24216,12 +24264,12 @@ function MementoCard({ reg, lang, onOpen }) {
           ? <img src={mImg} alt="" onError={() => setImgOk(false)} style={{ width: '100%', height: '100%', objectFit: 'cover' }}/>
           : <div style={{ position: 'absolute', inset: 0, background: 'linear-gradient(150deg, var(--sky-400), var(--brand-navy))' }}/>}
         <div style={{ position: 'absolute', right: 5, bottom: 5, mixBlendMode: hasImg ? 'multiply' : 'normal', opacity: 0.92, transform: 'rotate(-9deg)' }}>
-          <MementoSeal variant={ev.sealType || autoSealForCategory(ev.category)} date={ev.date || ''} color={hasImg ? '#0a2960' : '#ffffff'} size={54}/>
+          <MementoSeal variant={ev.sealType || autoSealForCategory(ev.category)} date={cardDate} color={hasImg ? '#0a2960' : '#ffffff'} size={54} lang={lang}/>
         </div>
       </div>
       <div style={{ padding: '9px 11px 11px' }}>
         <div style={{ fontSize: 12, fontWeight: 800, color: 'var(--brand-navy)', lineHeight: 1.3, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{ev.title}</div>
-        <div style={{ fontFamily: 'var(--mono)', fontSize: 9.5, color: 'var(--ink-4)', marginTop: 3 }}>{ev.date}</div>
+        <div style={{ fontFamily: 'var(--mono)', fontSize: 9.5, color: 'var(--ink-4)', marginTop: 3 }}>{cardDate}{isSession && reg.sessionName ? ' ・ ' + reg.sessionName : ''}</div>
       </div>
     </div>
   );
@@ -24258,8 +24306,12 @@ function MementoModal({ reg, lang, onClose }) {
   const ev = (reg && reg.event) || {};
   const [imgOk, setImgOk] = React.useState(true);
   const [confetti, setConfetti] = React.useState(true);
-  const mImg = ev.mementoPhotoUrl || ev.heroImageUrl || ev.posterUrl;
+  const isSession = !!(reg && reg.sessionId);
+  const sessLive = isSession && reg.sessionMementoPhotoUrl && (!reg.sessionMementoPublishAt || new Date(reg.sessionMementoPublishAt) <= new Date());
+  const eventLive = !ev.mementoPublishAt || new Date(ev.mementoPublishAt) <= new Date();
+  const mImg = (sessLive && reg.sessionMementoPhotoUrl) || (eventLive && ev.mementoPhotoUrl) || ev.heroImageUrl || ev.posterUrl;
   const hasImg = !!(mImg && imgOk);
+  const modalDate = (isSession && reg.sessionDate) || ev.date || '';
   return (
     <div onClick={onClose} style={{
       position: 'fixed', inset: 0, zIndex: 2147483000, display: 'flex', alignItems: 'center', justifyContent: 'center',
@@ -24284,11 +24336,11 @@ function MementoModal({ reg, lang, onClose }) {
               : <div style={{ width: '100%', aspectRatio: '16 / 9', background: 'linear-gradient(150deg, var(--sky-400), var(--brand-navy))' }}/>}
             <div style={{ position: 'absolute', inset: 8, border: '1.5px solid rgba(255,255,255,0.45)', borderRadius: 12, pointerEvents: 'none' }}/>
             <div style={{ position: 'absolute', left: 18, bottom: 14, filter: 'drop-shadow(0 2px 7px rgba(0,0,0,0.6))', transform: 'rotate(-9deg)' }}>
-              <MementoSeal variant={ev.sealType || autoSealForCategory(ev.category)} date={ev.date || ''} color="#ffffff" size={104}/>
+              <MementoSeal variant={ev.sealType || autoSealForCategory(ev.category)} date={modalDate} color="#ffffff" size={104} lang={lang}/>
             </div>
           </div>
-          <div style={{ fontFamily: 'var(--serif-jp)', fontSize: 22, fontWeight: 700, textAlign: 'center', margin: '20px 0 6px' }}>{ev.title}</div>
-          <div style={{ fontFamily: 'var(--mono)', fontSize: 12, opacity: 0.82, textAlign: 'center' }}>{ev.date}{ev.venue ? ' ・ ' + ev.venue : ''}</div>
+          <div style={{ fontFamily: 'var(--serif-jp)', fontSize: 22, fontWeight: 700, textAlign: 'center', margin: '20px 0 6px' }}>{ev.title}{isSession && reg.sessionName ? ' ・ ' + reg.sessionName : ''}</div>
+          <div style={{ fontFamily: 'var(--mono)', fontSize: 12, opacity: 0.82, textAlign: 'center' }}>{modalDate}{ev.venue ? ' ・ ' + ev.venue : ''}</div>
         </div>
       </div>
     </div>
@@ -24435,7 +24487,7 @@ function QRTicketModal({ registration, lang, onClose, isTodayQuick }) {
           textTransform: 'uppercase',
         }}>
           {isTodayQuick
-            ? (lang === 'en' ? '━ TODAY\'S TICKET ━' : '━ 本日のチケット ━')
+            ? (lang === 'en' ? '━ TODAY\'S TICKET ━' : lang === 'easy' ? '━ きょうの チケット ━' : '━ 本日のチケット ━')
             : (lang === 'en' ? '━ YOUR TICKET ━' : '━ チケット ━')}
         </div>
 
@@ -24447,7 +24499,7 @@ function QRTicketModal({ registration, lang, onClose, isTodayQuick }) {
           color: 'var(--brand-navy)',
           letterSpacing: '-0.01em',
           lineHeight: 1.4,
-        }}>{event.title || (lang === 'en' ? 'Event' : 'イベント')}</h2>
+        }}>{event.title || (lang === 'en' ? 'Event' : lang === 'easy' ? 'イベント' : 'イベント')}</h2>
 
         {/* (Phase 17.S-fix) 同伴者人数バッジ — 受付スタッフ視認用 */}
         {registration.companionsCount > 0 && (
@@ -24553,7 +24605,7 @@ function QRTicketModal({ registration, lang, onClose, isTodayQuick }) {
             fontSize: 11, fontWeight: 800, marginBottom: 6,
             letterSpacing: '0.06em', color: 'var(--brand-navy)',
           }}>
-            {lang === 'en' ? 'How to use this QR code' : 'QR コードの使い方'}
+            {lang === 'en' ? 'How to use this QR code' : lang === 'easy' ? 'QRコードの つかいかた' : 'QR コードの使い方'}
           </div>
           <ol style={{ margin: 0, padding: '0 0 0 16px', fontFamily: 'var(--jp)' }}>
             <li>{lang === 'en'
@@ -24654,13 +24706,13 @@ function MyEventCard({ registration, siblings, appState, past, onCancel, lang })
 
     if (allCancelled) return { bg: '#f3f4f6', fg: 'var(--ink-4)', label: at.badgeCancelled };
     // (Phase 15.S157) 返金待ち + 返金 + 部分返金額あり をすべて「返金済」 に統一
-    if (anyRefundPending || anyRefunded) return { bg: '#fef2f2', fg: '#991b1b', label: lang === 'en' ? 'Refunded' : '返金済' };
+    if (anyRefundPending || anyRefunded) return { bg: '#fef2f2', fg: '#991b1b', label: lang === 'en' ? 'Refunded' : lang === 'easy' ? 'へんきん ずみ' : '返金済' };
     // (Phase 15.S134) anyPaid なら 決済済 扱い (「一部決済済」 は廃止 — 一括決済が前提)
-    if (anyPaid) return { bg: '#ecfdf5', fg: '#065f46', label: lang === 'en' ? 'Paid' : '決済済み' };
+    if (anyPaid) return { bg: '#ecfdf5', fg: '#065f46', label: lang === 'en' ? 'Paid' : lang === 'easy' ? 'しはらい ずみ' : '決済済み' };
 
     // 未決済系
     switch (registration.status) {
-      case '申込済み':   return { bg: '#fef3c7', fg: '#92400e', label: lang === 'en' ? 'Pending' : '申込済み (未決済)' };
+      case '申込済み':   return { bg: '#fef3c7', fg: '#92400e', label: lang === 'en' ? 'Pending' : lang === 'easy' ? 'もうしこみ ずみ (みけっさい)' : '申込済み (未決済)' };
       case '確定':       return { bg: '#ecfdf5', fg: '#065f46', label: at.badgeConfirmed };
       case '未決済':     return { bg: '#fef3c7', fg: '#92400e', label: registration.memo && registration.memo.indexOf('当日払い') >= 0 ? at.badgeDayPay : at.badgeUnpaid };
       case 'チェックイン済': return { bg: '#f0f9ff', fg: '#1e40af', label: at.badgeAttended };
@@ -24801,7 +24853,7 @@ function MyEventCard({ registration, siblings, appState, past, onCancel, lang })
                   <div style={{
                     fontSize: 10, color: 'var(--ink-4)', fontFamily: 'var(--mono)',
                     letterSpacing: '0.12em', fontWeight: 700, marginBottom: 2,
-                  }}>{lang === 'en' ? `SCHEDULE (${allRegs.length})` : `参加スケジュール (${allRegs.length})`}</div>
+                  }}>{lang === 'en' ? `SCHEDULE (${allRegs.length})` : lang === 'easy' ? `さんか スケジュール (${allRegs.length})` : `参加スケジュール (${allRegs.length})`}</div>
                   {allRegs.map((r, i) => {
                     const sDetail = r.sessionId ? sessionDetails[r.sessionId] : null;
                     const sDate = (sDetail && sDetail.date) || r.event && r.event.date || '';
@@ -24823,9 +24875,9 @@ function MyEventCard({ registration, siblings, appState, past, onCancel, lang })
                     const sNumBg = rIsCancelled ? '#A8BBCC'
                                  : rIsPending   ? '#E64530'
                                  :                '#00A8E1';
-                    const sLabel = rIsCancelled ? (lang === 'en' ? 'Cancelled' : 'キャンセル済')
-                                 : rIsPending   ? (lang === 'en' ? 'Refunding'  : '返金処理中')
-                                 :                (lang === 'en' ? 'Joining'    : '参加予定');
+                    const sLabel = rIsCancelled ? (lang === 'en' ? 'Cancelled' : lang === 'easy' ? 'キャンセル ずみ' : 'キャンセル済')
+                                 : rIsPending   ? (lang === 'en' ? 'Refunding'  : lang === 'easy' ? 'へんきん しています' : '返金処理中')
+                                 :                (lang === 'en' ? 'Joining'    : lang === 'easy' ? 'さんか よてい' : '参加予定');
                     const sLabelColor = rIsCancelled ? '#5C7186'
                                       : rIsPending   ? '#E64530'
                                       :                '#009D6A';
@@ -24957,7 +25009,7 @@ function MyEventCard({ registration, siblings, appState, past, onCancel, lang })
                     letterSpacing: '0.04em',
                     textDecoration: 'none',
                   }}
-                  title={lang === 'en' ? 'Open in Google Maps' : 'Google Map で見る'}
+                  title={lang === 'en' ? 'Open in Google Maps' : lang === 'easy' ? 'Google Map で みる' : 'Google Map で見る'}
                 >
                   <Icon name="pin" size={10} color="#2563eb" />
                   <span>Map</span>
@@ -25061,8 +25113,8 @@ function MyEventCard({ registration, siblings, appState, past, onCancel, lang })
             maxWidth: 160,
           }}>
             {event.paymentLinkExpired
-              ? (lang === 'en' ? '⏳ Link being prepared' : '⏳ 決済リンクを準備中')
-              : (lang === 'en' ? 'Contact organizer' : '運営に連絡して決済')}
+              ? (lang === 'en' ? '⏳ Link being prepared' : lang === 'easy' ? '⏳ しはらい リンクを じゅんびちゅう' : '⏳ 決済リンクを準備中')
+              : (lang === 'en' ? 'Contact organizer' : lang === 'easy' ? 'うんえいに れんらくして しはらい' : '運営に連絡して決済')}
           </div>
         )}
 
@@ -25085,7 +25137,7 @@ function MyEventCard({ registration, siblings, appState, past, onCancel, lang })
           onMouseEnter={(e) => { e.currentTarget.style.background = '#FCE4DF'; }}
           onMouseLeave={(e) => { e.currentTarget.style.background = 'transparent'; }}>
             {appState && appState.activeRegs.length > 1
-              ? (lang === 'en' ? `Cancel all (${appState.activeRegs.length})` : `全${appState.activeRegs.length}件キャンセル`)
+              ? (lang === 'en' ? `Cancel all (${appState.activeRegs.length})` : lang === 'easy' ? `ぜんぶ ${appState.activeRegs.length}けん キャンセル` : `全${appState.activeRegs.length}件キャンセル`)
               : at.cancelBtn}
           </button>
         )}
@@ -25124,8 +25176,8 @@ function MyEventCard({ registration, siblings, appState, past, onCancel, lang })
                onMouseLeave={(e) => { e.currentTarget.style.background = 'transparent'; }}>
               <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><path d="M3 12a9 9 0 1 0 9-9"/><path d="M3 4v5h5"/></svg>
               {appState.isAllCancelled
-                ? (lang === 'en' ? 'Re-apply' : '再申込')
-                : (lang === 'en' ? 'Partial re-apply' : '一部再申込')}
+                ? (lang === 'en' ? 'Re-apply' : lang === 'easy' ? 'もう いちど もうしこむ' : '再申込')
+                : (lang === 'en' ? 'Partial re-apply' : lang === 'easy' ? 'いちぶ もう いちど もうしこむ' : '一部再申込')}
             </a>
           );
         })()}
@@ -25783,7 +25835,7 @@ function PageTicket({ regId, lang }) {
           }}>
             <span style={{ fontSize: 16 }}>📵</span>
             <div style={{ flex: 1, lineHeight: 1.5 }}>
-              <strong>{lang === 'en' ? 'Offline mode' : 'オフライン表示'}</strong>
+              <strong>{lang === 'en' ? 'Offline mode' : lang === 'easy' ? 'オフライン ひょうじ' : 'オフライン表示'}</strong>
               <div style={{ fontSize: 10, opacity: 0.85, marginTop: 2 }}>
                 {lang === 'en'
                   ? 'Showing cached ticket. QR code is still valid for check-in.'
