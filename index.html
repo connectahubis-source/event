@@ -23128,7 +23128,15 @@ function PageMyPage({ lang, t, events }) {
   const pastEvents = allRegsWithEvent
     .filter(function(r) {
       if (r.status === 'キャンセル') return false;  // (Step A) キャンセル除外
-      if (isPreviewUser()) return true;  // (テスター) 日付に関係なく記念写真を確認できる (実機検証用)
+      // (複数日対応) セッション登録は「そのセッション自身の記念写真」が設定されている時だけ表示。
+      //   これがないと Day1 だけ保存しても、写真未設定の Day2 がフォールバック画像で出てしまう。
+      if (r.sessionId) {
+        if (!r.sessionMementoPhotoUrl) return false;
+        if (!isPreviewUser()) {
+          if (r.sessionMementoPublishAt && new Date(r.sessionMementoPublishAt) > new Date()) return false;
+        }
+      }
+      if (isPreviewUser()) return true;  // (テスター) 日付に関係なく確認できる (実機検証用)
       const endStr = r.event.endDate || r.event.date;
       if (!endStr) return false;
       const endDate = new Date(String(endStr) + 'T23:59:59');
@@ -24353,7 +24361,7 @@ function MementoCard({ reg, lang, onOpen }) {
         position: 'relative', borderRadius: 18, overflow: 'hidden', cursor: 'pointer',
         background: 'var(--paper)', border: '1px solid #e6edf6', boxShadow: '0 14px 30px -18px rgba(10,41,96,0.5)',
       }}>
-      <div style={{ position: 'relative', aspectRatio: '9 / 16', overflow: 'hidden', background: 'var(--brand-navy)' }}>
+      <div style={{ position: 'relative', aspectRatio: '3 / 4', overflow: 'hidden', background: 'var(--brand-navy)' }}>
         {hasImg
           ? <img src={mImg} alt="" onError={() => setImgOk(false)} style={{ width: '100%', height: '100%', objectFit: 'cover' }}/>
           : <div style={{ position: 'absolute', inset: 0, background: 'linear-gradient(150deg, var(--sky-400), var(--brand-navy))' }}/>}
@@ -24406,6 +24414,87 @@ function MementoModal({ reg, lang, onClose }) {
   const mImg = (sessLive && reg.sessionMementoPhotoUrl) || (eventLive && ev.mementoPhotoUrl) || ev.heroImageUrl || ev.posterUrl;
   const hasImg = !!(mImg && imgOk);
   const modalDate = (isSession && reg.sessionDate) || ev.date || '';
+  const frameRef = React.useRef(null);
+  const [dlBusy, setDlBusy] = React.useState(false);
+  const [dlMsg, setDlMsg] = React.useState('');
+
+  function triggerDownload_(href, filename, revoke) {
+    const a = document.createElement('a');
+    a.href = href; a.download = filename;
+    document.body.appendChild(a); a.click(); a.remove();
+    if (revoke) setTimeout(() => URL.revokeObjectURL(href), 4000);
+  }
+  const safeName = String(ev.title || 'memento').replace(/[\\/:*?"<>|\s]+/g, '_').slice(0, 40);
+
+  // スタンプなし: 元画像をそのまま保存
+  async function downloadPlain() {
+    if (!mImg) { setDlMsg('画像がありません'); return; }
+    setDlBusy(true); setDlMsg('');
+    try {
+      if (mImg.indexOf('data:') === 0) {
+        triggerDownload_(mImg, safeName + '.jpg');
+      } else {
+        try {
+          const res = await fetch(mImg, { mode: 'cors' });
+          const blob = await res.blob();
+          const u = URL.createObjectURL(blob);
+          triggerDownload_(u, safeName + '.jpg', true);
+        } catch (e) {
+          window.open(mImg, '_blank'); // CORS等で取得不可なら別タブで開く (長押し保存)
+          setDlMsg('別タブで開きました。 画像を長押しして保存してください');
+        }
+      }
+    } catch (e) { setDlMsg('保存に失敗しました'); }
+    finally { setDlBusy(false); }
+  }
+
+  // スタンプあり: 3:4 で写真+スタンプを合成して保存
+  async function downloadWithStamp() {
+    if (!mImg) { setDlMsg('画像がありません'); return; }
+    setDlBusy(true); setDlMsg('');
+    try {
+      const photo = new Image();
+      photo.crossOrigin = 'anonymous';
+      await new Promise(function(res, rej) { photo.onload = res; photo.onerror = rej; photo.src = mImg; });
+      const W = 1080, H = Math.round(W * 4 / 3);
+      const canvas = document.createElement('canvas');
+      canvas.width = W; canvas.height = H;
+      const ctx = canvas.getContext('2d');
+      ctx.fillStyle = '#0a2960'; ctx.fillRect(0, 0, W, H);
+      // cover fit (中央クロップ)
+      const ir = photo.width / photo.height, cr = W / H;
+      let sx = 0, sy = 0, sw = photo.width, sh = photo.height;
+      if (ir > cr) { sw = Math.round(photo.height * cr); sx = Math.round((photo.width - sw) / 2); }
+      else { sh = Math.round(photo.width / cr); sy = Math.round((photo.height - sh) / 2); }
+      ctx.drawImage(photo, sx, sy, sw, sh, 0, 0, W, H);
+      // スタンプ (画面のSVGをそのまま使う)
+      const svgEl = frameRef.current && frameRef.current.querySelector('svg');
+      if (svgEl) {
+        const clone = svgEl.cloneNode(true);
+        clone.setAttribute('xmlns', 'http://www.w3.org/2000/svg');
+        clone.setAttribute('color', '#ffffff');
+        clone.setAttribute('width', '300'); clone.setAttribute('height', '300');
+        const xml = new XMLSerializer().serializeToString(clone);
+        const svgUrl = 'data:image/svg+xml;charset=utf-8,' + encodeURIComponent(xml);
+        const seal = new Image();
+        await new Promise(function(res, rej) { seal.onload = res; seal.onerror = rej; seal.src = svgUrl; });
+        const sealW = Math.round(W * 0.42), pad = Math.round(W * 0.045);
+        ctx.save();
+        const ccx = pad + sealW / 2, ccy = H - pad - sealW / 2;
+        ctx.translate(ccx, ccy); ctx.rotate(-9 * Math.PI / 180);
+        ctx.shadowColor = 'rgba(0,0,0,0.5)'; ctx.shadowBlur = 14; ctx.shadowOffsetY = 3;
+        ctx.drawImage(seal, -sealW / 2, -sealW / 2, sealW, sealW);
+        ctx.restore();
+      }
+      const blob = await new Promise(function(res) { canvas.toBlob(res, 'image/jpeg', 0.92); });
+      if (!blob) throw new Error('tainted');
+      const u = URL.createObjectURL(blob);
+      triggerDownload_(u, safeName + '_stamp.jpg', true);
+    } catch (e) {
+      setDlMsg('スタンプ合成に失敗しました。 アップロードした画像(Base64)なら確実に保存できます');
+    } finally { setDlBusy(false); }
+  }
+
   return (
     <div onClick={onClose} style={{
       position: 'fixed', inset: 0, zIndex: 2147483000, display: 'flex', alignItems: 'center', justifyContent: 'center',
@@ -24423,11 +24512,11 @@ function MementoModal({ reg, lang, onClose }) {
         }}>×</button>
         <MementoConfetti/>
         <div style={{ padding: '22px 22px 26px' }}>
-          <div style={{ position: 'relative', borderRadius: 18, overflow: 'hidden', background: '#0a2960',
+          <div ref={frameRef} style={{ position: 'relative', borderRadius: 18, overflow: 'hidden', background: '#0a2960',
             boxShadow: '0 22px 50px -22px rgba(0,0,0,0.7), inset 0 0 0 1px rgba(255,255,255,0.12)' }}>
             {hasImg
-              ? <img src={mImg} alt="" onError={() => setImgOk(false)} style={{ width: '100%', display: 'block', aspectRatio: '9 / 16', objectFit: 'cover' }}/>
-              : <div style={{ width: '100%', aspectRatio: '9 / 16', background: 'linear-gradient(150deg, var(--sky-400), var(--brand-navy))' }}/>}
+              ? <img src={mImg} alt="" onError={() => setImgOk(false)} style={{ width: '100%', display: 'block', aspectRatio: '3 / 4', objectFit: 'cover' }}/>
+              : <div style={{ width: '100%', aspectRatio: '3 / 4', background: 'linear-gradient(150deg, var(--sky-400), var(--brand-navy))' }}/>}
             <div style={{ position: 'absolute', inset: 8, border: '1.5px solid rgba(255,255,255,0.45)', borderRadius: 12, pointerEvents: 'none' }}/>
             <div style={{ position: 'absolute', left: 16, bottom: 16, filter: 'drop-shadow(0 2px 7px rgba(0,0,0,0.6))', transform: 'rotate(-9deg)' }}>
               <MementoSeal variant={ev.sealType || autoSealForCategory(ev.category)} date={modalDate} color="#ffffff" size={150} lang={lang}/>
@@ -24435,6 +24524,21 @@ function MementoModal({ reg, lang, onClose }) {
           </div>
           <div style={{ fontFamily: 'var(--serif-jp)', fontSize: 22, fontWeight: 700, textAlign: 'center', margin: '20px 0 6px' }}>{ev.title}{isSession && reg.sessionName ? ' ・ ' + reg.sessionName : ''}</div>
           <div style={{ fontFamily: 'var(--mono)', fontSize: 12, opacity: 0.82, textAlign: 'center' }}>{modalDate}{ev.venue ? ' ・ ' + ev.venue : ''}</div>
+          {hasImg && (
+            <div style={{ marginTop: 16 }}>
+              <div style={{ display: 'flex', gap: 10, justifyContent: 'center', flexWrap: 'wrap' }}>
+                <button onClick={downloadWithStamp} disabled={dlBusy} style={{
+                  padding: '10px 16px', borderRadius: 12, border: '1px solid rgba(255,255,255,0.3)', cursor: dlBusy ? 'wait' : 'pointer',
+                  background: 'rgba(255,255,255,0.16)', color: '#fff', fontSize: 13, fontWeight: 700, fontFamily: 'var(--jp)',
+                }}>{lang === 'en' ? 'Save with stamp' : lang === 'easy' ? 'スタンプつきで ほぞん' : 'スタンプありで保存'}</button>
+                <button onClick={downloadPlain} disabled={dlBusy} style={{
+                  padding: '10px 16px', borderRadius: 12, border: '1px solid rgba(255,255,255,0.3)', cursor: dlBusy ? 'wait' : 'pointer',
+                  background: 'transparent', color: '#fff', fontSize: 13, fontWeight: 700, fontFamily: 'var(--jp)',
+                }}>{lang === 'en' ? 'Save without stamp' : lang === 'easy' ? 'スタンプなしで ほぞん' : 'スタンプなしで保存'}</button>
+              </div>
+              {dlMsg && <div style={{ marginTop: 10, fontSize: 11.5, color: '#ffd27a', textAlign: 'center', fontFamily: 'var(--jp)' }}>{dlMsg}</div>}
+            </div>
+          )}
         </div>
       </div>
     </div>
