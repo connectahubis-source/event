@@ -3411,6 +3411,13 @@ function filterPublicEvents(events) {
   return filtered;
 }
 
+// (テスター限定プレビュー) テスト参加者(テスト=TRUE)でログイン中か。
+//   true のとき、本来は条件付きで出るUI(満足度調査・QRチケット等)を確認用に強制表示する。
+//   集計・実データには影響しない(テスト除外は別途維持)。今後追加するUIも、その表示条件に || isPreviewUser() を足すだけで対象化できる。
+function isPreviewUser() {
+  try { return window.__CONNECTA_TEST_USER__ === true; } catch (e) { return false; }
+}
+
 // 申込受付中か判定 (Phase 6.2)
 // false の場合: 申込ボタンを「受付終了」「申込開始前」表示にする
 function isRegistrationOpen(event) {
@@ -11055,11 +11062,12 @@ function HomeQuickActions({ lang }) {
     const compute = (result) => {
       if (!result) return null;
       const ts = new Date().toISOString().slice(0, 10);
-      return (result.registrations || []).find(r => {
-        if (!r.event) return false;
-        if (r.status !== '申込済み' && r.status !== '決済済み' && r.status !== '確定') return false;
-        return (r.sessionDate || r.event.date) === ts;
-      }) || null;
+      const regs = (result.registrations || []).filter(r => r.event && (r.status === '申込済み' || r.status === '決済済み' || r.status === '確定'));
+      const today = regs.find(r => (r.sessionDate || r.event.date) === ts);
+      if (today) return today;
+      // (テスター限定プレビュー) 当日でなくても、直近の確定登録でQRチケットUIを確認できるようにする
+      if (isPreviewUser() && regs.length) return regs[0];
+      return null;
     };
     (async () => {
       try {
@@ -22672,6 +22680,11 @@ function MySurveysSection({ token, lang }) {
           <span style={{ fontSize: 12, fontWeight: 800, color: '#fff', background: 'linear-gradient(135deg, var(--sky-500), var(--brand-navy))', minWidth: 20, height: 20, borderRadius: 999, display: 'inline-flex', alignItems: 'center', justifyContent: 'center', padding: '0 7px' }}>{pendingCount}</span>
         )}
       </div>
+      {isPreviewUser() && (
+        <div style={{ display: 'inline-flex', alignItems: 'center', gap: 6, margin: '0 2px 12px', padding: '5px 10px', borderRadius: 999, background: '#fdf4ff', border: '1px dashed #c026d3', color: '#a21caf', fontSize: 11.5, fontWeight: 800, fontFamily: 'var(--jp)' }}>
+          テスター限定プレビュー: 回答済みでも開いてUIを確認できます
+        </div>
+      )}
       {surveys.length === 0 ? (
         <div style={{
           padding: '22px 18px', background: 'var(--paper)', border: '1px solid #e6edf6', borderRadius: 16,
@@ -22713,8 +22726,18 @@ function MySurveysSection({ token, lang }) {
                 )}
                 <div style={{ marginTop: 14 }}>
                   {s.answered ? (
-                    <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 7, color: '#059669', fontWeight: 800, fontSize: 13, background: '#ecfdf5', padding: '12px', borderRadius: 12 }}>
-                      <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.4" strokeLinecap="round" strokeLinejoin="round"><path d="M5 12l5 5L20 7"/></svg> {tt.answered}
+                    <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
+                      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 7, color: '#059669', fontWeight: 800, fontSize: 13, background: '#ecfdf5', padding: '12px', borderRadius: 12 }}>
+                        <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.4" strokeLinecap="round" strokeLinejoin="round"><path d="M5 12l5 5L20 7"/></svg> {tt.answered}
+                      </div>
+                      {isPreviewUser() && (
+                        <button onClick={() => setActive(s)} style={{
+                          display: 'flex', width: '100%', alignItems: 'center', justifyContent: 'center', gap: 7, padding: '10px', borderRadius: 10, border: '1px dashed #c026d3', cursor: 'pointer',
+                          fontFamily: 'var(--jp)', fontWeight: 800, fontSize: 12.5, color: '#a21caf', background: '#fdf4ff',
+                        }}>テスター: 開いて確認
+                          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.4" strokeLinecap="round" strokeLinejoin="round"><path d="M5 12h14M13 6l6 6-6 6"/></svg>
+                        </button>
+                      )}
                     </div>
                   ) : (
                     <button onClick={() => setActive(s)} style={{
