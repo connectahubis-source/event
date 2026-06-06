@@ -523,7 +523,7 @@ img { -webkit-user-drag: none; user-select: none; }
 
 * { box-sizing: border-box; }
 html, body { margin: 0; padding: 0; }
-body { background: var(--paper); color: var(--ink); font-family: var(--sans); }
+body { background: var(--paper); color: var(--ink); font-family: var(--sans); overflow-wrap: break-word; }
 
 /* (Phase 7.1) スクロールスナップは無効化 (Pg Dn遅延の原因)、smooth scrollだけ残す */
 html { scroll-behavior: smooth; }
@@ -605,13 +605,8 @@ button { font-family: inherit; cursor: pointer; }
 }
 
 /* (Phase 15.S6) Hero モバイル: dvh サポート時はアドレスバー考慮の動的高さに */
-/* (Phase 15.S8 #5) 大型端末対応: maxHeight を撤廃、 100dvh フルブリード */
-@supports (height: 100dvh) {
-  section[data-mobile-hero="true"] {
-    height: 100dvh !important;
-    max-height: 100dvh !important;
-  }
-}
+/* (修正) 旧 height/max-height:100dvh !important は大型端末で本文の縦スクロールを妨げたため撤廃。
+   高さは JSX のインライン calc(100dvh - Nav - BottomNav - safe-area) + minHeight に委ねる。 */
 
 /* (Phase 15.S8 #17) prefers-reduced-motion 配慮 — アニメーションを最小限に */
 @media (prefers-reduced-motion: reduce) {
@@ -996,7 +991,7 @@ html, body {
 }
 
 /* (Phase 13.1) スマホ (≤640px) で全要素のpadding/font縮小 */
-@media (max-width: 640px) {
+@media (max-width: 767px) {
   /* セクション padding 縮小 */
   section {
     padding-left: clamp(16px, 4vw, 24px) !important;
@@ -2175,6 +2170,9 @@ const authApi = {
   // 自分の参加申込一覧
   async getMyRegistrations(sessionToken) {
     return postToGAS('auth.getMyRegistrations', { sessionToken });
+  },
+  async getRegStatus(sessionToken, regId) {
+    return postToGAS('auth.getRegStatus', { sessionToken, regId });
   },
   // (満足度調査 Phase 4) 自分が参加したイベントの公開中アンケート一覧
   async getMySurveys(sessionToken) {
@@ -4439,7 +4437,7 @@ function Nav({ lang, setLang, t, transparent, menuOpen: externalMenuOpen, setMen
       }}>
         <div style={{
           maxWidth: 1600, margin: '0 auto',
-          padding: '20px 56px',
+          padding: '20px clamp(14px, 4vw, 56px)',
           display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 32,
         }}>
           {/* 左: ブランド名 + スカイライン画像 (Phase 7.7) */}
@@ -16605,23 +16603,25 @@ function AuthPageLayout({ children, title, subtitle, lang }) {
   const labels = stepLabels[lang] || stepLabels.ja;
   // (Phase 15.S23) ビューポート判定 — モバイルでは 1 カラム
   const vp = useViewport();
+  // .desktop-only (右パネル) は 767px 以下で非表示。列構成もそれに揃える (641-767 の崩れ防止)
+  const oneCol = vp.width <= 767;
 
   return (
     <section style={{
       position: 'relative',
       width: '100%',
-      minHeight: vp.isMobile ? 'auto' : 'calc(100vh - 130px)',
+      minHeight: oneCol ? 'auto' : 'calc(100vh - 130px)',
       // (Phase 15.S23) モバイル: Nav 64px 分だけ上に余白、 BottomNav 分は main で確保
-      marginTop: vp.isMobile ? 'calc(64px + env(safe-area-inset-top, 0px))' : 130,
+      marginTop: oneCol ? 'calc(64px + env(safe-area-inset-top, 0px))' : 130,
       background: 'var(--paper)',
       display: 'grid',
-      gridTemplateColumns: vp.isMobile
+      gridTemplateColumns: oneCol
         ? '1fr'
         : 'clamp(48px, 8%, 110px) 1fr clamp(280px, 32%, 420px)',
-      paddingBottom: vp.isMobile ? 40 : 0,
+      paddingBottom: oneCol ? 40 : 0,
     }}>
       {/* 左ベージュ縦帯 — モバイルでは非表示 */}
-      {!vp.isMobile && (
+      {!oneCol && (
       <div style={{
         background: 'var(--brand-beige)',
         position: 'relative',
@@ -18197,8 +18197,8 @@ const BP = {
   xs:     360,
   sm:     390,
   md:     430,
-  mobile: 640,    // <= 640px はスマホ (= 既存 isMobile 維持)
-  tablet: 880,    // 641-880 はタブレット (既存hero-grid と整合)
+  mobile: 767,    // <= 767px はスマホ扱い (iPhone15=393 の約1.5倍=590 を内包、.desktop-only/タイポ調整=767 と統一しすき間解消)
+  tablet: 880,    // 768-880 はタブレット
 };
 
 // (Phase 12.1) ビューポート監視フック (resize に追従)
@@ -21667,7 +21667,7 @@ function PageCancel({ regId, lang, t, events }) {
         }}>
           <div style={{
             background: 'var(--paper)', borderRadius: 12,
-            padding: '32px 40px',
+            padding: 'clamp(22px, 6vw, 32px) clamp(18px, 6vw, 40px)',
             display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 16,
             boxShadow: '0 24px 64px -12px rgba(0,0,0,0.5)',
             fontFamily: 'var(--jp)',
@@ -23184,7 +23184,7 @@ function PageMyPage({ lang, t, events }) {
           <div style={{
             background: 'var(--paper)',
             borderRadius: 12,
-            padding: '32px 40px',
+            padding: 'clamp(22px, 6vw, 32px) clamp(18px, 6vw, 40px)',
             display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 16,
             boxShadow: '0 24px 64px -12px rgba(0,0,0,0.5)',
             fontFamily: 'var(--jp)',
@@ -23220,8 +23220,8 @@ function PageMyPage({ lang, t, events }) {
       )}
 
     <section style={{
-      minHeight: 'calc(100vh - 130px)',
-      marginTop: 130,
+      minHeight: vp.isMobile ? 'auto' : 'calc(100vh - 130px)',
+      marginTop: vp.isMobile ? 'calc(64px + env(safe-area-inset-top, 0px))' : 130,
       background: 'radial-gradient(120% 55% at 100% 0%, #e6f1ff 0%, transparent 45%), radial-gradient(95% 45% at 0% 28%, #eef5ff 0%, transparent 50%), linear-gradient(180deg, #f4f8fd 0%, #e9f0f9 100%)',
       padding: vp.isMobile
         ? `${vp.isXs ? 14 : vp.isSm ? 16 : 20}px ${vp.isXs ? 6 : 8}px ${vp.isXs ? 28 : 40}px`
@@ -23230,7 +23230,6 @@ function PageMyPage({ lang, t, events }) {
       <div style={{
         maxWidth: vp.isMobile ? '100%' : 720,
         margin: '0 auto',
-        zoom: vp.isMobile ? 1 : 1.12,
       }}>
         {/* (構成: プロトタイプ準拠) ヒーロープロフィール + ステータス */}
         <div style={{
@@ -24472,8 +24471,46 @@ function QRTicketModal({ registration, lang, onClose, isTodayQuick }) {
     return () => clearInterval(interval);
   }, [registration]);
 
+  // (QRチケット ライブ更新) スキャンで決済確認/入場が反映されたら、このQR画面に即時表示
+  const [liveStatus, setLiveStatus] = React.useState(() => ({
+    status: registration ? registration.status : '',
+    paid: registration ? !!registration.paid : false,
+    checkedIn: registration ? (registration.status === 'チェックイン済') : false,
+  }));
+  React.useEffect(() => {
+    if (!registration || !registration.regId) return;
+    setLiveStatus({ status: registration.status, paid: !!registration.paid, checkedIn: registration.status === 'チェックイン済' });
+    const token = (typeof authStore !== 'undefined' && authStore.getToken) ? authStore.getToken() : null;
+    if (!token) return;
+    let stop = false;
+    const poll = async () => {
+      try {
+        const res = await authApi.getRegStatus(token, registration.regId);
+        if (!stop && res && res.found) setLiveStatus({ status: res.status, paid: !!res.paid, checkedIn: !!res.checkedIn });
+      } catch (e) {}
+    };
+    poll();
+    const id = setInterval(poll, 2500);
+    return () => { stop = true; clearInterval(id); };
+  }, [registration]);
+
   if (!registration) return null;
   const event = registration.event || {};
+  // 状態バナーの文言/色を決定
+  const _fee = Number(event.fee || 0);
+  const _isPaidEvent = event.feeType === 'paid' || (_fee > 0 && event.feeType !== 'free');
+  let _banner = null;
+  if (liveStatus.checkedIn) {
+    _banner = { bg: '#e7f6ec', bd: '#34a853', fg: '#137333',
+      text: lang === 'en' ? 'Checked in. Enjoy the event!' : lang === 'easy' ? 'にゅうじょう できました！' : '入場を完了しました' };
+  } else if (_isPaidEvent && !liveStatus.paid) {
+    _banner = { bg: '#fff4e5', bd: '#f59e0b', fg: '#92400e',
+      text: lang === 'en' ? 'Please complete payment at reception' : lang === 'easy' ? 'うけつけで おかねを はらってください' : '受付で決済を完了してください' };
+  } else {
+    _banner = { bg: '#e8f1fe', bd: '#2c89e8', fg: '#1a4e8a',
+      text: lang === 'en' ? 'Show this QR at reception' : lang === 'easy' ? 'この QR を うけつけで みせてください' : 'このQRを受付でご提示ください' };
+  }
+
 
   return ReactDOM.createPortal(
     <div style={{
@@ -24560,6 +24597,22 @@ function QRTicketModal({ registration, lang, onClose, isTodayQuick }) {
                 : `合計 ${registration.companionsCount + 1} 名 (本人 + 同伴者 ${registration.companionsCount} 名)`}
           </div>
         )}
+
+        {/* (ライブ更新) 状態バナー — スキャンで決済確認/入場が反映されると自動で切り替わる */}
+        <div style={{
+          margin: '0 auto 16px',
+          maxWidth: 360,
+          padding: '12px 16px',
+          borderRadius: 12,
+          background: _banner.bg,
+          border: `1.5px solid ${_banner.bd}`,
+          color: _banner.fg,
+          fontWeight: 800,
+          fontSize: 15,
+          display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 8,
+        }}>
+          {liveStatus.checkedIn ? '✓' : (_isPaidEvent && !liveStatus.paid ? '!' : '◎')} {_banner.text}
+        </div>
 
         {/* QR コード (大型、 余白付き) */}
         <div style={{
