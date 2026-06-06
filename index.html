@@ -2345,6 +2345,11 @@ function AuthProvider({ children }) {
     return () => { cancelled = true; };
   }, [prefetchMyRegistrations]);
 
+  // (テストデータ) ログイン中ユーザーがテスターなら締切等のゲートをバイパスするためのフラグ
+  React.useEffect(() => {
+    try { window.__CONNECTA_TEST_USER__ = !!(user && user.isTest); } catch (e) {}
+  }, [user]);
+
   const login = React.useCallback(async (email, password) => {
     const result = await authApi.login(email, password);
     authStore.setToken(result.sessionToken, result.sessionExpires);
@@ -3408,6 +3413,8 @@ function filterPublicEvents(events) {
 // false の場合: 申込ボタンを「受付終了」「申込開始前」表示にする
 function isRegistrationOpen(event) {
   if (!event) return false;
+  // (テストデータ) テスターは締切/開始前/満員を無視して申込可能 (中止/延期のみ不可)
+  try { if (window.__CONNECTA_TEST_USER__ && event.status !== '中止' && event.status !== '延期') return true; } catch (e) {}
   if (event.status === '満員') return false;
   const now = new Date();
   // 申込開始日チェック
@@ -3431,6 +3438,8 @@ function getRegistrationStatus(event, lang) {
   // (Phase 15.S41) 中止/延期 を最優先で判定
   if (event.status === '中止') return { open: false, reason: 'cancelled', label: st.statusCancelled };
   if (event.status === '延期') return { open: false, reason: 'postponed', label: st.statusPostponed };
+  // (テストデータ) テスターは締切/開始前/満員/終了を無視して申込可能
+  try { if (window.__CONNECTA_TEST_USER__) return { open: true, reason: 'test', label: '' }; } catch (e) {}
   if (event.status === '満員') return { open: false, reason: 'full', label: st.statusFull };
   const now = new Date();
   if (event.regOpenDate) {
