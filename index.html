@@ -4045,6 +4045,15 @@ function NotificationBell({ lang }) {
     const now = new Date();
     const today = new Date(now.toDateString());
     const localTitle = (o) => lang === 'en' ? (o.title_en || o.title) : lang === 'easy' ? (o.title_easy || o.title) : o.title;
+    // 通知日時を「YYYY年M月D日」へ整形 (ISO/日付どちらも日付部分を抽出。TZ計算を避け表示と一致)
+    const formatNotifDate = (v) => {
+      if (!v) return '';
+      const s = String(v);
+      const m = s.match(/(\d{4})-(\d{2})-(\d{2})/);
+      if (!m) return s;
+      const y = +m[1], mo = +m[2], d = +m[3];
+      return lang === 'en' ? (mo + '/' + d + '/' + y) : (y + '年' + mo + '月' + d + '日');
+    };
     const confirmedStatus = (s) => s === '申込済み' || s === '決済済み' || s === '確定';
 
     let events = [];
@@ -4121,7 +4130,7 @@ function NotificationBell({ lang }) {
           if (!s.answered) out.push({
             key: 'survey:' + (s.surveyId || s.id || s.eventId), kind: 'survey',
             title: lang === 'en' ? 'Survey awaiting response' : 'アンケート回答のお願い',
-            body: (getI18nField(s, 'title', lang) || s.title || s.eventTitle || ''), date: '', href: '#/mypage',
+            body: (getI18nField(s, 'title', lang) || s.title || s.eventTitle || ''), date: '', href: '#/mypage?survey=' + (s.surveyId || s.id || ''),
           });
         });
       } catch (e) {}
@@ -4139,7 +4148,7 @@ function NotificationBell({ lang }) {
         out.push({
           key: 'news:' + (n.id || n.newsId || (n.title || '')), kind: 'news',
           title: lang === 'en' ? 'News' : '新着のお知らせ',
-          body: localTitle(n) || '', date: n.publishedAt || n.publishAt || n.date || '',
+          body: localTitle(n) || '', date: formatNotifDate(n.publishedAt || n.publishAt || n.date || ''),
           href: '#/news/' + (n.id || n.newsId || ''),
         });
       });
@@ -4152,28 +4161,28 @@ function NotificationBell({ lang }) {
     }).sort((a, b) => new Date(a.date) - new Date(b.date)).slice(0, 6);
     for (const e of upcoming) {
       const id = e.id || e.eventId;
-      let dateStr = e.date || '';
+      let dateStr = formatNotifDate(e.date || '');
       if (e.format === 'multi') {
         try {
           const sess = await fetchEventSessions(id);
           const dates = (sess || []).map(s => s.date).filter(Boolean);
           if (dates.length >= 2) {
-            const shown = dates.slice(0, 3).join(' / ');
+            const shown = dates.slice(0, 3).map(formatNotifDate).join(' / ');
             const extra = dates.length - 3;
             dateStr = extra > 0
               ? (shown + ' ' + (lang === 'en' ? '+' + extra + ' more' : lang === 'easy' ? 'ほか' + extra + 'にち' : '他' + extra + '日'))
               : shown;
           } else if (dates.length === 1) {
-            dateStr = dates[0];
+            dateStr = formatNotifDate(dates[0]);
           } else if (e.endDate) {
-            dateStr = e.date + ' 〜 ' + e.endDate;
+            dateStr = formatNotifDate(e.date) + ' 〜 ' + formatNotifDate(e.endDate);
           }
         } catch (err) {}
       }
       out.push({
         key: 'evt:' + id, kind: 'event',
         title: lang === 'en' ? 'Upcoming event' : '開催予定のイベント',
-        body: e.title || '', date: dateStr, href: '#/events/' + id,
+        body: localTitle(e) || '', date: dateStr, href: '#/events/' + id,
       });
     }
 
@@ -22614,6 +22623,30 @@ function MySurveysSection({ token, lang }) {
   }, [token]);
 
   React.useEffect(() => { load(); }, [load]);
+
+  // (ディープリンク) #/mypage?survey=<surveyId> で該当アンケートの回答モーダルを自動で開く
+  //   = プッシュ/通知センターから「回答する」を押した状態で着地させる
+  const openFromHash = React.useCallback(() => {
+    try {
+      const h = window.location.hash || '';
+      const qi = h.indexOf('?');
+      if (qi < 0) return;
+      const sid = new URLSearchParams(h.substring(qi + 1)).get('survey');
+      if (!sid) return;
+      const match = surveys.find(s => String(s.surveyId) === String(sid) || String(s.id) === String(sid));
+      if (match) {
+        setActive(match);
+        // 再オープン防止のためパラメータを除去
+        try { history.replaceState(null, '', h.substring(0, qi)); } catch (e) { window.location.hash = h.substring(0, qi); }
+      }
+    } catch (e) {}
+  }, [surveys]);
+  React.useEffect(() => { if (loaded && surveys.length) openFromHash(); }, [loaded, surveys, openFromHash]);
+  React.useEffect(() => {
+    const fn = () => openFromHash();
+    window.addEventListener('hashchange', fn);
+    return () => window.removeEventListener('hashchange', fn);
+  }, [openFromHash]);
 
   const pendingCount = surveys.filter(s => !s.answered).length;
 
