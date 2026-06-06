@@ -5889,7 +5889,7 @@ function EventPosterRow({ ev, lang, t }) {
 // PAGE HERO (共通: トップ・一覧・詳細で使う navy ヒーロー)
 // ============================================================================
 // バリエーション3種:
-//   variant='home'   : トップ用 (100vh, ヒーロー大きめ)
+//   variant='home'   : トップ用 (100dvh, ヒーロー大きめ)
 //   variant='events' : 一覧用 (50vh)
 //   variant='detail' : 詳細用 (60vh)
 function PageHero({
@@ -5906,7 +5906,7 @@ function PageHero({
 }) {
   // バリエーションで高さや配置を切替
   const minHeight = {
-    home: '100vh',
+    home: '100dvh',
     events: '60vh',
     detail: '70vh',
   }[variant] || '60vh';
@@ -6585,7 +6585,7 @@ function HeroSlideshow({ lang, t, events, heroSlides, loading, frontNews, siteSe
           width: '100%',
           marginTop: 80,
           background: 'var(--paper-1)',
-          minHeight: '100vh',
+          minHeight: '100dvh',
           display: 'flex',
           alignItems: 'center',
           justifyContent: 'center',
@@ -6965,8 +6965,8 @@ function HeroSlideshow({ lang, t, events, heroSlides, loading, frontNews, siteSe
       position: 'relative',
       width: '100%',
       // (Phase 15.S19) Hero 内 CTA が画面下端で切れる問題を修正
-      // PC: 高さを少し短く (100vh - 130px Nav分 - 70px CTA余白)、 minHeight 強化
-      height: heroVp.isMobile ? 'auto' : 'calc(100vh - 130px)',
+      // PC: 高さを少し短く (100dvh - 130px Nav分 - 70px CTA余白)、 minHeight 強化
+      height: heroVp.isMobile ? 'auto' : 'calc(100dvh - 130px)',
       minHeight: heroVp.isMobile ? 'auto' : 640,
       maxHeight: heroVp.isMobile ? 'none' : 870,
       marginTop: heroVp.isMobile ? 80 : 130,
@@ -7979,7 +7979,7 @@ function ConceptSection({ settings, lang, t }) {
   return (
     <section ref={sectionRef} data-section="concept" style={{
       position: 'relative',
-      minHeight: '100vh',
+      minHeight: '100dvh',
       background: 'var(--paper)',
       overflow: 'hidden',
     }}>
@@ -7998,7 +7998,7 @@ function ConceptSection({ settings, lang, t }) {
       <div style={{
         position: 'relative',
         zIndex: 3,
-        minHeight: '100vh',
+        minHeight: '100dvh',
         display: 'flex',
         alignItems: 'center',
         padding: 'clamp(80px, 12vh, 160px) clamp(40px, 6vw, 96px)',
@@ -8424,7 +8424,7 @@ function EventsEntrySection({ settings, lang, t }) {
   return (
     <section ref={sectionRef} data-section="events-entry" style={{
       position: 'relative',
-      minHeight: '100vh',
+      minHeight: '100dvh',
       background: 'var(--paper)',
       overflow: 'hidden',
     }}>
@@ -8549,7 +8549,7 @@ function EventsEntrySection({ settings, lang, t }) {
       <div style={{
         position: 'relative',
         zIndex: 3,
-        minHeight: '100vh',
+        minHeight: '100dvh',
         display: 'flex',
         alignItems: 'center',
         justifyContent: 'flex-end',
@@ -10044,7 +10044,7 @@ function PageHomeMobile({ lang, t, events, ads, heroSlides, heroSlidesMobile, lo
       {/* スライド画像 + オーバーレイ (テキスト/図形/画像) + アニメーション すべてそのまま */}
       {/* ============================================================ */}
       {/* (Phase 15.S8 #18) Admin で Hero アスペクト比を切替可能 */}
-      {/* siteSettings.home_hero_mobile_aspect: 'full' (デフォルト 100vh) / '4-5' / '16-9' / 'square' */}
+      {/* siteSettings.home_hero_mobile_aspect: 'full' (デフォルト 100dvh) / '4-5' / '16-9' / 'square' */}
       {(() => {
         const aspectMode = sx('home_hero_mobile_aspect', 'full');
         const heroStyle = {
@@ -11512,7 +11512,7 @@ function PageNewsList({ lang, t, frontNews, loading, siteSettings }) {
   return (
     <div style={{
       position: 'relative',
-      minHeight: '100vh',
+      minHeight: '100dvh',
       background: 'linear-gradient(135deg, #1a3661 0%, #0a2960 50%, #1a3661 100%)',
       backgroundSize: '200% 200%',
       animation: bgImage ? 'none' : 'seibanGradShift 18s ease-in-out infinite',
@@ -11955,7 +11955,7 @@ function PageNewsDetail({ lang, t, newsId, frontNews, loading }) {
   if (loading) {
     return (
       <div style={{
-        minHeight: '100vh',
+        minHeight: '100dvh',
         background: 'var(--paper)',
         display: 'flex', alignItems: 'center', justifyContent: 'center',
         fontFamily: 'var(--jp)', fontSize: 14, color: 'rgba(10, 41, 96, 0.5)',
@@ -11966,7 +11966,7 @@ function PageNewsDetail({ lang, t, newsId, frontNews, loading }) {
   if (!news) {
     return (
       <div style={{
-        minHeight: '100vh',
+        minHeight: '100dvh',
         background: 'var(--paper)',
         display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center',
         gap: 24, padding: 24,
@@ -12003,7 +12003,7 @@ function PageNewsDetail({ lang, t, newsId, frontNews, loading }) {
 
   return (
     <div style={{
-      minHeight: '100vh',
+      minHeight: '100dvh',
       background: 'var(--paper)',
       padding: 'clamp(140px, 18vh, 200px) clamp(24px, 6vw, 96px) clamp(80px, 12vh, 160px)',
     }}>
@@ -12355,7 +12355,7 @@ function PageEvents({ lang, t, events, loading, siteSettings }) {
   return (
     <div style={{
       position: 'relative',
-      minHeight: '100vh',
+      minHeight: '100dvh',
       background: 'linear-gradient(135deg, #1a3661 0%, #0a2960 50%, #1a3661 100%)',
       backgroundSize: '200% 200%',
       animation: bgImage ? 'none' : 'seibanGradShift 18s ease-in-out infinite',
@@ -14106,7 +14106,7 @@ function PageEventDetail({ lang, t, eventId }) {
   // ローディング中
   if (loading) {
     return (
-      <div style={{ minHeight: '100vh', paddingTop: 200, textAlign: 'center', color: 'var(--ink-mute)' }}>
+      <div style={{ minHeight: '100dvh', paddingTop: 200, textAlign: 'center', color: 'var(--ink-mute)' }}>
         {t.loading}
       </div>
     );
@@ -14115,7 +14115,7 @@ function PageEventDetail({ lang, t, eventId }) {
   // イベントが見つからない
   if (!ev) {
     return (
-      <div style={{ minHeight: '100vh', paddingTop: 200, padding: '200px 24px 80px', maxWidth: 800, margin: '0 auto', textAlign: 'center' }}>
+      <div style={{ minHeight: '100dvh', paddingTop: 200, padding: '200px 24px 80px', maxWidth: 800, margin: '0 auto', textAlign: 'center' }}>
         <h1 style={{ fontFamily: 'var(--jp)', fontSize: 'clamp(28px, 4vw, 42px)', fontWeight: 900, margin: '0 0 20px' }}>{t.detail.notFound}</h1>
         <p style={{ color: 'var(--ink-mute)' }}>Event ID: {eventId}</p>
         <div style={{ marginTop: 40 }}>
@@ -15680,7 +15680,7 @@ function PageAbout({ lang, t, siteSettings }) {
 function PageStub({ lang, t, title }) {
   return (
     <div style={{
-      minHeight: '100vh',
+      minHeight: '100dvh',
       paddingTop: 200, padding: '200px 24px 80px',
       maxWidth: 800,
       margin: '0 auto',
@@ -16610,7 +16610,7 @@ function AuthPageLayout({ children, title, subtitle, lang }) {
     <section style={{
       position: 'relative',
       width: '100%',
-      minHeight: oneCol ? 'auto' : 'calc(100vh - 130px)',
+      minHeight: oneCol ? 'auto' : 'calc(100dvh - 130px)',
       // (Phase 15.S23) モバイル: Nav 64px 分だけ上に余白、 BottomNav 分は main で確保
       marginTop: oneCol ? 'calc(64px + env(safe-area-inset-top, 0px))' : 130,
       background: 'var(--paper)',
@@ -18721,7 +18721,7 @@ function PageEventRegister({ lang, t, eventId, events, loading: appLoading, site
   // ローディング
   if (loading) {
     return (
-      <section style={{ minHeight: '100vh', paddingTop: 200, padding: '200px 24px 80px', maxWidth: 760, margin: '0 auto' }}>
+      <section style={{ minHeight: '100dvh', paddingTop: 200, padding: '200px 24px 80px', maxWidth: 760, margin: '0 auto' }}>
         <div className="skeleton" style={{ height: 28, width: '40%', marginBottom: 20 }}/>
         <div className="skeleton" style={{ height: 80, width: '100%', marginBottom: 20 }}/>
         <div className="skeleton" style={{ height: 200, width: '100%', marginBottom: 20 }}/>
@@ -18732,7 +18732,7 @@ function PageEventRegister({ lang, t, eventId, events, loading: appLoading, site
 
   if (error || !event) {
     return (
-      <section style={{ minHeight: '100vh', paddingTop: 200, padding: '200px 24px 80px', maxWidth: 760, margin: '0 auto', textAlign: 'center' }}>
+      <section style={{ minHeight: '100dvh', paddingTop: 200, padding: '200px 24px 80px', maxWidth: 760, margin: '0 auto', textAlign: 'center' }}>
         <h1 style={{
           fontFamily: '"Noto Serif JP", serif',
           fontSize: 'var(--font-h2)', color: 'var(--brand-navy)', marginBottom: 12,
@@ -19081,7 +19081,7 @@ function PageEventRegister({ lang, t, eventId, events, loading: appLoading, site
 
   return (
     <section style={{
-      minHeight: '100vh',
+      minHeight: '100dvh',
       background: 'var(--brand-paper)',
     }}>
       {/* (Phase 15.S73) 映画館風 紺ヘッダー — MovieStyleHeader と同じデザインルール */}
@@ -20418,7 +20418,7 @@ function PayPayAutoRedirect({ url, amount, eventTitle, paypayDisplayName, lang, 
     <div style={{
       position: 'fixed',
       top: 0, left: 0, right: 0, bottom: 0,
-      width: '100vw', height: '100vh',
+      width: '100vw', height: '100dvh',
       zIndex: 2147483647,
       background: 'rgba(10, 22, 40, 0.72)',
       backdropFilter: 'blur(12px) saturate(1.1)',
@@ -20433,7 +20433,7 @@ function PayPayAutoRedirect({ url, amount, eventTitle, paypayDisplayName, lang, 
         borderRadius: 16,
         padding: 'clamp(24px, 4vw, 32px)',
         maxWidth: 480, width: '100%',
-        maxHeight: 'calc(100vh - 32px)',
+        maxHeight: 'calc(100dvh - 32px)',
         boxShadow: '0 32px 80px -16px rgba(255, 0, 51, 0.4), 0 16px 48px -12px rgba(0,0,0,0.5)',
         fontFamily: 'var(--jp)',
         color: 'var(--ink)',
@@ -20636,7 +20636,7 @@ function PayPayCTA({ url, amount, userName, eventTitle, lang }) {
             boxShadow: '0 24px 48px -12px rgba(0,0,0,0.4)',
             fontFamily: 'var(--jp)',
             // (Phase 15.S24 MH11) モーダル長文対応: 画面高超えたらスクロール
-            maxHeight: 'calc(100vh - 48px)',
+            maxHeight: 'calc(100dvh - 48px)',
             overflowY: 'auto',
             WebkitOverflowScrolling: 'touch',
           }}>
@@ -20961,7 +20961,7 @@ function PageEventRegisterComplete({ lang, t, eventId, events }) {
       )}
 
     <section style={{
-      minHeight: '100vh',
+      minHeight: '100dvh',
       background: 'linear-gradient(180deg, var(--brand-navy) 0%, #1a3a7a 60%, #0a2960 100%)',
       color: 'var(--paper)',
       padding: 'clamp(100px, 14vh, 160px) clamp(16px, 4vw, 32px) clamp(48px, 8vh, 80px)',
@@ -21646,7 +21646,7 @@ function PageCancel({ regId, lang, t, events }) {
 
   if (auth.loading || !auth.user) {
     return (
-      <div style={{ minHeight: '100vh', paddingTop: 200, textAlign: 'center', fontFamily: 'var(--jp)', color: 'var(--ink-4)' }}>
+      <div style={{ minHeight: '100dvh', paddingTop: 200, textAlign: 'center', fontFamily: 'var(--jp)', color: 'var(--ink-4)' }}>
         {lang === 'en' ? 'Loading...' : '読み込み中...'}
       </div>
     );
@@ -21658,7 +21658,7 @@ function PageCancel({ regId, lang, t, events }) {
       {cancelling && ReactDOM.createPortal(
         <div style={{
           position: 'fixed', inset: 0,
-          width: '100vw', height: '100vh',
+          width: '100vw', height: '100dvh',
           zIndex: 2147483647,
           background: 'rgba(10, 22, 40, 0.7)',
           backdropFilter: 'blur(8px)',
@@ -21689,7 +21689,7 @@ function PageCancel({ regId, lang, t, events }) {
       )}
 
       <section style={{
-        minHeight: 'calc(100vh - 130px)',
+        minHeight: 'calc(100dvh - 130px)',
         marginTop: 130,
         background: 'var(--paper-2)',
         padding: 'clamp(40px, 6vh, 80px) clamp(16px, 4vw, 32px)',
@@ -22998,7 +22998,7 @@ function PageMyPage({ lang, t, events }) {
   if (auth.loading || !auth.user) {
     return (
       <div style={{
-        minHeight: '100vh',
+        minHeight: '100dvh',
         paddingTop: 200,
         textAlign: 'center',
         fontFamily: 'var(--jp)',
@@ -23173,7 +23173,7 @@ function PageMyPage({ lang, t, events }) {
       {cancelling && ReactDOM.createPortal(
         <div style={{
           position: 'fixed', inset: 0,
-          width: '100vw', height: '100vh',
+          width: '100vw', height: '100dvh',
           zIndex: 2147483647,
           background: 'rgba(10, 22, 40, 0.7)',
           backdropFilter: 'blur(8px)',
@@ -23220,7 +23220,7 @@ function PageMyPage({ lang, t, events }) {
       )}
 
     <section style={{
-      minHeight: vp.isMobile ? 'auto' : 'calc(100vh - 130px)',
+      minHeight: vp.isMobile ? 'auto' : 'calc(100dvh - 130px)',
       marginTop: vp.isMobile ? 'calc(64px + env(safe-area-inset-top, 0px))' : 130,
       background: 'radial-gradient(120% 55% at 100% 0%, #e6f1ff 0%, transparent 45%), radial-gradient(95% 45% at 0% 28%, #eef5ff 0%, transparent 50%), linear-gradient(180deg, #f4f8fd 0%, #e9f0f9 100%)',
       padding: vp.isMobile
@@ -24516,7 +24516,7 @@ function QRTicketModal({ registration, lang, onClose, isTodayQuick }) {
     <div style={{
       position: 'fixed',
       top: 0, left: 0, right: 0, bottom: 0,
-      width: '100vw', height: '100vh',
+      width: '100vw', height: '100dvh',
       zIndex: 2147483647,
       background: 'linear-gradient(180deg, var(--brand-navy) 0%, #1a3a7a 60%, #0a2960 100%)',
       display: 'flex', alignItems: 'center', justifyContent: 'center',
@@ -24529,7 +24529,7 @@ function QRTicketModal({ registration, lang, onClose, isTodayQuick }) {
         borderRadius: 16,
         padding: 'clamp(20px, 4vw, 36px)',
         maxWidth: 520, width: '100%',
-        maxHeight: 'calc(100vh - 56px)',
+        maxHeight: 'calc(100dvh - 56px)',
         overflowY: 'auto',
         boxShadow: '0 32px 80px -16px rgba(44, 137, 232, 0.4), 0 16px 48px -12px rgba(0,0,0,0.6)',
         fontFamily: 'var(--jp)',
@@ -25794,7 +25794,7 @@ function PageTicket({ regId, lang }) {
   if (auth.loading || loading) {
     return (
       <div style={{
-        minHeight: '100vh', paddingTop: 200, textAlign: 'center',
+        minHeight: '100dvh', paddingTop: 200, textAlign: 'center',
         fontFamily: 'var(--jp)', color: 'var(--ink-4)',
       }}>
         <div className="spinner" style={{ marginBottom: 16 }}/>
@@ -25806,7 +25806,7 @@ function PageTicket({ regId, lang }) {
   if (error || !reg) {
     return (
       <section style={{
-        minHeight: 'calc(100vh - 130px)', marginTop: 130,
+        minHeight: 'calc(100dvh - 130px)', marginTop: 130,
         padding: 'clamp(40px, 6vh, 80px) clamp(24px, 4vw, 80px)',
         textAlign: 'center',
       }}>
@@ -25900,7 +25900,7 @@ function PageTicket({ regId, lang }) {
 
   return (
     <section style={{
-      minHeight: 'calc(100vh - 130px)', marginTop: 130,
+      minHeight: 'calc(100dvh - 130px)', marginTop: 130,
       background: 'var(--paper-2)',
       padding: 'clamp(40px, 6vh, 80px) clamp(24px, 4vw, 80px)',
     }}>
@@ -26252,7 +26252,7 @@ function PayPayDisplayNameModal({ lang, onSave, onCancel }) {
         onClick={(e) => e.stopPropagation()}
         style={{
           background: 'var(--paper)', maxWidth: 480, width: '100%',
-          maxHeight: 'calc(100vh - 48px)', overflowY: 'auto',
+          maxHeight: 'calc(100dvh - 48px)', overflowY: 'auto',
           // (Phase 15.S52) iOS Safari でモーダル内スクロールを確実に有効化
           WebkitOverflowScrolling: 'touch',
           boxShadow: '0 20px 60px rgba(0, 0, 0, 0.3)',
@@ -27139,7 +27139,7 @@ function PageContact({ lang, t }) {
   if (submitted) {
     return (
       <section style={{
-        minHeight: 'calc(100vh - 130px)',
+        minHeight: 'calc(100dvh - 130px)',
         marginTop: 130,
         background: 'var(--paper-2)',
         padding: 'clamp(40px, 6vh, 80px) clamp(20px, 4vw, 64px)',
@@ -27219,7 +27219,7 @@ function PageContact({ lang, t }) {
   // 入力フォーム
   return (
     <section style={{
-      minHeight: 'calc(100vh - 130px)',
+      minHeight: 'calc(100dvh - 130px)',
       marginTop: 130,
       background: 'var(--paper-2)',
       padding: 'clamp(40px, 6vh, 80px) clamp(20px, 4vw, 64px)',
@@ -27572,7 +27572,7 @@ function PagePolicyDoc({ lang, t, kind, siteSettings }) {
 
   return (
     <section style={{
-      minHeight: '100vh',
+      minHeight: '100dvh',
       background: 'var(--brand-paper)',
       padding: 'clamp(120px, 18vh, 200px) 0 var(--space-12)',
     }}>
