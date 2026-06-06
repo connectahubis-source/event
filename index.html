@@ -2887,6 +2887,31 @@ function formatEventDate(dateStr) {
   return `${d.getFullYear()}.${String(d.getMonth() + 1).padStart(2, '0')}.${String(d.getDate()).padStart(2, '0')} ${dayNames[d.getDay()]}`;
 }
 
+// テキスト内の URL をクリック可能な <a> に変換して React ノード配列を返す。
+//   改行は呼び出し側の whiteSpace:pre-wrap で保持される (文字列セグメントはそのまま)。
+function linkifyNodes(text, linkColor) {
+  const s = String(text == null ? '' : text);
+  const out = [];
+  const re = /(https?:\/\/[^\s<]+)/g;
+  let last = 0, m, i = 0;
+  while ((m = re.exec(s)) !== null) {
+    if (m.index > last) out.push(s.slice(last, m.index));
+    let url = m[0];
+    let trail = '';
+    const tm = url.match(/[)\].,!?:;。、）】」』]+$/); // 末尾の句読点・閉じ括弧はリンクから除外
+    if (tm) { trail = tm[0]; url = url.slice(0, -trail.length); }
+    out.push(
+      <a key={'lk' + (i++)} href={url} target="_blank" rel="noopener noreferrer"
+         onClick={(e) => { e.stopPropagation(); }}
+         style={{ color: linkColor || 'var(--brand-navy)', textDecoration: 'underline', wordBreak: 'break-all' }}>{url}</a>
+    );
+    if (trail) out.push(trail);
+    last = re.lastIndex;
+  }
+  if (last < s.length) out.push(s.slice(last));
+  return out;
+}
+
 // (Phase 15.S35) ニュース画像URLを表示可能な形式に正規化 (Google Drive 等の対応)
 // (Phase 15.S45) ニュース画像URLを表示可能な形式に正規化 (Google Drive 等の対応)
 function normalizeNewsImageUrl(url) {
@@ -12054,9 +12079,9 @@ function PageNewsDetail({ lang, t, newsId, frontNews, loading }) {
         <Reveal y={30} blur={false}>
           <div style={{
             width: '100%',
-            aspectRatio: '4 / 3',
-            background: news.imageUrl
-              ? `url(${news.imageUrl}) center/cover no-repeat`
+            aspectRatio: '16 / 9',
+            background: (news.imageUrl || news.coverImageUrl || news.thumbnailImageUrl)
+              ? `url(${normalizeNewsImageUrl(news.imageUrl || news.coverImageUrl || news.thumbnailImageUrl)}) center/cover no-repeat`
               : 'linear-gradient(135deg, #f5f7fa 0%, #e5e7eb 100%)',
             borderRadius: 4,
             overflow: 'hidden',
@@ -12065,7 +12090,7 @@ function PageNewsDetail({ lang, t, newsId, frontNews, loading }) {
             alignItems: 'center',
             justifyContent: 'center',
           }}>
-            {!news.imageUrl && (
+            {!(news.imageUrl || news.coverImageUrl || news.thumbnailImageUrl) && (
               <span style={{
                 fontFamily: 'var(--mono, monospace)',
                 fontSize: 13,
@@ -12168,7 +12193,7 @@ function PageNewsDetail({ lang, t, newsId, frontNews, loading }) {
             marginTop: 8,
             animation: 'fadeInUp 0.6s ease-out 0.4s both',
           }}>
-            {(getI18nField(news, 'body', lang) || news.body) || news.content || news.description || news.shortDescription || '(本文なし)'}
+            {linkifyNodes((getI18nField(news, 'body', lang) || news.body) || news.content || news.description || news.shortDescription || '(本文なし)', '#0a4cc9')}
           </div>
         </div>
       </div>
@@ -12224,7 +12249,7 @@ function PageNewsDetail({ lang, t, newsId, frontNews, loading }) {
                 >
                   <div style={{
                     width: '100%',
-                    aspectRatio: '4 / 3',
+                    aspectRatio: '16 / 9',
                     background: rn.imageUrl
                       ? `url(${rn.imageUrl}) center/cover no-repeat`
                       : 'linear-gradient(135deg, #f5f7fa 0%, #e5e7eb 100%)',
@@ -23103,6 +23128,7 @@ function PageMyPage({ lang, t, events }) {
   const pastEvents = allRegsWithEvent
     .filter(function(r) {
       if (r.status === 'キャンセル') return false;  // (Step A) キャンセル除外
+      if (isPreviewUser()) return true;  // (テスター) 日付に関係なく記念写真を確認できる (実機検証用)
       const endStr = r.event.endDate || r.event.date;
       if (!endStr) return false;
       const endDate = new Date(String(endStr) + 'T23:59:59');
@@ -24315,8 +24341,8 @@ function MementoCard({ reg, lang, onOpen }) {
   const ev = (reg && reg.event) || {};
   const [imgOk, setImgOk] = React.useState(true);
   const isSession = !!(reg && reg.sessionId);
-  const sessLive = isSession && reg.sessionMementoPhotoUrl && (!reg.sessionMementoPublishAt || new Date(reg.sessionMementoPublishAt) <= new Date());
-  const eventLive = !ev.mementoPublishAt || new Date(ev.mementoPublishAt) <= new Date();
+  const sessLive = isSession && reg.sessionMementoPhotoUrl && (isPreviewUser() || !reg.sessionMementoPublishAt || new Date(reg.sessionMementoPublishAt) <= new Date());
+  const eventLive = isPreviewUser() || !ev.mementoPublishAt || new Date(ev.mementoPublishAt) <= new Date();
   const mImg = (sessLive && reg.sessionMementoPhotoUrl) || (eventLive && ev.mementoPhotoUrl) || ev.heroImageUrl || ev.posterUrl;
   const hasImg = !!(mImg && imgOk);
   const cardDate = (isSession && reg.sessionDate) || ev.date || '';
@@ -24327,12 +24353,12 @@ function MementoCard({ reg, lang, onOpen }) {
         position: 'relative', borderRadius: 18, overflow: 'hidden', cursor: 'pointer',
         background: 'var(--paper)', border: '1px solid #e6edf6', boxShadow: '0 14px 30px -18px rgba(10,41,96,0.5)',
       }}>
-      <div style={{ position: 'relative', aspectRatio: '4 / 3', overflow: 'hidden', background: 'var(--brand-navy)' }}>
+      <div style={{ position: 'relative', aspectRatio: '9 / 16', overflow: 'hidden', background: 'var(--brand-navy)' }}>
         {hasImg
           ? <img src={mImg} alt="" onError={() => setImgOk(false)} style={{ width: '100%', height: '100%', objectFit: 'cover' }}/>
           : <div style={{ position: 'absolute', inset: 0, background: 'linear-gradient(150deg, var(--sky-400), var(--brand-navy))' }}/>}
-        <div style={{ position: 'absolute', right: 5, bottom: 5, mixBlendMode: hasImg ? 'multiply' : 'normal', opacity: 0.92, transform: 'rotate(-9deg)' }}>
-          <MementoSeal variant={ev.sealType || autoSealForCategory(ev.category)} date={cardDate} color={hasImg ? '#0a2960' : '#ffffff'} size={54} lang={lang}/>
+        <div style={{ position: 'absolute', left: 8, bottom: 8, mixBlendMode: hasImg ? 'multiply' : 'normal', opacity: 0.92, transform: 'rotate(-9deg)' }}>
+          <MementoSeal variant={ev.sealType || autoSealForCategory(ev.category)} date={cardDate} color={hasImg ? '#0a2960' : '#ffffff'} size={76} lang={lang}/>
         </div>
       </div>
       <div style={{ padding: '9px 11px 11px' }}>
@@ -24375,8 +24401,8 @@ function MementoModal({ reg, lang, onClose }) {
   const [imgOk, setImgOk] = React.useState(true);
   const [confetti, setConfetti] = React.useState(true);
   const isSession = !!(reg && reg.sessionId);
-  const sessLive = isSession && reg.sessionMementoPhotoUrl && (!reg.sessionMementoPublishAt || new Date(reg.sessionMementoPublishAt) <= new Date());
-  const eventLive = !ev.mementoPublishAt || new Date(ev.mementoPublishAt) <= new Date();
+  const sessLive = isSession && reg.sessionMementoPhotoUrl && (isPreviewUser() || !reg.sessionMementoPublishAt || new Date(reg.sessionMementoPublishAt) <= new Date());
+  const eventLive = isPreviewUser() || !ev.mementoPublishAt || new Date(ev.mementoPublishAt) <= new Date();
   const mImg = (sessLive && reg.sessionMementoPhotoUrl) || (eventLive && ev.mementoPhotoUrl) || ev.heroImageUrl || ev.posterUrl;
   const hasImg = !!(mImg && imgOk);
   const modalDate = (isSession && reg.sessionDate) || ev.date || '';
@@ -24387,7 +24413,7 @@ function MementoModal({ reg, lang, onClose }) {
     }}>
       {confetti && <Confetti onDone={() => setConfetti(false)} />}
       <div onClick={(e) => e.stopPropagation()} style={{
-        width: '100%', maxWidth: 460, borderRadius: 24, overflow: 'hidden', color: '#fff', position: 'relative',
+        width: '100%', maxWidth: 380, maxHeight: '92vh', overflowY: 'auto', borderRadius: 24, overflow: 'hidden', color: '#fff', position: 'relative',
         background: 'radial-gradient(120% 50% at 80% 0%, #16407f 0%, transparent 50%), linear-gradient(180deg, #0a1f4d, #06122b)',
         boxShadow: '0 40px 90px -30px rgba(0,0,0,0.8)',
       }}>
@@ -24400,11 +24426,11 @@ function MementoModal({ reg, lang, onClose }) {
           <div style={{ position: 'relative', borderRadius: 18, overflow: 'hidden', background: '#0a2960',
             boxShadow: '0 22px 50px -22px rgba(0,0,0,0.7), inset 0 0 0 1px rgba(255,255,255,0.12)' }}>
             {hasImg
-              ? <img src={mImg} alt="" onError={() => setImgOk(false)} style={{ width: '100%', display: 'block', aspectRatio: '16 / 9', objectFit: 'cover' }}/>
-              : <div style={{ width: '100%', aspectRatio: '16 / 9', background: 'linear-gradient(150deg, var(--sky-400), var(--brand-navy))' }}/>}
+              ? <img src={mImg} alt="" onError={() => setImgOk(false)} style={{ width: '100%', display: 'block', aspectRatio: '9 / 16', objectFit: 'cover' }}/>
+              : <div style={{ width: '100%', aspectRatio: '9 / 16', background: 'linear-gradient(150deg, var(--sky-400), var(--brand-navy))' }}/>}
             <div style={{ position: 'absolute', inset: 8, border: '1.5px solid rgba(255,255,255,0.45)', borderRadius: 12, pointerEvents: 'none' }}/>
-            <div style={{ position: 'absolute', left: 18, bottom: 14, filter: 'drop-shadow(0 2px 7px rgba(0,0,0,0.6))', transform: 'rotate(-9deg)' }}>
-              <MementoSeal variant={ev.sealType || autoSealForCategory(ev.category)} date={modalDate} color="#ffffff" size={104} lang={lang}/>
+            <div style={{ position: 'absolute', left: 16, bottom: 16, filter: 'drop-shadow(0 2px 7px rgba(0,0,0,0.6))', transform: 'rotate(-9deg)' }}>
+              <MementoSeal variant={ev.sealType || autoSealForCategory(ev.category)} date={modalDate} color="#ffffff" size={150} lang={lang}/>
             </div>
           </div>
           <div style={{ fontFamily: 'var(--serif-jp)', fontSize: 22, fontWeight: 700, textAlign: 'center', margin: '20px 0 6px' }}>{ev.title}{isSession && reg.sessionName ? ' ・ ' + reg.sessionName : ''}</div>
@@ -28277,60 +28303,6 @@ function PageTransition({ routeKey, children }) {
   return children;
 }
 
-// (一時診断) スクロール状態を画面に表示。URL に ?scrolldebug=1 / #...scrolldebug を含めると表示。
-function ScrollDebug() {
-  const [info, setInfo] = React.useState({});
-  React.useEffect(() => {
-    const tick = () => {
-      const b = document.body, h = document.documentElement;
-      const cs = getComputedStyle(b), hs = getComputedStyle(h);
-      let topEl = null;
-      try { topEl = document.elementFromPoint(Math.round(window.innerWidth / 2), Math.round(window.innerHeight / 2)); } catch (e) {}
-      let topDesc = '-';
-      if (topEl) {
-        const ts = getComputedStyle(topEl);
-        const r = topEl.getBoundingClientRect();
-        topDesc = (topEl.tagName || '') + (topEl.id ? '#' + topEl.id : '')
-          + ' ' + Math.round(r.width) + '×' + Math.round(r.height)
-          + ' pe:' + ts.pointerEvents + ' pos:' + ts.position + ' z:' + ts.zIndex + ' ta:' + (ts.touchAction || '-')
-          + (topEl.getAttribute && topEl.getAttribute('placeholder') ? ' ph:' + topEl.getAttribute('placeholder').slice(0, 16) : '')
-          + ' parent:' + (topEl.parentElement ? topEl.parentElement.tagName : '-');
-      }
-      setInfo({
-        vw: window.innerWidth, vh: window.innerHeight,
-        bodyOverflowY: cs.overflowY, htmlOverflowY: hs.overflowY,
-        bodyPosition: b.style.position || '-',
-        lockCount: (window.__scrollLockCount || 0),
-        scrollH: h.scrollHeight,
-        scrollY: Math.round(window.scrollY || window.pageYOffset || 0),
-        scroller: (document.scrollingElement && document.scrollingElement.tagName) || '-',
-        canScroll: (h.scrollHeight > window.innerHeight + 4) ? 'YES' : 'NO',
-        topEl: topDesc,
-      });
-    };
-    tick(); const id = setInterval(tick, 400);
-    return () => clearInterval(id);
-  }, []);
-  const unlock = () => {
-    const b = document.body.style, h = document.documentElement.style;
-    b.overflow = ''; b.position = ''; b.top = ''; b.left = ''; b.right = ''; b.width = '';
-    h.overflow = ''; try { window.__scrollLockCount = 0; } catch (e) {}
-  };
-  return ReactDOM.createPortal(
-    <div style={{ position: 'fixed', left: 8, bottom: 8, zIndex: 2147483647, background: 'rgba(0,0,0,0.85)', color: '#3f6', font: '11px/1.5 ui-monospace, monospace', padding: 10, borderRadius: 8, maxWidth: '92vw', pointerEvents: 'auto' }}>
-      <div style={{ color: '#ff0', fontWeight: 700 }}>build J7 / hash:{(typeof window !== 'undefined' ? (window.location.hash || '/') : '')}</div>
-      <div>vw×vh: {info.vw}×{info.vh} / scroller:{info.scroller}</div>
-      <div>body overflow-y: {info.bodyOverflowY} / html overflow-y: {info.htmlOverflowY}</div>
-      <div>body.position: {info.bodyPosition} / lockCount: {info.lockCount}</div>
-      <div>scrollH:{info.scrollH} / vh:{info.vh} → {info.canScroll} / <b style={{ color: '#ff0' }}>scrollY:{info.scrollY}</b></div>
-      <div style={{ maxWidth: '88vw', wordBreak: 'break-all' }}>最前面: {info.topEl}</div>
-      <div style={{ display: 'flex', gap: 6, marginTop: 6, flexWrap: 'wrap' }}>
-        <button onClick={() => { window.scrollTo({ top: 1200, behavior: 'smooth' }); }} style={{ background: '#0a7', color: '#fff', border: 'none', padding: '7px 12px', borderRadius: 6, fontSize: 12, fontWeight: 700 }}>↓1200px強制スクロール</button>
-        <button onClick={unlock} style={{ background: '#0a2960', color: '#fff', border: 'none', padding: '7px 12px', borderRadius: 6, fontSize: 12, fontWeight: 700 }}>強制解除</button>
-      </div>
-    </div>, document.body);
-}
-
 function App() {
   const [lang, setLang] = useLang();
   const route = useRoute();
@@ -28612,7 +28584,6 @@ function App() {
       {/* (Phase 6.11) Nav と Footer は常にマウント (ベース画面は0秒から描画される)。
           オープニングは「上に被さる蓋」。オープニング中も裏でベース画面は完成している。 */}
       {/* (Phase 15.S25) スクロール進捗バー — Nav の上、 110z で常に最上に */}
-      {((typeof window !== 'undefined') && (window.location.search + window.location.hash).indexOf('scrolldebug') >= 0) && <ScrollDebug />}
       <ScrollProgress />
       <Nav lang={lang} setLang={setLang} t={t} transparent={isHome}
            menuOpen={globalMenuOpen} setMenuOpen={setGlobalMenuOpen}
