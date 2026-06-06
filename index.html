@@ -24453,9 +24453,19 @@ function MementoModal({ reg, lang, onClose }) {
     if (!mImg) { setDlMsg('画像がありません'); return; }
     setDlBusy(true); setDlMsg('');
     try {
+      // 外部URL画像は CORS で canvas が汚染されるため、GAS経由で data URL 化してから合成
+      let src = mImg;
+      if (src.indexOf('data:') !== 0) {
+        try {
+          const r = await fetch(`${CONFIG.GAS_URL}?action=imageToDataUrl&params=${encodeURIComponent(JSON.stringify({ url: src }))}&_t=${Date.now()}`);
+          const j = await r.json();
+          const du = (j && (j.dataUrl || (j.data && j.data.dataUrl))) || '';
+          if (du) src = du;
+        } catch (e) { /* 取得失敗時は元URLで試行 (汚染で失敗する可能性あり) */ }
+      }
       const photo = new Image();
       photo.crossOrigin = 'anonymous';
-      await new Promise(function(res, rej) { photo.onload = res; photo.onerror = rej; photo.src = mImg; });
+      await new Promise(function(res, rej) { photo.onload = res; photo.onerror = rej; photo.src = src; });
       const W = 1080, H = Math.round(W * 4 / 3);
       const canvas = document.createElement('canvas');
       canvas.width = W; canvas.height = H;
