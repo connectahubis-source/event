@@ -24732,6 +24732,7 @@ function MementoModal({ reg, lang, onClose }) {
   const frameRef = React.useRef(null);
   const [dlBusy, setDlBusy] = React.useState(false);
   const [dlMsg, setDlMsg] = React.useState('');
+  const [mainLandscape, setMainLandscape] = React.useState(false);  // 主写真が横長(4:3)か縦長(3:4)か
   // (R4) 追加写真ギャラリー (セッションの公開予約に従う)
   const galleryLive = isSession && (isPreviewUser() || !reg.sessionMementoPublishAt || new Date(reg.sessionMementoPublishAt) <= new Date());
   const galleryPhotos = (galleryLive && Array.isArray(reg.sessionMementoGallery)) ? reg.sessionMementoGallery : [];
@@ -24830,7 +24831,9 @@ function MementoModal({ reg, lang, onClose }) {
       const photo = new Image();
       photo.crossOrigin = 'anonymous';
       await new Promise(function(res, rej) { photo.onload = res; photo.onerror = rej; photo.src = src; });
-      const W = 1080, H = Math.round(W * 4 / 3);
+      // 横長(4:3)か縦長(3:4)かを画像実寸から判定し、 保存サイズを合わせる
+      const landscape = photo.width > photo.height;
+      const W = landscape ? 1440 : 1080, H = landscape ? 1080 : 1440;
       const canvas = document.createElement('canvas');
       canvas.width = W; canvas.height = H;
       const ctx = canvas.getContext('2d');
@@ -24852,7 +24855,8 @@ function MementoModal({ reg, lang, onClose }) {
         const svgUrl = 'data:image/svg+xml;charset=utf-8,' + encodeURIComponent(xml);
         const seal = new Image();
         await new Promise(function(res, rej) { seal.onload = res; seal.onerror = rej; seal.src = svgUrl; });
-        const sealW = Math.round(W * 0.42), pad = Math.round(W * 0.045);
+        const shortSide = Math.min(W, H);
+        const sealW = Math.round(shortSide * 0.42), pad = Math.round(shortSide * 0.045);
         ctx.save();
         const ccx = pad + sealW / 2, ccy = H - pad - sealW / 2;
         ctx.translate(ccx, ccy); ctx.rotate(-9 * Math.PI / 180);
@@ -24889,8 +24893,8 @@ function MementoModal({ reg, lang, onClose }) {
           <div ref={frameRef} style={{ position: 'relative', borderRadius: 18, overflow: 'hidden', background: '#0a2960',
             boxShadow: '0 22px 50px -22px rgba(0,0,0,0.7), inset 0 0 0 1px rgba(255,255,255,0.12)' }}>
             {hasImg
-              ? <img src={imgSized(mImg, 1400)} alt="" onError={() => setImgOk(false)} decoding="async" style={{ width: '100%', display: 'block', aspectRatio: '3 / 4', objectFit: 'cover' }}/>
-              : <div style={{ width: '100%', aspectRatio: '3 / 4', background: 'linear-gradient(150deg, var(--sky-400), var(--brand-navy))' }}/>}
+              ? <img src={imgSized(mImg, 1400)} alt="" onError={() => setImgOk(false)} onLoad={(e) => { const im = e.target; if (im && im.naturalWidth && im.naturalHeight) setMainLandscape(im.naturalWidth > im.naturalHeight); }} decoding="async" style={{ width: '100%', display: 'block', aspectRatio: mainLandscape ? '4 / 3' : '3 / 4', objectFit: 'cover' }}/>
+              : <div style={{ width: '100%', aspectRatio: mainLandscape ? '4 / 3' : '3 / 4', background: 'linear-gradient(150deg, var(--sky-400), var(--brand-navy))' }}/>}
             <div style={{ position: 'absolute', inset: 8, border: '1.5px solid rgba(255,255,255,0.45)', borderRadius: 12, pointerEvents: 'none' }}/>
             <div style={{ position: 'absolute', left: 16, bottom: 16, filter: 'drop-shadow(0 2px 7px rgba(0,0,0,0.6))', transform: 'rotate(-9deg)' }}>
               <MementoSeal variant={ev.sealType || autoSealForCategory(ev.category)} date={modalDate} color="#ffffff" size={150} lang={lang}/>
