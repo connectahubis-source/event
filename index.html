@@ -1501,7 +1501,7 @@ button:hover .cta-arrow {
 
 <!-- (Phase 17.S-fix) ローディング デバッグ補助 — 8秒で fallback メッセージ更新 + 進捗ログ -->
 <script>
-  try { window.__APP_BUILD = '2026-06-07 P3i'; } catch (e) {}
+  try { window.__APP_BUILD = '2026-06-07 P3k'; } catch (e) {}
   console.log('[Phase 17.S-fix] Boot sequence started:', new Date().toISOString());
   setTimeout(function() {
     var fallback = document.getElementById('fallback');
@@ -23346,6 +23346,8 @@ function PageMyPage({ lang, t, events }) {
 
   const upcomingEventsRaw = allRegsWithEvent.filter(function(r) {
     if (!isActive(r)) return false;  // アクティブ reg のみ
+    // (R5) 公開を終了したイベントは参加予定から除外 (申込状態に関わらず)。 過去日なら参加履歴に残り、 記念写真はコレクションで閲覧可。
+    if (r.event.status === '終了' || r.event.status === 'アーカイブ' || r.event.status === '非公開') return false;
     const endStr = r.event.endDate || r.event.date;
     if (!endStr) return true;
     const endDate = new Date(String(endStr) + 'T23:59:59');
