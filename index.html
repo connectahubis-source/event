@@ -1501,7 +1501,7 @@ button:hover .cta-arrow {
 
 <!-- (Phase 17.S-fix) ローディング デバッグ補助 — 8秒で fallback メッセージ更新 + 進捗ログ -->
 <script>
-  try { window.__APP_BUILD = '2026-06-07 P3'; } catch (e) {}
+  try { window.__APP_BUILD = '2026-06-07 P3d'; } catch (e) {}
   console.log('[Phase 17.S-fix] Boot sequence started:', new Date().toISOString());
   setTimeout(function() {
     var fallback = document.getElementById('fallback');
@@ -24733,6 +24733,8 @@ function MementoModal({ reg, lang, onClose }) {
   const [dlBusy, setDlBusy] = React.useState(false);
   const [dlMsg, setDlMsg] = React.useState('');
   const [mainLandscape, setMainLandscape] = React.useState(false);  // 主写真が横長(4:3)か縦長(3:4)か
+  const [sealPos, setSealPos] = React.useState({ x: 0.26, y: 0.80 });  // スタンプ中心の枠内比率 (0..1)。 既定は左下。 ドラッグで移動
+  const sealDragRef = React.useRef(false);
   // (R4) 追加写真ギャラリー (セッションの公開予約に従う)
   const galleryLive = isSession && (isPreviewUser() || !reg.sessionMementoPublishAt || new Date(reg.sessionMementoPublishAt) <= new Date());
   const galleryPhotos = (galleryLive && Array.isArray(reg.sessionMementoGallery)) ? reg.sessionMementoGallery : [];
@@ -24858,7 +24860,10 @@ function MementoModal({ reg, lang, onClose }) {
         const shortSide = Math.min(W, H);
         const sealW = Math.round(shortSide * 0.42), pad = Math.round(shortSide * 0.045);
         ctx.save();
-        const ccx = pad + sealW / 2, ccy = H - pad - sealW / 2;
+        // ドラッグ位置(中心比率)を保存サイズに反映。 端ではみ出さないよう半径分でクランプ。
+        const half = sealW / 2;
+        const ccx = Math.max(half + pad, Math.min(W - half - pad, sealPos.x * W));
+        const ccy = Math.max(half + pad, Math.min(H - half - pad, sealPos.y * H));
         ctx.translate(ccx, ccy); ctx.rotate(-9 * Math.PI / 180);
         ctx.shadowColor = 'rgba(0,0,0,0.5)'; ctx.shadowBlur = 14; ctx.shadowOffsetY = 3;
         ctx.drawImage(seal, -sealW / 2, -sealW / 2, sealW, sealW);
@@ -24873,6 +24878,29 @@ function MementoModal({ reg, lang, onClose }) {
     } finally { setDlBusy(false); }
   }
 
+  // (スタンプ移動) 主写真枠内でスタンプをドラッグ。 中心比率で保持し、 表示と保存(canvas)の両方に反映。
+  function onSealDown(e) {
+    e.preventDefault(); e.stopPropagation();
+    sealDragRef.current = true;
+    try { e.currentTarget.setPointerCapture(e.pointerId); } catch (_) {}
+  }
+  function onSealMove(e) {
+    if (!sealDragRef.current) return;
+    e.preventDefault();
+    const fr = frameRef.current; if (!fr) return;
+    const rect = fr.getBoundingClientRect();
+    if (!rect.width || !rect.height) return;
+    let x = (e.clientX - rect.left) / rect.width;
+    let y = (e.clientY - rect.top) / rect.height;
+    x = Math.max(0.1, Math.min(0.9, x));
+    y = Math.max(0.1, Math.min(0.9, y));
+    setSealPos({ x: x, y: y });
+  }
+  function onSealUp(e) {
+    sealDragRef.current = false;
+    try { e.currentTarget.releasePointerCapture(e.pointerId); } catch (_) {}
+  }
+
   return (
     <div onClick={onClose} style={{
       position: 'fixed', inset: 0, zIndex: 2147483000, display: 'flex', alignItems: 'center', justifyContent: 'center',
@@ -24880,7 +24908,7 @@ function MementoModal({ reg, lang, onClose }) {
     }}>
       {confetti && <Confetti onDone={() => setConfetti(false)} />}
       <div onClick={(e) => e.stopPropagation()} style={{
-        width: '100%', maxWidth: 380, maxHeight: '92vh', overflowY: 'auto', borderRadius: 24, overflow: 'hidden', color: '#fff', position: 'relative',
+        width: '100%', maxWidth: 380, maxHeight: '92vh', overflowY: 'auto', overflowX: 'hidden', WebkitOverflowScrolling: 'touch', borderRadius: 24, color: '#fff', position: 'relative',
         background: 'radial-gradient(120% 50% at 80% 0%, #16407f 0%, transparent 50%), linear-gradient(180deg, #0a1f4d, #06122b)',
         boxShadow: '0 40px 90px -30px rgba(0,0,0,0.8)',
       }}>
@@ -24896,10 +24924,18 @@ function MementoModal({ reg, lang, onClose }) {
               ? <img src={imgSized(mImg, 1400)} alt="" onError={() => setImgOk(false)} onLoad={(e) => { const im = e.target; if (im && im.naturalWidth && im.naturalHeight) setMainLandscape(im.naturalWidth > im.naturalHeight); }} decoding="async" style={{ width: '100%', display: 'block', aspectRatio: mainLandscape ? '4 / 3' : '3 / 4', objectFit: 'cover' }}/>
               : <div style={{ width: '100%', aspectRatio: mainLandscape ? '4 / 3' : '3 / 4', background: 'linear-gradient(150deg, var(--sky-400), var(--brand-navy))' }}/>}
             <div style={{ position: 'absolute', inset: 8, border: '1.5px solid rgba(255,255,255,0.45)', borderRadius: 12, pointerEvents: 'none' }}/>
-            <div style={{ position: 'absolute', left: 16, bottom: 16, filter: 'drop-shadow(0 2px 7px rgba(0,0,0,0.6))', transform: 'rotate(-9deg)' }}>
+            <div onPointerDown={onSealDown} onPointerMove={onSealMove} onPointerUp={onSealUp} onPointerCancel={onSealUp}
+              style={{ position: 'absolute', left: (sealPos.x * 100) + '%', top: (sealPos.y * 100) + '%', zIndex: 2,
+                filter: 'drop-shadow(0 2px 7px rgba(0,0,0,0.6))', transform: 'translate(-50%, -50%) rotate(-9deg)',
+                touchAction: 'none', cursor: 'grab', userSelect: 'none', WebkitUserSelect: 'none' }}>
               <MementoSeal variant={ev.sealType || autoSealForCategory(ev.category)} date={modalDate} color="#ffffff" size={150} lang={lang}/>
             </div>
           </div>
+          {hasImg && (
+            <div style={{ marginTop: 8, fontSize: 11, opacity: 0.7, textAlign: 'center', fontFamily: 'var(--jp)' }}>
+              {lang === 'en' ? 'Drag the stamp to reposition it' : lang === 'easy' ? 'スタンプは ドラッグで うごかせます' : '印はドラッグで移動できます'}
+            </div>
+          )}
           <div style={{ fontFamily: 'var(--serif-jp)', fontSize: 22, fontWeight: 700, textAlign: 'center', margin: '20px 0 6px' }}>{ev.title}{isSession && reg.sessionName ? ' ・ ' + reg.sessionName : ''}</div>
           <div style={{ fontFamily: 'var(--mono)', fontSize: 12, opacity: 0.82, textAlign: 'center' }}>{modalDate}{ev.venue ? ' ・ ' + ev.venue : ''}</div>
           {hasImg && (
