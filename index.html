@@ -22887,6 +22887,7 @@ function MySurveysSection({ token, lang }) {
   const [surveys, setSurveys] = React.useState([]);
   const [loaded, setLoaded] = React.useState(false);
   const [active, setActive] = React.useState(null);
+  const refetchedForRef = React.useRef(null);  // ディープリンクで未取得時の再取得を sid ごとに1回に制限
 
   const load = React.useCallback(() => {
     if (!token) { setLoaded(true); return; }
@@ -22912,9 +22913,13 @@ function MySurveysSection({ token, lang }) {
         setActive(match);
         // 再オープン防止のためパラメータを除去
         try { history.replaceState(null, '', h.substring(0, qi)); } catch (e) { window.location.hash = h.substring(0, qi); }
+      } else if (refetchedForRef.current !== sid) {
+        // 一覧に無い (公開直後など) → 最新を取り直してから開く (sidごとに1回だけ)
+        refetchedForRef.current = sid;
+        load();
       }
     } catch (e) {}
-  }, [surveys]);
+  }, [surveys, load]);
   React.useEffect(() => { if (loaded && surveys.length) openFromHash(); }, [loaded, surveys, openFromHash]);
   React.useEffect(() => {
     const fn = () => openFromHash();
@@ -24830,7 +24835,12 @@ function formatMonthLabel(group, lang, at) {
 // (Phase 15.S96) QR チケット モーダル — 立体的に上、 即表示 (0.1秒)
 // =============================================================================
 // マイページから「QR チケット」ボタンで開く、 ページ遷移なし、 即 QR 生成
-function QRTicketModal({ registration, lang, onClose, isTodayQuick }) {
+function QRTicketModal({ registration, lang, onClose, isTodayQuick, allRegs, sessionDetails }) {
+  // (複数日) 申込全体の reg と セッション詳細。 未指定時は代表 reg のみ (= 従来動作)。
+  const ticketRegs = (Array.isArray(allRegs) && allRegs.length > 0) ? allRegs : (registration ? [registration] : []);
+  const sDetails = sessionDetails || {};
+  const multiDay = ticketRegs.length > 1;
+  const ticketRegIdsKey = ticketRegs.map(r => r && r.regId).join(',');
   // body スクロール lock
   React.useEffect(() => {
     const prevOverflow = document.body.style.overflow;
@@ -24883,6 +24893,14 @@ function QRTicketModal({ registration, lang, onClose, isTodayQuick }) {
     paid: registration ? !!registration.paid : false,
     checkedIn: registration ? (registration.status === 'チェックイン済') : false,
   }));
+  // (複数日) セッション別の最新状態 (regId -> {status, checkedIn, paid})。 初期値は props、 ライブ取得で更新。
+  const [sessionStatuses, setSessionStatuses] = React.useState(() => {
+    const m = {}; ticketRegs.forEach(r => { if (r && r.regId) m[r.regId] = { status: r.status, checkedIn: r.status === 'チェックイン済', paid: !!r.paid }; }); return m;
+  });
+  React.useEffect(() => {
+    const m = {}; ticketRegs.forEach(r => { if (r && r.regId) m[r.regId] = { status: r.status, checkedIn: r.status === 'チェックイン済', paid: !!r.paid }; });
+    setSessionStatuses(m);
+  }, [ticketRegIdsKey]);
   React.useEffect(() => {
     if (!registration || !registration.regId) return;
     setLiveStatus({ status: registration.status, paid: !!registration.paid, checkedIn: registration.status === 'チェックイン済' });
@@ -24900,13 +24918,21 @@ function QRTicketModal({ registration, lang, onClose, isTodayQuick }) {
         lastVer = v;
         const res = await authApi.getRegStatus(token, registration.regId);
         if (!stop && res && res.found) setLiveStatus({ status: res.status, paid: !!res.paid, checkedIn: !!res.checkedIn });
+        if (!stop && multiDay) {
+          const entries = await Promise.all(ticketRegs.map(async (r) => {
+            if (!r || !r.regId) return null;
+            try { const rr = await authApi.getRegStatus(token, r.regId); return (rr && rr.found) ? [r.regId, { status: rr.status, checkedIn: !!rr.checkedIn, paid: !!rr.paid }] : null; }
+            catch (e) { return null; }
+          }));
+          if (!stop) setSessionStatuses(prev => { const m = { ...prev }; entries.forEach(en => { if (en) m[en[0]] = en[1]; }); return m; });
+        }
       } catch (e) {}
       finally { inFlight = false; }
     };
     poll();
     const id = setInterval(poll, 2500);
     return () => { stop = true; clearInterval(id); };
-  }, [registration]);
+  }, [registration, ticketRegIdsKey, multiDay]);
 
   if (!registration) return null;
   const event = registration.event || {};
@@ -24914,7 +24940,25 @@ function QRTicketModal({ registration, lang, onClose, isTodayQuick }) {
   const _fee = Number(event.fee || 0);
   const _isPaidEvent = event.feeType === 'paid' || (_fee > 0 && event.feeType !== 'free');
   let _banner = null;
-  if (liveStatus.checkedIn) {
+  if (multiDay) {
+    // (複数日) 本日のセッション状態を優先。 全日程済 → 全完了、 本日済 → 本日完了、 それ以外 → 提示案内。
+    const todayStr = new Date().toLocaleDateString('en-CA', { timeZone: 'Asia/Tokyo' });
+    const stOf = (r) => sessionStatuses[r.regId] || { status: r.status, checkedIn: r.status === 'チェックイン済', paid: !!r.paid };
+    const activeT = ticketRegs.filter(r => r.status !== 'キャンセル' && r.status !== '返金' && r.status !== '返金待ち');
+    const allDone = activeT.length > 0 && activeT.every(r => stOf(r).checkedIn);
+    const todayReg = ticketRegs.find(r => (sDetails[r.sessionId] && sDetails[r.sessionId].date) === todayStr);
+    const todayDone = todayReg ? stOf(todayReg).checkedIn : false;
+    if (allDone) {
+      _banner = { bg: '#e7f6ec', bd: '#34a853', fg: '#137333',
+        text: lang === 'en' ? 'All days checked in. Enjoy!' : lang === 'easy' ? 'ぜんぶの ひ にゅうじょう できました！' : '全日程の入場が完了しました' };
+    } else if (todayReg && todayDone) {
+      _banner = { bg: '#e7f6ec', bd: '#34a853', fg: '#137333',
+        text: lang === 'en' ? "Today's session checked in" : lang === 'easy' ? 'きょうの ぶん にゅうじょう できました' : '本日分の入場が完了しました' };
+    } else {
+      _banner = { bg: '#e8f1fe', bd: '#2c89e8', fg: '#1a4e8a',
+        text: lang === 'en' ? 'Show this QR at reception' : lang === 'easy' ? 'この QR を うけつけで みせてください' : 'このQRを受付でご提示ください' };
+    }
+  } else if (liveStatus.checkedIn) {
     _banner = { bg: '#e7f6ec', bd: '#34a853', fg: '#137333',
       text: lang === 'en' ? 'Checked in. Enjoy the event!' : lang === 'easy' ? 'にゅうじょう できました！' : '入場を完了しました' };
   } else if (_isPaidEvent && !liveStatus.paid) {
@@ -25054,6 +25098,55 @@ function QRTicketModal({ registration, lang, onClose, isTodayQuick }) {
           fontWeight: 600,
         }}>{registration.regId}</div>
 
+        {/* 開催日時 / 会場 — 複数日は各セッションの入場状態を表示 */}
+        {multiDay ? (
+          <div style={{ marginBottom: 16, display: 'flex', flexDirection: 'column', gap: 8 }}>
+            {ticketRegs.map((r, i) => {
+              const sd = r.sessionId ? sDetails[r.sessionId] : null;
+              const dt = (sd && sd.date) || (r.event && r.event.date) || '';
+              const tm = (sd && sd.startTime) ? `${sd.startTime}${sd.endTime ? `〜${sd.endTime}` : ''}` : '';
+              const vn = (sd && sd.online) ? (lang === 'en' ? 'Online' : 'オンライン') : ((sd && sd.venue) || (r.event && r.event.venue) || '');
+              const st = sessionStatuses[r.regId] || { status: r.status, checkedIn: r.status === 'チェックイン済' };
+              const cancelled = r.status === 'キャンセル' || r.status === '返金';
+              const pendingRefund = r.status === '返金待ち';
+              const done = !!st.checkedIn;
+              const bColor = done ? '#0E9F5E' : cancelled ? '#5C7186' : pendingRefund ? '#E64530' : '#2c89e8';
+              const bLabel = done ? (lang === 'en' ? '✓ Checked in' : lang === 'easy' ? '✓ にゅうじょう ずみ' : '✓ 入場済')
+                           : cancelled ? (lang === 'en' ? 'Cancelled' : lang === 'easy' ? 'キャンセル ずみ' : 'キャンセル済')
+                           : pendingRefund ? (lang === 'en' ? 'Refunding' : lang === 'easy' ? 'へんきん しています' : '返金処理中')
+                           : (lang === 'en' ? 'Not yet' : lang === 'easy' ? 'まだ にゅうじょう していません' : '未入場');
+              const dd = dt ? (() => {
+                const d = new Date(String(dt) + 'T00:00:00');
+                if (isNaN(d.getTime())) return dt;
+                const mm = String(d.getMonth() + 1).padStart(2, '0');
+                const day = (lang === 'en' ? ['Sun','Mon','Tue','Wed','Thu','Fri','Sat'] : ['日','月','火','水','木','金','土'])[d.getDay()];
+                return `${d.getFullYear()}.${mm}.${String(d.getDate()).padStart(2, '0')} (${day})`;
+              })() : '';
+              return (
+                <div key={r.regId} style={{
+                  padding: '10px 14px', borderRadius: 8, textAlign: 'left',
+                  background: done ? '#E7F8EF' : 'var(--paper-2)',
+                  border: '1px solid ' + (done ? '#34C77B' : 'var(--brand-line)'),
+                  opacity: cancelled ? 0.6 : 1,
+                }}>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: 8, flexWrap: 'wrap' }}>
+                    <span style={{ display: 'inline-flex', minWidth: 22, height: 22, alignItems: 'center', justifyContent: 'center', borderRadius: '50%', background: done ? '#16A34A' : 'var(--brand-navy)', color: '#fff', fontSize: 11, fontWeight: 800, fontFamily: 'var(--mono)' }}>{i + 1}</span>
+                    <span style={{ fontFamily: 'var(--mono)', fontSize: 13, fontWeight: 700, color: 'var(--brand-navy)' }}>{dd}</span>
+                    {tm && <span style={{ fontFamily: 'var(--mono)', fontSize: 12, color: 'var(--ink-4)' }}>{tm}</span>}
+                    <span style={{ marginLeft: 'auto', padding: '2px 9px', borderRadius: 999, fontSize: 10, fontWeight: 800, color: '#fff', background: bColor, whiteSpace: 'nowrap' }}>{bLabel}</span>
+                  </div>
+                  {vn && (
+                    <div style={{ display: 'flex', alignItems: 'center', gap: 6, marginTop: 6, paddingLeft: 30, fontSize: 12, color: 'var(--ink-3)' }}>
+                      <PIcon.MapPin size={12} color="#6b7280"/>
+                      <span style={{ fontWeight: 600 }}>{vn}</span>
+                    </div>
+                  )}
+                </div>
+              );
+            })}
+          </div>
+        ) : (
+          <>
         {/* 開催日時 */}
         {event.date && (() => {
           const d = new Date(String(event.date) + 'T00:00:00');
@@ -25096,6 +25189,8 @@ function QRTicketModal({ registration, lang, onClose, isTodayQuick }) {
             <PIcon.MapPin size={14} color="#6b7280"/>
             <span style={{ fontWeight: 600 }}>{event.venue}</span>
           </div>
+        )}
+          </>
         )}
 
         {/* QR コードの使い方説明 (Phase 15.S104 強化) */}
@@ -25374,21 +25469,30 @@ function MyEventCard({ registration, siblings, appState, past, onCancel, lang })
                     // (Phase 17.G2) 個別 reg の状態区別
                     const rIsCancelled = r.status === 'キャンセル' || r.status === '返金';
                     const rIsPending = r.status === '返金待ち';
+                    const rIsCheckedIn = r.status === 'チェックイン済';
+                    const rIsHold = r.status === 'チェックイン保留';
                     const rIsActive = !rIsCancelled && !rIsPending;
                     const sBg = rIsCancelled ? '#F4F6F8'
                               : rIsPending   ? '#FCE4DF'
+                              : rIsCheckedIn ? '#E7F8EF'
                               :                '#E5F5FC';
                     const sBorder = rIsCancelled ? '#D8E4ED'
                                   : rIsPending   ? '#E64530'
+                                  : rIsCheckedIn ? '#34C77B'
                                   :                '#B8E4F4';
                     const sNumBg = rIsCancelled ? '#A8BBCC'
                                  : rIsPending   ? '#E64530'
+                                 : rIsCheckedIn ? '#16A34A'
                                  :                '#00A8E1';
                     const sLabel = rIsCancelled ? (lang === 'en' ? 'Cancelled' : lang === 'easy' ? 'キャンセル ずみ' : 'キャンセル済')
                                  : rIsPending   ? (lang === 'en' ? 'Refunding'  : lang === 'easy' ? 'へんきん しています' : '返金処理中')
+                                 : rIsCheckedIn ? (lang === 'en' ? '✓ Checked in' : lang === 'easy' ? '✓ にゅうじょう ずみ' : '✓ 入場済')
+                                 : rIsHold      ? (lang === 'en' ? 'Reception'   : lang === 'easy' ? 'うけつけ ちゅう' : '受付中')
                                  :                (lang === 'en' ? 'Joining'    : lang === 'easy' ? 'さんか よてい' : '参加予定');
                     const sLabelColor = rIsCancelled ? '#5C7186'
                                       : rIsPending   ? '#E64530'
+                                      : rIsCheckedIn ? '#0E9F5E'
+                                      : rIsHold      ? '#C2730B'
                                       :                '#009D6A';
                     return (
                       <div key={r.regId} style={{
@@ -25744,6 +25848,8 @@ function MyEventCard({ registration, siblings, appState, past, onCancel, lang })
       {qrOpen && (
         <QRTicketModal
           registration={registration}
+          allRegs={allRegs}
+          sessionDetails={sessionDetails}
           lang={lang}
           onClose={() => setQrOpen(false)}
         />
