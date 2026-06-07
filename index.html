@@ -1501,7 +1501,7 @@ button:hover .cta-arrow {
 
 <!-- (Phase 17.S-fix) ローディング デバッグ補助 — 8秒で fallback メッセージ更新 + 進捗ログ -->
 <script>
-  try { window.__APP_BUILD = '2026-06-07 P3d'; } catch (e) {}
+  try { window.__APP_BUILD = '2026-06-07 P3h'; } catch (e) {}
   console.log('[Phase 17.S-fix] Boot sequence started:', new Date().toISOString());
   setTimeout(function() {
     var fallback = document.getElementById('fallback');
@@ -3417,6 +3417,8 @@ function filterPublicEvents(events) {
   const todayStart = new Date(now.getFullYear(), now.getMonth(), now.getDate());
 
   const filtered = events.filter(e => {
+    // 明示的な公開終了/非公開は 公開予約日時に関わらず除外 (予約公開済みでも「終了」で確実に隠す)
+    if (e.status === '終了' || e.status === 'アーカイブ' || e.status === '非公開') return false;
     // --- ① 公開状態チェック (公開予約日時の遅延公開も対応) ---
     const isPubliclyMarked = PUBLIC_STATUSES.includes(e.status);
     let isScheduledPublished = false;
@@ -6167,6 +6169,8 @@ function HeroSlideshow({ lang, t, events, heroSlides, loading, frontNews, siteSe
     .filter(e => {
       // 画像が無いものはヒーローに出さない
       if (!e.heroImageUrl && !e.posterUrl) return false;
+      // 明示的な公開終了/非公開は 公開予約日時に関わらず除外
+      if (e.status === '終了' || e.status === 'アーカイブ' || e.status === '非公開') return false;
       // 公開状態 OR 公開予約日時を過ぎた
       const isPubliclyMarked = PUBLIC_STATUSES_HERO.includes(e.status);
       let isScheduled = false;
@@ -14187,6 +14191,23 @@ function PageEventDetail({ lang, t, eventId }) {
       <div style={{ minHeight: '100dvh', paddingTop: 200, padding: '200px 24px 80px', maxWidth: 800, margin: '0 auto', textAlign: 'center' }}>
         <h1 style={{ fontFamily: 'var(--jp)', fontSize: 'clamp(28px, 4vw, 42px)', fontWeight: 900, margin: '0 0 20px' }}>{t.detail.notFound}</h1>
         <p style={{ color: 'var(--ink-mute)' }}>Event ID: {eventId}</p>
+        <div style={{ marginTop: 40 }}>
+          <a href="#/events" className="btn-outline">{t.detail.back}</a>
+        </div>
+      </div>
+    );
+  }
+
+  // 公開を終了したイベントは詳細・申込ページに遷移させない (テスターは検証のため閲覧可)。 記念写真は別途コレクションで閲覧可能。
+  if (ev && !isPreviewUser() && (ev.status === '終了' || ev.status === 'アーカイブ' || ev.status === '非公開')) {
+    return (
+      <div style={{ minHeight: '100dvh', paddingTop: 200, padding: '200px 24px 80px', maxWidth: 800, margin: '0 auto', textAlign: 'center' }}>
+        <h1 style={{ fontFamily: 'var(--jp)', fontSize: 'clamp(24px, 3.5vw, 36px)', fontWeight: 900, margin: '0 0 16px' }}>
+          {lang === 'en' ? 'This event is no longer open' : lang === 'easy' ? 'この イベントの こうかいは おわりました' : 'このイベントの公開は終了しました'}
+        </h1>
+        <p style={{ color: 'var(--ink-mute)' }}>
+          {lang === 'en' ? 'Your photos remain in your memento collection.' : lang === 'easy' ? 'しゃしんは「さんか きねん」で みられます。' : '記念写真は「参加記念コレクション」で引き続きご覧いただけます。'}
+        </p>
         <div style={{ marginTop: 40 }}>
           <a href="#/events" className="btn-outline">{t.detail.back}</a>
         </div>
@@ -24733,8 +24754,13 @@ function MementoModal({ reg, lang, onClose }) {
   const [dlBusy, setDlBusy] = React.useState(false);
   const [dlMsg, setDlMsg] = React.useState('');
   const [mainLandscape, setMainLandscape] = React.useState(false);  // 主写真が横長(4:3)か縦長(3:4)か
-  const [sealPos, setSealPos] = React.useState({ x: 0.26, y: 0.80 });  // スタンプ中心の枠内比率 (0..1)。 既定は左下。 ドラッグで移動
+  const [sealPos, setSealPos] = React.useState(() => {
+    const parts = String(ev.sealPos || '').split(',');
+    const px = parseFloat(parts[0]), py = parseFloat(parts[1]);
+    return { x: (isNaN(px) ? 0.26 : Math.max(0.05, Math.min(0.95, px))), y: (isNaN(py) ? 0.80 : Math.max(0.05, Math.min(0.95, py))) };
+  });  // スタンプ中心の枠内比率 (0..1)。 初期値はイベント設定、 なければ左下。 参加者はドラッグで変更
   const sealDragRef = React.useRef(false);
+  const [sealVariant, setSealVariant] = React.useState(ev.sealType || autoSealForCategory(ev.category));  // スタンプ種類。 参加者が選べる
   // (R4) 追加写真ギャラリー (セッションの公開予約に従う)
   const galleryLive = isSession && (isPreviewUser() || !reg.sessionMementoPublishAt || new Date(reg.sessionMementoPublishAt) <= new Date());
   const galleryPhotos = (galleryLive && Array.isArray(reg.sessionMementoGallery)) ? reg.sessionMementoGallery : [];
@@ -24928,12 +24954,29 @@ function MementoModal({ reg, lang, onClose }) {
               style={{ position: 'absolute', left: (sealPos.x * 100) + '%', top: (sealPos.y * 100) + '%', zIndex: 2,
                 filter: 'drop-shadow(0 2px 7px rgba(0,0,0,0.6))', transform: 'translate(-50%, -50%) rotate(-9deg)',
                 touchAction: 'none', cursor: 'grab', userSelect: 'none', WebkitUserSelect: 'none' }}>
-              <MementoSeal variant={ev.sealType || autoSealForCategory(ev.category)} date={modalDate} color="#ffffff" size={150} lang={lang}/>
+              <MementoSeal variant={sealVariant} date={modalDate} color="#ffffff" size={150} lang={lang}/>
             </div>
           </div>
           {hasImg && (
-            <div style={{ marginTop: 8, fontSize: 11, opacity: 0.7, textAlign: 'center', fontFamily: 'var(--jp)' }}>
-              {lang === 'en' ? 'Drag the stamp to reposition it' : lang === 'easy' ? 'スタンプは ドラッグで うごかせます' : '印はドラッグで移動できます'}
+            <div style={{ marginTop: 10 }}>
+              <div style={{ fontSize: 11, opacity: 0.7, textAlign: 'center', fontFamily: 'var(--jp)', marginBottom: 8 }}>
+                {lang === 'en' ? 'Drag the stamp to move it ・ pick a style' : lang === 'easy' ? 'スタンプは ドラッグで うごかせます ・ しゅるいも えらべます' : '印はドラッグで移動できます ・ 種類も選べます'}
+              </div>
+              <div style={{ display: 'flex', gap: 8, justifyContent: 'center', flexWrap: 'wrap' }}>
+                {['classic', 'passport', 'minimal', 'beaded', 'laurel'].map((vn) => {
+                  const sel = sealVariant === vn;
+                  return (
+                    <button key={vn} onClick={() => setSealVariant(vn)} title={vn} style={{
+                      width: 54, height: 54, borderRadius: '50%', cursor: 'pointer', padding: 0,
+                      display: 'flex', alignItems: 'center', justifyContent: 'center',
+                      background: sel ? 'rgba(255,255,255,0.2)' : 'rgba(255,255,255,0.06)',
+                      border: sel ? '2px solid #fff' : '1px solid rgba(255,255,255,0.25)',
+                    }}>
+                      <MementoSeal variant={vn} date="" color="#ffffff" size={42} lang={lang}/>
+                    </button>
+                  );
+                })}
+              </div>
             </div>
           )}
           <div style={{ fontFamily: 'var(--serif-jp)', fontSize: 22, fontWeight: 700, textAlign: 'center', margin: '20px 0 6px' }}>{ev.title}{isSession && reg.sessionName ? ' ・ ' + reg.sessionName : ''}</div>
