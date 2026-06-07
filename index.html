@@ -2174,6 +2174,13 @@ const authApi = {
   async getRegStatus(sessionToken, regId) {
     return postToGAS('auth.getRegStatus', { sessionToken, regId });
   },
+  async getRegVersion(sessionToken) {
+    return postToGAS('auth.getRegVersion', { sessionToken });
+  },
+  // (初回導線) 自分の購読へテストプッシュを送る (タップで該当リンクへ遷移)
+  async sendTestPush(sessionToken, lang, url) {
+    return postToGAS('auth.sendTestPush', { sessionToken, lang, url });
+  },
   // (満足度調査 Phase 4) 自分が参加したイベントの公開中アンケート一覧
   async getMySurveys(sessionToken) {
     return postToGAS('auth.getMySurveys', { sessionToken });
@@ -2326,6 +2333,8 @@ function AuthProvider({ children }) {
           if (!result.user) {
             authStore.clear();  // 期限切れトークン
           } else {
+            // (自動ログイン維持) スライディング延長された期限をローカルにも反映
+            if (result.sessionExpires) authStore.setToken(token, result.sessionExpires);
             // (Phase 9.4) 認証復元時にお気に入りをロード
             favoritesStore.load().catch(e => console.error('[restore] favorites load failed:', e));
             // (Phase 15.S105) 申込一覧も prefetch
@@ -2376,6 +2385,7 @@ function AuthProvider({ children }) {
     try {
       const result = await authApi.me(token);
       setUser(result.user || null);
+      if (result.user && result.sessionExpires) authStore.setToken(token, result.sessionExpires);
     } catch (err) {}
   }, []);
 
@@ -11081,13 +11091,14 @@ function HomeQuickActions({ lang }) {
   const [pickerOpen, setPickerOpen] = React.useState(false);
 
   // 当日の申込 (複数日は sessionDate で当日の Day を選択)
+  const [regRefresh, setRegRefresh] = React.useState(0);
   React.useEffect(() => {
     if (!auth.user) { setTodayReg(null); return; }
     let cancelled = false;
     const compute = (result) => {
       if (!result) return null;
       const ts = new Date().toISOString().slice(0, 10);
-      const regs = (result.registrations || []).filter(r => r.event && (r.status === '申込済み' || r.status === '決済済み' || r.status === '確定'));
+      const regs = (result.registrations || []).filter(r => r.event && (r.status === '申込済み' || r.status === '決済済み' || r.status === '確定' || r.status === 'チェックイン済' || r.status === 'チェックイン保留'));
       const today = regs.find(r => (r.sessionDate || r.event.date) === ts);
       if (today) return today;
       // (テスター限定プレビュー) 当日でなくても、直近の確定登録でQRチケットUIを確認できるようにする
@@ -11099,12 +11110,22 @@ function HomeQuickActions({ lang }) {
         const token = authStore.getToken();
         if (!token) return;
         const result = await getMyRegistrationsCached(token, {
+          // 長TTLキャッシュ＋書込時失効を活用。 チェックイン時はサーバ側で失効するため強制取得は不要。
           onFresh: (fresh) => { if (!cancelled) setTodayReg(compute(fresh)); },
         });
         if (!cancelled) setTodayReg(compute(result));
       } catch (e) { /* fail silent */ }
     })();
     return () => { cancelled = true; };
+  }, [auth.user, regRefresh]);
+
+  // (チェックイン即時反映) 画面表示中は45秒ごとに登録を再取得して当日チケットの状態を更新
+  React.useEffect(() => {
+    if (!auth.user) return;
+    const id = setInterval(() => { if (!document.hidden) setRegRefresh(n => n + 1); }, 45000);
+    const onVis = () => { if (!document.hidden) setRegRefresh(n => n + 1); };
+    document.addEventListener('visibilitychange', onVis);
+    return () => { clearInterval(id); document.removeEventListener('visibilitychange', onVis); };
   }, [auth.user]);
 
   // 配布中の満足度調査 (未回答のみ「配布されている」とみなす)
@@ -11150,6 +11171,16 @@ function HomeQuickActions({ lang }) {
           }} title={lang === 'en' ? "Show today's QR ticket" : '今日の QR チケットを表示'}>
             <PIcon.QRCode size={15} color="#ffffff" /><span>{qrLabel}</span>
           </button>
+        )}
+        {todayReg && todayReg.status === 'チェックイン済' && (
+          <span style={{ display: 'inline-flex', alignItems: 'center', gap: 6, padding: '7px 13px', borderRadius: 999, background: '#dcfce7', color: '#15803d', fontSize: 12.5, fontWeight: 800, fontFamily: 'var(--jp)', letterSpacing: '0.03em' }}>
+            <span style={{ fontSize: 13 }}>✓</span>{lang === 'en' ? 'Checked in' : lang === 'easy' ? 'にゅうじょう ずみ' : '入場済'}
+          </span>
+        )}
+        {todayReg && todayReg.status === 'チェックイン保留' && (
+          <span style={{ display: 'inline-flex', alignItems: 'center', gap: 6, padding: '7px 13px', borderRadius: 999, background: '#fef9c3', color: '#a16207', fontSize: 12.5, fontWeight: 800, fontFamily: 'var(--jp)', letterSpacing: '0.03em' }}>
+            {lang === 'en' ? 'Reception (payment pending)' : lang === 'easy' ? 'うけつけちゅう' : '受付中・決済確認待ち'}
+          </span>
         )}
         {unanswered.length > 0 && (
           <button onClick={openSurvey} style={{
@@ -17905,6 +17936,8 @@ function PageSignupProfile({ lang, t }) {
       authStore.setToken(result.sessionToken, result.sessionExpires);
       await auth.refresh();
       window.location.hash = '/mypage';
+      // (登録時案内) 会員登録の完了直後に PWA・通知の案内を出す (画面遷移後に)
+      setTimeout(() => { try { window.__triggerNotifOnboarding && window.__triggerNotifOnboarding(); } catch (e) {} }, 1200);
     } catch (err) {
       setError(err.message || at.signupFailed);
       setSubmitting(false);
@@ -20840,6 +20873,8 @@ function PageEventRegisterComplete({ lang, t, eventId, events }) {
     timers.push(setTimeout(() => setPhase(4), 2000));
     timers.push(setTimeout(() => setPhase(5), 2700));
     timers.push(setTimeout(() => setPhase(6), 3200));
+    // (登録時案内) 演出が落ち着いてから PWA・通知の案内 (許可済み等なら自動的に出ない)
+    timers.push(setTimeout(() => { try { window.__triggerNotifOnboarding && window.__triggerNotifOnboarding(); } catch (e) {} }, 4500));
     return () => timers.forEach(clearTimeout);
   }, []);
 
@@ -22504,44 +22539,244 @@ window.PageCouponClaim = PageCouponClaim;
 // (満足度調査 再設計 Phase 4) 参加者の回答フロー — マイページ用コンポーネント
 // ============================================================================
 const SURVEY_T = {
-  ja:   { pending:'回答待ちのアンケート', answer:'回答する', answered:'回答済み', submit:'送信する', close:'閉じる', required:'必須', thanks:'ご回答ありがとうございました', sending:'送信中…', errRequired:'必須の質問が未回答です', placeholder:'ご自由にご記入ください', selectScale:'選択してください' },
-  easy: { pending:'こたえてほしい アンケート', answer:'こたえる', answered:'こたえた', submit:'おくる', close:'とじる', required:'ひつよう', thanks:'こたえて くれて ありがとう', sending:'おくっています…', errRequired:'こたえていない ところが あります', placeholder:'じゆうに かいて ください', selectScale:'えらんで ください' },
-  en:   { pending:'Surveys to answer', answer:'Answer', answered:'Answered', submit:'Submit', close:'Close', required:'required', thanks:'Thank you for your response', sending:'Sending…', errRequired:'Please answer all required questions', placeholder:'Write freely', selectScale:'Please select' },
+  ja:   { pending:'回答待ちのアンケート', answer:'回答する', answered:'回答済み', submit:'送信する', close:'閉じる', required:'必須', thanks:'ご回答ありがとうございました', thanksSub:'いただいた声を次回に活かします', sending:'送信中…', errRequired:'必須の質問が未回答です', placeholder:'ご自由にご記入ください', selectScale:'選択してください', q:'設問', of:'/', back:'戻る', next:'次へ', npsLow:'勧めない', npsHigh:'ぜひ勧めたい', scaleLow:'低い', scaleHigh:'高い', pick:'ドラッグまたはタップで選んでください', chars:'文字' },
+  easy: { pending:'こたえてほしい アンケート', answer:'こたえる', answered:'こたえた', submit:'おくる', close:'とじる', required:'ひつよう', thanks:'こたえて くれて ありがとう', thanksSub:'つぎに いかします', sending:'おくっています…', errRequired:'こたえていない ところが あります', placeholder:'じゆうに かいて ください', selectScale:'えらんで ください', q:'しつもん', of:'/', back:'もどる', next:'つぎへ', npsLow:'すすめない', npsHigh:'すすめたい', scaleLow:'ひくい', scaleHigh:'たかい', pick:'うごかして えらんでね', chars:'もじ' },
+  en:   { pending:'Surveys to answer', answer:'Answer', answered:'Answered', submit:'Submit', close:'Close', required:'required', thanks:'Thank you for your response', thanksSub:'Your voice shapes our next event', sending:'Sending…', errRequired:'Please answer all required questions', placeholder:'Write freely', selectScale:'Please select', q:'Q', of:'/', back:'Back', next:'Next', npsLow:'Not likely', npsHigh:'Very likely', scaleLow:'Low', scaleHigh:'High', pick:'Drag or tap to choose', chars:'chars' },
 };
+
+// (任意演出) Lottie 上乗せ層。失敗・オフライン時は no-op で、 メダル+紙吹雪は必ず表示される。
+// 本番では lottiefiles の JSON / URL に差し替え可能 (animationData か path)。
+const SURVEY_LOTTIE_PLACEHOLDER = {"v":"5.7.4","fr":30,"ip":0,"op":40,"w":150,"h":150,"nm":"pulse","ddd":0,"assets":[],"layers":[{"ddd":0,"ind":1,"ty":4,"nm":"r","sr":1,"ks":{"o":{"a":1,"k":[{"t":0,"s":[0]},{"t":12,"s":[70]},{"t":40,"s":[0]}]},"r":{"a":0,"k":0},"p":{"a":0,"k":[75,75,0]},"a":{"a":0,"k":[0,0,0]},"s":{"a":1,"k":[{"t":0,"s":[10,10,100]},{"t":40,"s":[170,170,100]}]}},"ao":0,"shapes":[{"ty":"el","p":{"a":0,"k":[0,0]},"s":{"a":0,"k":[120,120]}},{"ty":"st","c":{"a":0,"k":[0.36,0.66,0.96,1]},"o":{"a":0,"k":100},"w":{"a":0,"k":4},"lc":2,"lj":2},{"ty":"tr","p":{"a":0,"k":[0,0]},"s":{"a":0,"k":[100,100]},"o":{"a":0,"k":100}}],"ip":0,"op":40,"st":0}]};
+
+// lottie-web を必要時のみ遅延読込 (本体常時ロードを避ける)。失敗時は false。
+let _svwLottiePromise = null;
+function loadLottieLib_() {
+  if (typeof window !== 'undefined' && window.lottie) return Promise.resolve(window.lottie);
+  if (_svwLottiePromise) return _svwLottiePromise;
+  _svwLottiePromise = new Promise((resolve) => {
+    try {
+      const s = document.createElement('script');
+      s.src = 'https://cdnjs.cloudflare.com/ajax/libs/lottie-web/5.12.2/lottie.min.js';
+      s.async = true;
+      s.onload = () => resolve(window.lottie || null);
+      s.onerror = () => resolve(null);
+      document.head.appendChild(s);
+    } catch (e) { resolve(null); }
+  });
+  return _svwLottiePromise;
+}
+
+const SURVEY_WIZARD_CSS = `
+.svw-scrim{position:fixed;inset:0;z-index:2147483646;background:rgba(8,18,34,.55);backdrop-filter:blur(6px);-webkit-backdrop-filter:blur(6px);display:flex;align-items:flex-end;justify-content:center;font-family:var(--jp)}
+@media(min-width:600px){.svw-scrim{align-items:center;padding:16px}}
+.svw-sheet{background:#fff;width:100%;max-width:560px;border-radius:26px 26px 0 0;box-shadow:0 -18px 60px -20px rgba(10,22,40,.45);display:flex;flex-direction:column;max-height:92vh;animation:svwUp .42s cubic-bezier(.34,1.56,.64,1)}
+@media(min-width:600px){.svw-sheet{border-radius:22px;max-height:88vh;animation:svwPop .3s cubic-bezier(.34,1.56,.64,1)}}
+@keyframes svwUp{from{transform:translateY(102%)}to{transform:none}}
+@keyframes svwPop{from{opacity:0;transform:scale(.96)}to{opacity:1;transform:none}}
+.svw-head{padding:16px 20px 12px;display:flex;align-items:flex-start;gap:10px;border-bottom:1px solid #eef1f5}
+.svw-titles{flex:1;min-width:0}
+.svw-title{font-weight:800;font-size:15.5px;color:var(--brand-navy,#0a2960);line-height:1.3}
+.svw-event{font-size:11.5px;color:#6b7280;margin-top:2px}
+.svw-x{border:none;background:transparent;color:#9ca3af;font-size:24px;line-height:1;cursor:pointer;padding:2px 4px}
+.svw-progress{padding:12px 20px 4px}
+.svw-pbar{height:7px;background:#eef2f8;border-radius:99px;overflow:hidden}
+.svw-pfill{height:100%;border-radius:99px;background:linear-gradient(90deg,#5ba8f5,#2c89e8);transition:width .45s cubic-bezier(.22,1,.36,1)}
+.svw-pmeta{display:flex;justify-content:space-between;align-items:center;margin-top:7px;font-size:11px;color:#6b7280;font-weight:700}
+.svw-pdots{display:flex;gap:5px}
+.svw-pdots i{width:6px;height:6px;border-radius:50%;background:#d7dee8;transition:all .3s cubic-bezier(.34,1.56,.64,1)}
+.svw-pdots i.on{background:#2c89e8;transform:scale(1.35)}
+.svw-pdots i.done{background:#8cc5ff}
+.svw-qview{flex:1;overflow-y:auto;padding:16px 20px 18px;-webkit-overflow-scrolling:touch}
+.svw-err{padding:10px;background:#fef2f2;border:1px solid #fecaca;border-radius:8px;color:#b91c1c;font-size:13px;margin-bottom:12px}
+.svw-qcard{animation:svwQIn .4s cubic-bezier(.22,1,.36,1)}
+.svw-qcard[data-shake='1']{animation:svwShake .4s ease}
+@keyframes svwQIn{from{opacity:0;transform:translateX(22px)}to{opacity:1;transform:none}}
+@keyframes svwShake{0%,100%{transform:translateX(0)}25%{transform:translateX(-7px)}75%{transform:translateX(7px)}}
+.svw-qlabel{font-size:16.5px;font-weight:800;color:#0a1628;line-height:1.5;margin-bottom:16px}
+.svw-req{display:inline-block;font-size:10.5px;font-weight:800;color:#ef4444;margin-left:6px;vertical-align:middle}
+.svw-face{font-size:74px;text-align:center;line-height:1;height:84px;filter:drop-shadow(0 8px 16px rgba(10,41,96,.18));animation:svwBump .25s cubic-bezier(.34,1.56,.64,1)}
+@keyframes svwBump{0%{transform:scale(1)}50%{transform:scale(1.18)}100%{transform:scale(1)}}
+.svw-readout{text-align:center;font-weight:900;font-size:15px;color:var(--brand-navy,#0a2960);margin:4px 0 16px;min-height:20px}
+.svw-slider{position:relative;height:54px;touch-action:none;user-select:none;margin:0 6px;cursor:pointer}
+.svw-track{position:absolute;top:50%;left:0;right:0;height:14px;transform:translateY(-50%);border-radius:99px;background:linear-gradient(90deg,#ffd4cf,#ffe9b0,#cdeccd,#bfe3ff)}
+.svw-track-fill{position:absolute;top:50%;left:0;height:14px;transform:translateY(-50%);border-radius:99px;background:linear-gradient(90deg,#5ba8f5,#2c89e8);transition:width .1s linear}
+.svw-thumb{position:absolute;top:50%;width:34px;height:34px;border-radius:50%;background:#fff;border:3px solid #2c89e8;transform:translate(-50%,-50%);box-shadow:0 6px 16px -4px rgba(10,41,96,.5);display:grid;place-items:center;font-weight:900;color:var(--brand-navy,#0a2960);font-size:13px;transition:transform .1s}
+.svw-thumb.grab{transform:translate(-50%,-50%) scale(1.12)}
+.svw-ends{display:flex;justify-content:space-between;margin:8px 4px 0;font-size:11px;color:#6b7280;font-weight:700}
+.svw-opts{display:flex;flex-direction:column;gap:10px}
+.svw-opt{display:flex;align-items:center;gap:12px;border:1.5px solid #e6ebf2;border-radius:14px;padding:14px 15px;cursor:pointer;background:#fff;text-align:left;width:100%;transition:border-color .18s,background .18s,transform .12s cubic-bezier(.34,1.56,.64,1);font-family:inherit}
+.svw-opt:active{transform:scale(.985)}
+.svw-opt.sel{border-color:#2c89e8;background:#e8f1fc}
+.svw-box{width:24px;height:24px;border-radius:50%;border:2px solid #cbd5e3;flex:none;display:grid;place-items:center;transition:all .18s cubic-bezier(.34,1.56,.64,1)}
+.svw-opt.sel .svw-box{border-color:#2c89e8;background:#2c89e8}
+.svw-box svg{width:14px;height:14px;stroke:#fff;stroke-width:3.4;fill:none;stroke-linecap:round;stroke-linejoin:round;stroke-dasharray:20;stroke-dashoffset:20}
+.svw-opt.sel .svw-box svg{animation:svwDraw .35s cubic-bezier(.22,1,.36,1) forwards}
+@keyframes svwDraw{to{stroke-dashoffset:0}}
+.svw-otext{font-size:14.5px;font-weight:700;color:#1f2937}
+.svw-chips{display:flex;flex-wrap:wrap;gap:9px}
+.svw-chip{border:1.5px solid #e6ebf2;background:#fff;border-radius:999px;padding:11px 16px;font-size:13.5px;font-weight:800;color:#4b5563;cursor:pointer;transition:all .16s cubic-bezier(.34,1.56,.64,1);font-family:inherit}
+.svw-chip:active{transform:scale(.92)}
+.svw-chip.sel{background:var(--brand-navy,#0a2960);color:#fff;border-color:var(--brand-navy,#0a2960);transform:translateY(-1px)}
+.svw-ta-wrap{position:relative}
+.svw-ta{width:100%;min-height:120px;padding:14px;border-radius:14px;border:1.5px solid #e0e6ee;font-size:15px;font-family:var(--jp);resize:vertical;color:#0a1628;background:#fafbfc}
+.svw-ta:focus{outline:none;border-color:#2c89e8;background:#fff;box-shadow:0 0 0 4px #e8f1fc}
+.svw-tac{position:absolute;right:12px;bottom:10px;font-size:11px;color:#9ca3af;font-weight:700;pointer-events:none}
+.svw-foot{padding:12px 20px;padding-bottom:max(12px,calc(env(safe-area-inset-bottom) + 6px));border-top:1px solid #eef1f5;display:flex;gap:10px;background:#fff}
+.svw-ghost{flex:none;border:1.5px solid #dce3ec;background:#fff;color:#4b5563;font-weight:800;font-size:14px;padding:13px 18px;border-radius:13px;cursor:pointer;font-family:inherit}
+.svw-next{flex:1;border:none;background:var(--brand-navy,#0a2960);color:#fff;font-weight:900;font-size:15px;padding:13px;border-radius:13px;cursor:pointer;font-family:inherit;box-shadow:0 12px 24px -10px rgba(10,41,96,.8);transition:opacity .2s}
+.svw-next.disabled{background:#c8d2df;box-shadow:none;cursor:not-allowed}
+.svw-celebrate{display:flex;flex-direction:column;align-items:center;justify-content:center;padding:44px 26px 52px;padding-bottom:max(52px,calc(env(safe-area-inset-bottom) + 40px));text-align:center;position:relative}
+.svw-lottie{width:140px;height:140px;margin-bottom:-6px;pointer-events:none}
+.svw-medal{width:108px;height:108px;margin-bottom:8px}
+.svw-medal circle.ring{fill:none;stroke:#d8eaff;stroke-width:7}
+.svw-medal circle.prog{fill:none;stroke:url(#svwmg);stroke-width:7;stroke-linecap:round;stroke-dasharray:295;stroke-dashoffset:295;transform:rotate(-90deg);transform-origin:center;animation:svwRing 1s cubic-bezier(.22,1,.36,1) .15s forwards}
+@keyframes svwRing{to{stroke-dashoffset:55}}
+.svw-medal path.tick{fill:none;stroke:#059669;stroke-width:9;stroke-linecap:round;stroke-linejoin:round;stroke-dasharray:60;stroke-dashoffset:60;animation:svwDraw2 .5s cubic-bezier(.22,1,.36,1) .55s forwards}
+@keyframes svwDraw2{to{stroke-dashoffset:0}}
+.svw-th{font-size:18px;font-weight:800;color:var(--brand-navy,#0a2960);margin:6px 0 4px}
+.svw-ths{font-size:13px;color:#6b7280}
+@media (prefers-reduced-motion: reduce){.svw-sheet,.svw-qcard,.svw-face,.svw-medal circle.prog,.svw-medal path.tick{animation:none!important}}
+`;
+
+// 絵文字スライダー (NPS / scale 共通)。表示は絵文字 + グラデトラック + ドラッグつまみ。
+function SurveyEmojiSlider({ isNps, min, max, value, faces, scaleFace, tt, onChange }) {
+  const lo = isNps ? 0 : (isNaN(Number(min)) ? 1 : Number(min));
+  const hi = isNps ? 10 : (isNaN(Number(max)) ? 5 : Number(max));
+  const span = (hi - lo) || 1;
+  const has = value != null;
+  const v = has ? value : Math.round((lo + hi) / 2);
+  const pct = ((v - lo) / span) * 100;
+  const face = has ? (isNps ? faces[v] : scaleFace(v, hi)) : '🙂';
+  const trackRef = React.useRef(null);
+  const [grab, setGrab] = React.useState(false);
+
+  function fromClientX(clientX) {
+    const el = trackRef.current; if (!el) return;
+    const r = el.getBoundingClientRect();
+    let p = (clientX - r.left) / r.width; p = Math.max(0, Math.min(1, p));
+    onChange(Math.round(lo + p * span));
+  }
+  React.useEffect(() => {
+    if (!grab) return;
+    const mv = (e) => fromClientX(e.touches ? e.touches[0].clientX : e.clientX);
+    const up = () => setGrab(false);
+    document.addEventListener('mousemove', mv);
+    document.addEventListener('mouseup', up);
+    document.addEventListener('touchmove', mv, { passive: true });
+    document.addEventListener('touchend', up);
+    return () => {
+      document.removeEventListener('mousemove', mv);
+      document.removeEventListener('mouseup', up);
+      document.removeEventListener('touchmove', mv);
+      document.removeEventListener('touchend', up);
+    };
+  }, [grab]);
+
+  return (
+    <div>
+      <div className="svw-face" key={String(v) + String(has)}>{face}</div>
+      <div className="svw-readout">{has ? v : <span style={{ color: '#9ca3af', fontWeight: 700 }}>{tt.pick}</span>}</div>
+      <div className="svw-slider" ref={trackRef}
+        onMouseDown={(e) => { setGrab(true); fromClientX(e.clientX); }}
+        onTouchStart={(e) => { setGrab(true); fromClientX(e.touches[0].clientX); }}>
+        <div className="svw-track" />
+        <div className="svw-track-fill" style={{ width: pct + '%', opacity: has ? 0.9 : 0 }} />
+        <div className={'svw-thumb' + (grab ? ' grab' : '')} style={{ left: pct + '%' }}>{has ? v : ''}</div>
+      </div>
+      <div className="svw-ends">
+        <span>{lo}・{isNps ? tt.npsLow : tt.scaleLow}</span>
+        <span>{isNps ? tt.npsHigh : tt.scaleHigh}・{hi}</span>
+      </div>
+    </div>
+  );
+}
 
 function SurveyAnswerModal({ survey, token, lang, onClose, onDone }) {
   const tt = SURVEY_T[lang] || SURVEY_T.ja;
   const questions = Array.isArray(survey.questions) ? survey.questions : [];
+  const total = questions.length;
+  const [step, setStep] = React.useState(0);
   const [answers, setAnswers] = React.useState({});
   const [submitting, setSubmitting] = React.useState(false);
   const [error, setError] = React.useState(null);
   const [done, setDone] = React.useState(false);
+  const [shakeKey, setShakeKey] = React.useState(0);
+  const lottieRef = React.useRef(null);
+  const swipeRef = React.useRef({ x: 0, y: 0, skip: false });
+
+  const NPS_FACES = ['😣', '😣', '😞', '😞', '😐', '😐', '🙂', '🙂', '😄', '😄', '🤩'];
+  function scaleFace(val, max) { const r = max ? val / max : 0; return r < .34 ? '😕' : r < .5 ? '😐' : r < .7 ? '🙂' : r < .9 ? '😄' : '🤩'; }
 
   function setVal(qid, value) { setAnswers(a => ({ ...a, [qid]: value })); }
   function toggleMulti(qid, opt) {
-    setAnswers(a => {
-      const cur = Array.isArray(a[qid]) ? a[qid] : [];
-      return { ...a, [qid]: cur.includes(opt) ? cur.filter(o => o !== opt) : [...cur, opt] };
+    setAnswers(a => { const cur = Array.isArray(a[qid]) ? a[qid] : []; return { ...a, [qid]: cur.includes(opt) ? cur.filter(o => o !== opt) : [...cur, opt] }; });
+  }
+
+  const q = questions[step];
+  function isAnswered(qq) {
+    if (!qq || !qq.required) return true;
+    const v = answers[qq.id];
+    return !(v == null || v === '' || (Array.isArray(v) && v.length === 0));
+  }
+  function labelOf(qq) { return (lang === 'easy' && qq.label_easy) || (lang === 'en' && qq.label_en) || qq.label; }
+  function optLabel(qq, opt, oi) { return (lang === 'easy' && qq.options_easy && qq.options_easy[oi]) || (lang === 'en' && qq.options_en && qq.options_en[oi]) || opt; }
+
+  function doShake() { setShakeKey(k => k + 1); }
+  function goNext() {
+    if (!isAnswered(q)) { setError(tt.errRequired); doShake(); return; }
+    setError(null);
+    if (step < total - 1) setStep(step + 1); else submit();
+  }
+  function goBack() { if (step > 0) { setError(null); setStep(step - 1); } }
+
+  // (任意演出) 送信完了時のみ Lottie を遅延読込して再生。失敗時は何もしない。
+  React.useEffect(() => {
+    if (!done) return;
+    let anim = null, cancelled = false;
+    try {
+      if (window.matchMedia && window.matchMedia('(prefers-reduced-motion: reduce)').matches) return;
+    } catch (e) {}
+    loadLottieLib_().then((lottie) => {
+      if (cancelled || !lottie || !lottieRef.current) return;
+      try {
+        anim = lottie.loadAnimation({ container: lottieRef.current, renderer: 'svg', loop: true, autoplay: true, animationData: SURVEY_LOTTIE_PLACEHOLDER });
+      } catch (e) {}
     });
+    return () => { cancelled = true; if (anim && anim.destroy) { try { anim.destroy(); } catch (e) {} } };
+  }, [done]);
+
+  // (横スワイプ送り) カードの空き領域を左右スワイプで前/次へ。スライダーや入力上では無効。
+  function onSwipeStart(e) {
+    const t = e.touches && e.touches[0]; if (!t) return;
+    const interactive = e.target && e.target.closest && e.target.closest('.svw-slider, textarea, input, button, a, .svw-opt, .svw-chip');
+    swipeRef.current = { x: t.clientX, y: t.clientY, skip: !!interactive };
+  }
+  function onSwipeEnd(e) {
+    const s = swipeRef.current; if (!s || s.skip) return;
+    const t = e.changedTouches && e.changedTouches[0]; if (!t) return;
+    const dx = t.clientX - s.x, dy = t.clientY - s.y;
+    if (Math.abs(dx) < 60 || Math.abs(dx) < Math.abs(dy) * 1.5) return; // 横方向の明確なスワイプのみ
+    if (dx < 0) goNext(); else goBack();
   }
 
   async function submit() {
-    for (const q of questions) {
-      if (!q.required) continue;
-      const v = answers[q.id];
-      const empty = v == null || v === '' || (Array.isArray(v) && v.length === 0);
-      if (empty) { setError(tt.errRequired); return; }
+    for (const qq of questions) {
+      if (!qq.required) continue;
+      const v = answers[qq.id];
+      if (v == null || v === '' || (Array.isArray(v) && v.length === 0)) {
+        setStep(questions.indexOf(qq)); setError(tt.errRequired); doShake(); return;
+      }
     }
     setSubmitting(true); setError(null);
     const payload = questions
-      .filter(q => answers[q.id] != null && answers[q.id] !== '' && !(Array.isArray(answers[q.id]) && answers[q.id].length === 0))
-      .map(q => ({ questionId: q.id, value: answers[q.id] }));
+      .filter(qq => answers[qq.id] != null && answers[qq.id] !== '' && !(Array.isArray(answers[qq.id]) && answers[qq.id].length === 0))
+      .map(qq => ({ questionId: qq.id, value: answers[qq.id] }));
     try {
       const res = await authApi.submitSurveyResponse(token, survey.surveyId, payload);
       if (res && (res.ok || res.responseId)) {
         setDone(true);
         if (onDone) onDone();
-        setTimeout(onClose, 1400);
+        setTimeout(onClose, 2200);
       } else {
         setError((res && res.error) || 'error');
         setSubmitting(false);
@@ -22552,99 +22787,91 @@ function SurveyAnswerModal({ survey, token, lang, onClose, onDone }) {
     }
   }
 
-  const numBtn = (active) => ({
-    minWidth: 38, height: 38, borderRadius: 8, cursor: 'pointer',
-    border: active ? '2px solid var(--brand-navy)' : '1px solid #d4dae3',
-    background: active ? 'var(--brand-navy)' : 'var(--paper)',
-    color: active ? 'var(--paper)' : 'var(--ink-2)', fontWeight: 700, fontSize: 14,
-  });
+  const ok = isAnswered(q);
+  const pct = total ? (step / total) * 100 : 0;
 
   return ReactDOM.createPortal(
-    <div onClick={onClose} style={{
-      position: 'fixed', inset: 0, zIndex: 2147483646,
-      background: 'rgba(10,22,40,0.6)', backdropFilter: 'blur(6px)', WebkitBackdropFilter: 'blur(6px)',
-      display: 'flex', alignItems: 'center', justifyContent: 'center', padding: 16,
-      fontFamily: 'var(--jp)',
-    }}>
-      <div onClick={e => e.stopPropagation()} style={{
-        background: 'var(--paper)', borderRadius: 16, width: 560, maxWidth: '100%', maxHeight: '88vh',
-        overflow: 'auto', boxShadow: '0 30px 80px -20px rgba(0,0,0,0.5)',
-      }}>
-        <div style={{ padding: '18px 22px', borderBottom: '1px solid #eef1f5', position: 'sticky', top: 0, background: 'var(--paper)' }}>
-          <div style={{ fontSize: 16, fontWeight: 800, color: 'var(--brand-navy)' }}>{getI18nField(survey, 'title', lang) || survey.title}</div>
-          {survey.eventTitle && <div style={{ fontSize: 12, color: 'var(--ink-4)', marginTop: 2 }}>{survey.eventTitle}</div>}
+    <div onClick={onClose} className="svw-scrim">
+      <style>{SURVEY_WIZARD_CSS}</style>
+      <div onClick={e => e.stopPropagation()} className="svw-sheet">
+        <div className="svw-head">
+          <div className="svw-titles">
+            <div className="svw-title">{getI18nField(survey, 'title', lang) || survey.title}</div>
+            {survey.eventTitle && <div className="svw-event">{survey.eventTitle}</div>}
+          </div>
+          <button className="svw-x" onClick={onClose} aria-label="close">×</button>
         </div>
 
         {done ? (
-          <div style={{ padding: '48px 24px', textAlign: 'center' }}>
+          <div className="svw-celebrate">
             <Confetti />
-            <div style={{ fontSize: 40, marginBottom: 10 }}>✓</div>
-            <div style={{ fontSize: 15, fontWeight: 700, color: 'var(--brand-navy)' }}>{tt.thanks}</div>
+            <div className="svw-lottie" ref={lottieRef} aria-hidden="true" />
+            <svg className="svw-medal" viewBox="0 0 120 120" aria-hidden="true">
+              <defs><linearGradient id="svwmg" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stopColor="#5ba8f5" /><stop offset="1" stopColor="#0a2960" /></linearGradient></defs>
+              <circle className="ring" cx="60" cy="60" r="47" />
+              <circle className="prog" cx="60" cy="60" r="47" />
+              <path className="tick" d="M40 62 l13 13 l27 -32" />
+            </svg>
+            <div className="svw-th">{tt.thanks}</div>
+            <div className="svw-ths">{tt.thanksSub}</div>
           </div>
+        ) : !q ? (
+          <div style={{ padding: 30, textAlign: 'center', color: 'var(--ink-4)' }}>—</div>
         ) : (
           <>
-            <div style={{ padding: '18px 22px', display: 'flex', flexDirection: 'column', gap: 22 }}>
-              {error && <div style={{ padding: 10, background: '#fef2f2', border: '1px solid #fecaca', borderRadius: 8, color: '#b91c1c', fontSize: 13 }}>{error}</div>}
-              {questions.map((q, i) => (
-                <div key={q.id || i}>
-                  <div style={{ fontSize: 14, fontWeight: 700, color: 'var(--ink-2)', marginBottom: 10 }}>
-                    {(lang === 'easy' && q.label_easy) || (lang === 'en' && q.label_en) || q.label}
-                    {q.required && <span style={{ color: '#ef4444', fontSize: 11, marginLeft: 6 }}>{tt.required}</span>}
-                  </div>
-
-                  {q.type === 'nps' && (
-                    <div style={{ display: 'flex', flexWrap: 'wrap', gap: 6 }}>
-                      {Array.from({ length: 11 }, (_, n) => (
-                        <button key={n} onClick={() => setVal(q.id, n)} style={numBtn(answers[q.id] === n)}>{n}</button>
-                      ))}
-                    </div>
-                  )}
-
-                  {q.type === 'scale' && (
-                    <div style={{ display: 'flex', flexWrap: 'wrap', gap: 6 }}>
-                      {(() => {
-                        const lo = Number(q.min), hi = Number(q.max);
-                        const arr = [];
-                        for (let n = lo; n <= hi; n++) arr.push(n);
-                        return arr.map(n => (
-                          <button key={n} onClick={() => setVal(q.id, n)} style={numBtn(answers[q.id] === n)}>{n}</button>
-                        ));
-                      })()}
-                    </div>
-                  )}
-
-                  {q.type === 'single' && (
-                    <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
-                      {(q.options || []).map((opt, oi) => (
-                        <label key={oi} style={{ display: 'flex', alignItems: 'center', gap: 10, cursor: 'pointer', fontSize: 14 }}>
-                          <input type="radio" name={q.id} checked={answers[q.id] === opt} onChange={() => setVal(q.id, opt)} />
-                          {opt}
-                        </label>
-                      ))}
-                    </div>
-                  )}
-
-                  {q.type === 'multi' && (
-                    <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
-                      {(q.options || []).map((opt, oi) => (
-                        <label key={oi} style={{ display: 'flex', alignItems: 'center', gap: 10, cursor: 'pointer', fontSize: 14 }}>
-                          <input type="checkbox" checked={Array.isArray(answers[q.id]) && answers[q.id].includes(opt)} onChange={() => toggleMulti(q.id, opt)} />
-                          {opt}
-                        </label>
-                      ))}
-                    </div>
-                  )}
-
-                  {q.type === 'text' && (
-                    <textarea value={answers[q.id] || ''} onChange={e => setVal(q.id, e.target.value)} placeholder={tt.placeholder}
-                      style={{ width: '100%', minHeight: 90, padding: 12, borderRadius: 8, border: '1px solid #d4dae3', fontSize: 14, fontFamily: 'var(--jp)', resize: 'vertical' }} />
-                  )}
-                </div>
-              ))}
+            <div className="svw-progress">
+              <div className="svw-pbar"><div className="svw-pfill" style={{ width: pct + '%' }} /></div>
+              <div className="svw-pmeta">
+                <span>{tt.q} {step + 1} {tt.of} {total}</span>
+                <div className="svw-pdots">{questions.map((_, i) => <i key={i} className={i === step ? 'on' : (i < step ? 'done' : '')} />)}</div>
+              </div>
             </div>
-            <div style={{ padding: '14px 22px', borderTop: '1px solid #eef1f5', display: 'flex', justifyContent: 'flex-end', gap: 10, position: 'sticky', bottom: 0, background: 'var(--paper)' }}>
-              <button onClick={onClose} disabled={submitting} style={{ padding: '10px 18px', borderRadius: 8, border: '1px solid #d4dae3', background: 'var(--paper)', cursor: 'pointer', fontWeight: 600 }}>{tt.close}</button>
-              <button onClick={submit} disabled={submitting} style={{ padding: '10px 22px', borderRadius: 8, border: 'none', background: 'var(--brand-navy)', color: 'var(--paper)', cursor: 'pointer', fontWeight: 700 }}>{submitting ? tt.sending : tt.submit}</button>
+
+            <div className="svw-qview" onTouchStart={onSwipeStart} onTouchEnd={onSwipeEnd}>
+              {error && <div className="svw-err">{error}</div>}
+              <div className="svw-qcard" key={step + '-' + shakeKey} data-shake={shakeKey ? '1' : '0'}>
+                <div className="svw-qlabel">{labelOf(q)}{q.required && <span className="svw-req">{tt.required}</span>}</div>
+
+                {(q.type === 'nps' || q.type === 'scale') && (
+                  <SurveyEmojiSlider key={q.id} isNps={q.type === 'nps'} min={q.min} max={q.max}
+                    value={answers[q.id]} faces={NPS_FACES} scaleFace={scaleFace} tt={tt}
+                    onChange={v => setVal(q.id, v)} />
+                )}
+
+                {q.type === 'single' && (
+                  <div className="svw-opts">
+                    {(q.options || []).map((opt, oi) => (
+                      <button key={oi} type="button" className={'svw-opt radio' + (answers[q.id] === opt ? ' sel' : '')} onClick={() => setVal(q.id, opt)}>
+                        <span className="svw-box"><svg viewBox="0 0 24 24"><path d="M5 12l4 4 10-11" /></svg></span>
+                        <span className="svw-otext">{optLabel(q, opt, oi)}</span>
+                      </button>
+                    ))}
+                  </div>
+                )}
+
+                {q.type === 'multi' && (
+                  <div className="svw-chips">
+                    {(q.options || []).map((opt, oi) => {
+                      const on = Array.isArray(answers[q.id]) && answers[q.id].includes(opt);
+                      return <button key={oi} type="button" className={'svw-chip' + (on ? ' sel' : '')} onClick={() => toggleMulti(q.id, opt)}>{optLabel(q, opt, oi)}</button>;
+                    })}
+                  </div>
+                )}
+
+                {q.type === 'text' && (
+                  <div className="svw-ta-wrap">
+                    <textarea className="svw-ta" value={answers[q.id] || ''} onChange={e => setVal(q.id, e.target.value)} placeholder={tt.placeholder} />
+                    <span className="svw-tac">{(answers[q.id] || '').length} {tt.chars}</span>
+                  </div>
+                )}
+              </div>
+            </div>
+
+            <div className="svw-foot">
+              {step > 0 && <button className="svw-ghost" onClick={goBack} disabled={submitting}>{tt.back}</button>}
+              <button className={'svw-next' + (ok ? '' : ' disabled')} onClick={goNext} disabled={submitting}>
+                {submitting ? tt.sending : (step === total - 1 ? tt.submit : tt.next)}
+              </button>
             </div>
           </>
         )}
@@ -22653,6 +22880,7 @@ function SurveyAnswerModal({ survey, token, lang, onClose, onDone }) {
     document.body
   );
 }
+
 
 function MySurveysSection({ token, lang }) {
   const tt = SURVEY_T[lang] || SURVEY_T.ja;
@@ -22952,18 +23180,29 @@ function PageMyPage({ lang, t, events }) {
   React.useEffect(() => {
     if (!auth.user) return;
     let intervalId = null;
+    let inFlight = false;
+    let lastVersion = null; // 直近に確認した版
     const intervalMs = qrOpenCount > 0 ? 2000 : 3000;
     const startPolling = () => {
       if (intervalId) return;
       intervalId = setInterval(async () => {
+        if (inFlight) return;
+        inFlight = true;
         try {
           const token = authStore.getToken();
           if (!token) return;
+          // (擬似プッシュ) まず軽量な版だけ確認。変化が無ければ本取得しない (負荷・遅延を最小化)。
+          const ver = await authApi.getRegVersion(token);
+          const v = ver && ver.version != null ? String(ver.version) : '';
+          if (lastVersion !== null && v === lastVersion) return; // 変化なし → 何もしない
+          lastVersion = v;
+          // 版が変わった (or 初回) → 最新を1回だけ本取得
           const fresh = await authApi.getMyRegistrations(token);
           if (fresh && Array.isArray(fresh.registrations)) {
             setMyRegistrations(fresh.registrations);
           }
-        } catch (e) { /* silent — ポーリング失敗時は次回再試行 */ }
+        } catch (e) { /* silent — 次回再試行 */ }
+        finally { inFlight = false; }
       }, intervalMs);
     };
     const stopPolling = () => {
@@ -24649,12 +24888,20 @@ function QRTicketModal({ registration, lang, onClose, isTodayQuick }) {
     setLiveStatus({ status: registration.status, paid: !!registration.paid, checkedIn: registration.status === 'チェックイン済' });
     const token = (typeof authStore !== 'undefined' && authStore.getToken) ? authStore.getToken() : null;
     if (!token) return;
-    let stop = false;
+    let stop = false, inFlight = false, lastVer = null;
+    // (擬似プッシュ) まず軽量な版だけ確認。変化が無ければ本取得しない。変化時のみ該当regの状態を1回取得。
     const poll = async () => {
+      if (inFlight) return;
+      inFlight = true;
       try {
+        const ver = await authApi.getRegVersion(token);
+        const v = ver && ver.version != null ? String(ver.version) : '';
+        if (lastVer !== null && v === lastVer) return; // 変化なし → 本取得しない
+        lastVer = v;
         const res = await authApi.getRegStatus(token, registration.regId);
         if (!stop && res && res.found) setLiveStatus({ status: res.status, paid: !!res.paid, checkedIn: !!res.checkedIn });
       } catch (e) {}
+      finally { inFlight = false; }
     };
     poll();
     const id = setInterval(poll, 2500);
@@ -28417,6 +28664,384 @@ function PageTransition({ routeKey, children }) {
   return children;
 }
 
+// (クイックアクセス) 本日イベントがあり未チェックインのとき、画面右下に QR ショートカットを常時表示。
+//   版gate で軽量に追従し、 チェックインすると自動的に消える / 新しい当日申込で出る。
+function QrQuickFab({ lang }) {
+  const auth = useAuth();
+  const [reg, setReg] = React.useState(null);
+  const [open, setOpen] = React.useState(false);
+
+  React.useEffect(() => {
+    if (!auth || !auth.user) { setReg(null); return; }
+    let cancelled = false, inFlight = false, lastVer = null;
+    const compute = (result) => {
+      if (!result) return null;
+      const ts = new Date().toISOString().slice(0, 10);
+      // 未チェックインの有効申込のみ (チェックイン済は除外)
+      const regs = (result.registrations || []).filter(r => r.event && (r.status === '申込済み' || r.status === '決済済み' || r.status === '確定' || r.status === 'チェックイン保留'));
+      const today = regs.find(r => (r.sessionDate || r.event.date) === ts);
+      if (today) return today;
+      if (isPreviewUser() && regs.length) return regs[0]; // テスターは当日でなくても確認可
+      return null;
+    };
+    const load = async (force) => {
+      const token = authStore.getToken(); if (!token) return;
+      try {
+        const result = await getMyRegistrationsCached(token, { forceRefresh: !!force, onFresh: (fresh) => { if (!cancelled) setReg(compute(fresh)); } });
+        if (!cancelled) setReg(compute(result));
+      } catch (e) {}
+    };
+    load(false);
+    // (擬似プッシュ) 版が変わった時だけ最新化 → チェックインで自動的に消える / 新規当日申込で出る
+    const tick = async () => {
+      if (inFlight || document.hidden) return;
+      inFlight = true;
+      try {
+        const token = authStore.getToken(); if (!token) return;
+        const ver = await authApi.getRegVersion(token);
+        const v = ver && ver.version != null ? String(ver.version) : '';
+        if (lastVer !== null && v === lastVer) return;
+        lastVer = v;
+        await load(true);
+      } catch (e) {} finally { inFlight = false; }
+    };
+    const id = setInterval(tick, 5000);
+    const onVis = () => { if (!document.hidden) tick(); };
+    document.addEventListener('visibilitychange', onVis);
+    return () => { cancelled = true; clearInterval(id); document.removeEventListener('visibilitychange', onVis); };
+  }, [auth && auth.user]);
+
+  if (!auth || !auth.user || !reg) return null;
+  if (reg.status === 'チェックイン済') return null; // 念のため二重ガード
+
+  const label = lang === 'en' ? 'Ticket' : lang === 'easy' ? 'チケット' : 'QRチケット';
+  return (
+    <>
+      <button onClick={() => setOpen(true)} aria-label={label} title={label} style={{
+        position: 'fixed', right: 16, bottom: 'calc(72px + env(safe-area-inset-bottom, 0px))', zIndex: 90,
+        display: 'inline-flex', alignItems: 'center', gap: 8, padding: '12px 16px',
+        background: 'linear-gradient(135deg, #16a34a 0%, #15803d 100%)', color: '#fff',
+        border: 'none', borderRadius: 999, fontFamily: 'var(--jp)', fontWeight: 800, fontSize: 13, cursor: 'pointer',
+        boxShadow: '0 10px 26px -8px rgba(22,163,74,0.6), 0 2px 6px rgba(0,0,0,0.15)', letterSpacing: '0.03em',
+      }}>
+        <PIcon.QRCode size={18} color="#ffffff" />
+        <span>{label}</span>
+      </button>
+      {open && <QRTicketModal registration={reg} lang={lang} onClose={() => setOpen(false)} isTodayQuick={true} />}
+    </>
+  );
+}
+
+// (初回導線) 1セッション中に案内を表示したか (自動表示と登録時トリガの二重表示を防ぐ)
+let __notifOnbShown = false;
+// (初回導線) プッシュ通知の事前案内＋機種別ホーム画面追加ガイド (3言語: ja/en/easy)
+const NOTIF_ONB_T = {
+  ja: {
+    enable_title: '通知をオンにしますか',
+    enable_body: 'イベントの開始リマインドや、当日の受付・キャンセル待ちの空き連絡をお届けします。',
+    enable_cta: '通知を受け取る',
+    later: 'あとで',
+    howto_home: 'ホーム画面に追加する方法',
+    ios_title: 'iPhoneで通知を受け取るには',
+    ios_body: 'iPhoneでは、ホーム画面に追加したアプリからのみ通知を受け取れます。次の手順で追加してください。',
+    ios_steps: ['画面下の共有ボタン（□に↑）を押す', '「ホーム画面に追加」を選ぶ', '追加されたアイコンから開き直す'],
+    ios_note: '開き直すと、ここで通知をオンにできます。',
+    android_steps: ['ブラウザ右上のメニュー（点3つ）を押す', '「ホーム画面に追加」または「アプリをインストール」を選ぶ', '追加されたアイコンから開く'],
+    guide_title: 'ホーム画面に追加する手順',
+    back: '戻る',
+    close: '閉じる',
+    denied_title: '通知がオフになっています',
+    denied_body_ios: 'iPhoneの「設定」→ このアプリ → 通知 から有効にできます。',
+    denied_body_android: '端末の「設定」→ アプリ → このアプリ → 通知 から有効にできます。',
+    denied_body_other: 'ブラウザのサイト設定から、通知を「許可」に変更できます。',
+    thanks_title: '通知をオンにしました',
+    thanks_body: '大切なお知らせをお届けします。設定からいつでも変更できます。',
+    done: '完了',
+    busy: '設定中…',
+    err_unsupported: 'この端末・ブラウザは通知に対応していません。',
+    err_generic: '設定に失敗しました。少し待って再度お試しください。',
+    test_title: 'テスト通知を送信しました',
+    test_body: 'まもなく通知が届きます。届いた通知をタップすると、マイページが開きます。',
+    test_hint: '届かない場合は、端末の通知設定をご確認ください。',
+  },
+  en: {
+    enable_title: 'Turn on notifications?',
+    enable_body: 'Get event start reminders and updates about check-in and waitlist openings on the day.',
+    enable_cta: 'Turn on notifications',
+    later: 'Later',
+    howto_home: 'How to add to Home Screen',
+    ios_title: 'To get notifications on iPhone',
+    ios_body: 'On iPhone, notifications work only from an app added to your Home Screen. Add it with these steps.',
+    ios_steps: ['Tap the Share button (square with ↑) at the bottom', 'Choose "Add to Home Screen"', 'Reopen from the new icon'],
+    ios_note: 'After reopening, you can turn on notifications here.',
+    android_steps: ['Tap the menu (three dots) at the top right', 'Choose "Add to Home screen" or "Install app"', 'Open from the new icon'],
+    guide_title: 'Add to Home Screen',
+    back: 'Back',
+    close: 'Close',
+    denied_title: 'Notifications are off',
+    denied_body_ios: 'Enable them in Settings → this app → Notifications.',
+    denied_body_android: 'Enable them in Settings → Apps → this app → Notifications.',
+    denied_body_other: 'Allow notifications in your browser site settings.',
+    thanks_title: 'Notifications are on',
+    thanks_body: 'We will send important updates. You can change this anytime in settings.',
+    done: 'Done',
+    busy: 'Setting up…',
+    err_unsupported: 'This device or browser does not support notifications.',
+    err_generic: 'Setup failed. Please wait a moment and try again.',
+    test_title: 'Test notification sent',
+    test_body: 'A notification will arrive shortly. Tap it to open My Page.',
+    test_hint: 'If it does not arrive, check your device notification settings.',
+  },
+  easy: {
+    enable_title: 'お知らせを うけとりますか？',
+    enable_body: 'イベントの 時間や、受付・空きの れんらくを おしらせします。',
+    enable_cta: 'お知らせを うけとる',
+    later: 'あとで',
+    howto_home: 'ホームに ついかする ほうほう',
+    ios_title: 'iPhoneで お知らせを うけとるには',
+    ios_body: 'iPhoneは、ホームに ついかした アプリだけ お知らせが きます。下の てじゅんで ついかして ください。',
+    ios_steps: ['下の 共有ボタン（□に↑）を おす', '「ホーム画面に追加」を えらぶ', 'ついかした アイコンから ひらきなおす'],
+    ios_note: 'ひらきなおすと、ここで お知らせを オンに できます。',
+    android_steps: ['みぎ上の メニュー（てん3つ）を おす', '「ホーム画面に追加」を えらぶ', 'ついかした アイコンから ひらく'],
+    guide_title: 'ホームに ついかする てじゅん',
+    back: 'もどる',
+    close: 'とじる',
+    denied_title: 'お知らせが オフです',
+    denied_body_ios: '「設定」→ このアプリ → 通知 で オンに できます。',
+    denied_body_android: '「設定」→ アプリ → このアプリ → 通知 で オンに できます。',
+    denied_body_other: 'ブラウザの 設定で、お知らせを「許可」に します。',
+    thanks_title: 'お知らせを オンに しました',
+    thanks_body: '大切な おしらせを おくります。設定で いつでも かえられます。',
+    done: 'かんりょう',
+    busy: 'せってい中…',
+    err_unsupported: 'この 端末では お知らせが つかえません。',
+    err_generic: 'せっていに しっぱいしました。あとで もう一度 ためして ください。',
+    test_title: 'テスト通知を おくりました',
+    test_body: 'もうすぐ お知らせが きます。タップすると マイページが ひらきます。',
+    test_hint: 'こない ときは、端末の 通知せっていを みて ください。',
+  },
+};
+
+function NotifOnboarding({ lang }) {
+  const auth = (typeof useAuth === 'function') ? useAuth() : { user: null };
+  const L = NOTIF_ONB_T[lang] || NOTIF_ONB_T.ja;
+  const [view, setView] = React.useState(null);     // null|enable|ios_install|guide|denied|thanks
+  const [visible, setVisible] = React.useState(false);
+  const [busy, setBusy] = React.useState(false);
+  const [err, setErr] = React.useState('');
+
+  const ua = (typeof navigator !== 'undefined' && navigator.userAgent) || '';
+  const isIOS = /iphone|ipad|ipod/i.test(ua) || (typeof navigator !== 'undefined' && navigator.platform === 'MacIntel' && (navigator.maxTouchPoints || 0) > 1);
+  const isStandalone = (typeof window !== 'undefined' && window.matchMedia && window.matchMedia('(display-mode: standalone)').matches) || (typeof navigator !== 'undefined' && navigator.standalone === true);
+  const pushSupported = (typeof window !== 'undefined') && ('Notification' in window) && ('serviceWorker' in navigator) && ('PushManager' in window);
+
+  function decideView() {
+    if (typeof window === 'undefined' || !('Notification' in window)) return null;
+    const perm = Notification.permission;
+    if (perm === 'granted') return null;             // 既に許可済み (購読は設定から)
+    if (isIOS && !isStandalone) return 'ios_install'; // Safariタブ → まずホーム画面へ (純正許可は出せない)
+    if (perm === 'denied') return 'denied';           // 端末設定からのみ有効化可能
+    if (pushSupported) return 'enable';               // 純正ダイアログを出せる
+    if (isIOS) return 'ios_install';
+    return null;
+  }
+
+  // 表示確定時の共通処理: セッションガード + インストールバナーへ通知 (重複表示の抑制)
+  function markShown() {
+    __notifOnbShown = true;
+    try { window.dispatchEvent(new Event('cca:notifOnbShown')); } catch (e) {}
+  }
+
+  React.useEffect(() => {
+    if (!(auth && auth.user)) return;                 // ログイン後のみ自動表示
+    let closed = 'no';
+    try { closed = localStorage.getItem('connecta_notif_onboard_v1') || 'no'; } catch (e) {}
+    if (closed === 'done' || closed === 'dismissed') return;
+    const t = setTimeout(() => {
+      if (__notifOnbShown) return;                    // 登録時トリガ等と二重表示しない
+      const v = decideView();
+      if (!v) return;
+      markShown();
+      setView(v); requestAnimationFrame(() => setVisible(true));
+    }, 2600); // 起動演出の後に
+    return () => clearTimeout(t);
+  }, [auth && auth.user]);
+
+  // (登録時トリガ) 会員登録・イベント申込の完了から呼ぶ。 永続フラグで「一度きり」。 done(有効化済み)なら出さない。
+  const triggerShow = React.useCallback(() => {
+    if (__notifOnbShown) return;
+    let st = 'no', trig = 'no';
+    try {
+      st = localStorage.getItem('connecta_notif_onboard_v1') || 'no';
+      trig = localStorage.getItem('connecta_notif_onboard_trigfired') || 'no';
+    } catch (e) {}
+    if (st === 'done') return;                         // 既に有効化済み
+    if (trig === 'yes') return;                        // 登録時案内は一度きり(永続)
+    const v = decideView();
+    if (!v) return;                                    // 許可済み/非対応など
+    try { localStorage.setItem('connecta_notif_onboard_trigfired', 'yes'); } catch (e) {} // 二度と登録時には出さない
+    markShown();
+    setView(v); requestAnimationFrame(() => setVisible(true));
+  }, []);
+  React.useEffect(() => {
+    window.__triggerNotifOnboarding = triggerShow;
+    return () => { if (window.__triggerNotifOnboarding === triggerShow) window.__triggerNotifOnboarding = null; };
+  }, [triggerShow]);
+
+  function persist(val) { try { localStorage.setItem('connecta_notif_onboard_v1', val); } catch (e) {} }
+  function close(markDismissed) {
+    setVisible(false);
+    if (markDismissed) persist('dismissed');
+    setTimeout(() => { setView(null); setErr(''); }, 260);
+  }
+  async function doEnable() {
+    setBusy(true); setErr('');
+    try {
+      await enablePushNotifications(lang);
+      persist('done');
+      // (初回のみ) テストプッシュを送って動作確認 → 届いた通知をタップすると該当リンクへ
+      let testFirst = true;
+      try { testFirst = localStorage.getItem('connecta_push_test_done') !== 'yes'; } catch (e) {}
+      if (testFirst) {
+        try {
+          const token = (typeof authStore !== 'undefined') ? authStore.getToken() : null;
+          if (token) await authApi.sendTestPush(token, lang, '#/mypage?pushok=1'); // タップ→歓迎表示→マイページ
+          try { localStorage.setItem('connecta_push_test_done', 'yes'); } catch (e) {}
+        } catch (e) { testFirst = false; } // 送信失敗でも許可自体は成功 → 通常完了表示
+      }
+      if (testFirst) { setView('test_sent'); setTimeout(() => close(false), 5000); }
+      else { setView('thanks'); setTimeout(() => close(false), 1900); }
+    } catch (e) {
+      const msg = (e && e.message) || '';
+      if (msg === 'denied' || (typeof Notification !== 'undefined' && Notification.permission === 'denied')) setView('denied');
+      else if (msg === 'unsupported' || msg === 'not_configured' || msg === 'sw_unavailable' || msg === 'sw_timeout') setErr(L.err_unsupported);
+      else setErr(L.err_generic);
+    } finally { setBusy(false); }
+  }
+
+  if (!view) return null;
+  const steps = isIOS ? L.ios_steps : L.android_steps;
+  const deniedBody = isIOS ? L.denied_body_ios : (/android/i.test(ua) ? L.denied_body_android : L.denied_body_other);
+  const navy = '#0a2960';
+  const stepRow = (s, i) => (
+    <div key={i} style={{display:'flex',alignItems:'flex-start',gap:10}}>
+      <div style={{flex:'0 0 24px',width:24,height:24,borderRadius:'50%',background:navy,color:'#fff',fontSize:13,fontWeight:700,display:'flex',alignItems:'center',justifyContent:'center'}}>{i + 1}</div>
+      <div style={{fontSize:13.5,color:'#2a3050',lineHeight:1.5,paddingTop:2}}>{s}</div>
+    </div>
+  );
+  const primaryBtn = (label, onClick, extra) => (
+    <button onClick={onClick} disabled={busy} style={Object.assign({width:'100%',marginTop:16,padding:'14px',borderRadius:12,border:'none',background:navy,color:'#fff',fontSize:15,fontWeight:700,cursor:'pointer',opacity:busy?0.6:1}, extra || {})}>{label}</button>
+  );
+
+  const sheet = (
+    <div onClick={() => close(true)} style={{position:'fixed',inset:0,zIndex:9000,background:'rgba(10,16,30,0.45)',display:'flex',alignItems:'flex-end',justifyContent:'center',opacity:visible?1:0,transition:'opacity .25s ease'}}>
+      <div onClick={e => e.stopPropagation()} style={{width:'100%',maxWidth:480,background:'#fff',borderTopLeftRadius:20,borderTopRightRadius:20,boxShadow:'0 -8px 40px rgba(0,0,0,0.2)',padding:'10px 20px max(20px, env(safe-area-inset-bottom)) 20px',transform:visible?'translateY(0)':'translateY(100%)',transition:'transform .28s cubic-bezier(.2,.8,.2,1)'}}>
+        <div style={{width:40,height:4,borderRadius:2,background:'#d7dbe3',margin:'4px auto 14px'}}></div>
+
+        {view === 'enable' && (<>
+          <div style={{fontSize:34,textAlign:'center',marginBottom:8}}>🔔</div>
+          <div style={{fontSize:18,fontWeight:800,color:navy,textAlign:'center'}}>{L.enable_title}</div>
+          <div style={{fontSize:13.5,color:'#48506a',textAlign:'center',marginTop:8,lineHeight:1.6}}>{L.enable_body}</div>
+          {err && <div style={{fontSize:12,color:'#c0392b',textAlign:'center',marginTop:10}}>{err}</div>}
+          {primaryBtn(busy ? L.busy : L.enable_cta, doEnable)}
+          <button onClick={() => close(true)} style={{width:'100%',marginTop:8,padding:'10px',borderRadius:12,border:'none',background:'transparent',color:'#6b7390',fontSize:14,cursor:'pointer'}}>{L.later}</button>
+          {!isStandalone && <div style={{textAlign:'center',marginTop:4}}><span onClick={() => setView('guide')} style={{fontSize:12.5,color:navy,textDecoration:'underline',cursor:'pointer'}}>{L.howto_home}</span></div>}
+        </>)}
+
+        {view === 'ios_install' && (<>
+          <div style={{fontSize:34,textAlign:'center',marginBottom:8}}>📲</div>
+          <div style={{fontSize:18,fontWeight:800,color:navy,textAlign:'center'}}>{L.ios_title}</div>
+          <div style={{fontSize:13.5,color:'#48506a',textAlign:'center',marginTop:8,lineHeight:1.6}}>{L.ios_body}</div>
+          <div style={{marginTop:14,display:'flex',flexDirection:'column',gap:10}}>{L.ios_steps.map(stepRow)}</div>
+          <div style={{fontSize:12.5,color:'#48506a',textAlign:'center',marginTop:14,background:'#f3f5fa',borderRadius:10,padding:'10px 12px'}}>{L.ios_note}</div>
+          {primaryBtn(L.close, () => close(true), {padding:'13px'})}
+        </>)}
+
+        {view === 'guide' && (<>
+          <div style={{fontSize:18,fontWeight:800,color:navy,textAlign:'center'}}>{L.guide_title}</div>
+          <div style={{marginTop:14,display:'flex',flexDirection:'column',gap:10}}>{steps.map(stepRow)}</div>
+          <button onClick={() => setView('enable')} style={{width:'100%',marginTop:16,padding:'13px',borderRadius:12,border:'1px solid ' + navy,background:'#fff',color:navy,fontSize:14,fontWeight:700,cursor:'pointer'}}>{L.back}</button>
+        </>)}
+
+        {view === 'denied' && (<>
+          <div style={{fontSize:34,textAlign:'center',marginBottom:8}}>🔕</div>
+          <div style={{fontSize:18,fontWeight:800,color:navy,textAlign:'center'}}>{L.denied_title}</div>
+          <div style={{fontSize:13.5,color:'#48506a',textAlign:'center',marginTop:8,lineHeight:1.6}}>{deniedBody}</div>
+          {primaryBtn(L.close, () => close(true), {padding:'13px'})}
+        </>)}
+
+        {view === 'test_sent' && (<>
+          <div style={{fontSize:38,textAlign:'center',marginBottom:8}}>📨</div>
+          <div style={{fontSize:18,fontWeight:800,color:navy,textAlign:'center'}}>{L.test_title}</div>
+          <div style={{fontSize:13.5,color:'#48506a',textAlign:'center',marginTop:8,lineHeight:1.6}}>{L.test_body}</div>
+          <div style={{fontSize:12,color:'#8a90a6',textAlign:'center',marginTop:10}}>{L.test_hint}</div>
+          {primaryBtn(L.close, () => close(false), {padding:'13px'})}
+        </>)}
+
+        {view === 'thanks' && (<>
+          <div style={{fontSize:38,textAlign:'center',marginBottom:8}}>✅</div>
+          <div style={{fontSize:18,fontWeight:800,color:navy,textAlign:'center'}}>{L.thanks_title}</div>
+          <div style={{fontSize:13.5,color:'#48506a',textAlign:'center',marginTop:8,lineHeight:1.6}}>{L.thanks_body}</div>
+          {primaryBtn(L.done, () => close(false), {padding:'13px'})}
+        </>)}
+      </div>
+    </div>
+  );
+  return ReactDOM.createPortal(sheet, document.body);
+}
+window.NotifOnboarding = NotifOnboarding;
+
+// (初回導線) テスト通知タップ後の歓迎表示 → 約5秒後にマイページへ (3言語)
+const PUSH_WELCOME_T = {
+  ja:   { title: '通知をオンにしました', body: '次のイベントの情報やニュースをお知らせします！', sub: 'まもなくマイページへ移動します', skip: 'タップして続ける' },
+  en:   { title: 'Notifications are on', body: 'We will send you news and info about upcoming events!', sub: 'Taking you to My Page…', skip: 'Tap to continue' },
+  easy: { title: 'お知らせを オンに しました', body: 'つぎの イベントや ニュースを おしらせします！', sub: 'もうすぐ マイページへ いきます', skip: 'タップして つづける' },
+};
+
+function PushWelcomeOverlay({ lang }) {
+  const L = PUSH_WELCOME_T[lang] || PUSH_WELCOME_T.ja;
+  const [visible, setVisible] = React.useState(false);
+  const timerRef = React.useRef(null);
+
+  const finish = React.useCallback(() => {
+    if (timerRef.current) { clearTimeout(timerRef.current); timerRef.current = null; }
+    setVisible(false);
+    try { window.location.hash = '/mypage'; } catch (e) {} // 目印を外してマイページへ
+  }, []);
+
+  React.useEffect(() => {
+    function check() {
+      let has = false;
+      try {
+        const q = window.location.hash.split('?')[1] || '';
+        has = new URLSearchParams(q).get('pushok') === '1';
+      } catch (e) {}
+      if (has) {
+        setVisible(true);
+        if (timerRef.current) clearTimeout(timerRef.current);
+        timerRef.current = setTimeout(finish, 5000); // 約5秒表示
+      }
+    }
+    check();
+    window.addEventListener('hashchange', check);
+    return () => { window.removeEventListener('hashchange', check); if (timerRef.current) clearTimeout(timerRef.current); };
+  }, [finish]);
+
+  if (!visible) return null;
+  const navy = '#0a2960';
+  return ReactDOM.createPortal(
+    <div onClick={finish} style={{position:'fixed',inset:0,zIndex:9500,background:navy,color:'#fff',display:'flex',flexDirection:'column',alignItems:'center',justifyContent:'center',padding:'32px',textAlign:'center'}}>
+      <div style={{fontSize:54,marginBottom:18}}>🔔</div>
+      <div style={{fontSize:15,fontWeight:700,opacity:0.85,marginBottom:10}}>{L.title}</div>
+      <div style={{fontSize:22,fontWeight:800,lineHeight:1.55,maxWidth:420}}>{L.body}</div>
+      <div style={{fontSize:13,opacity:0.7,marginTop:18}}>{L.sub}</div>
+      <div style={{fontSize:12,opacity:0.5,marginTop:28}}>{L.skip}</div>
+    </div>,
+    document.body
+  );
+}
+window.PushWelcomeOverlay = PushWelcomeOverlay;
+
 function App() {
   const [lang, setLang] = useLang();
   const route = useRoute();
@@ -28722,10 +29347,16 @@ function App() {
       <BottomNav lang={lang} t={t} currentRoute={route}
                  menuOpen={globalMenuOpen}
                  onMenuOpen={() => setGlobalMenuOpen(true)} />
+      {/* (クイックアクセス) 本日イベント未チェックイン時の QR ショートカット (右下固定) */}
+      <QrQuickFab lang={lang} />
       {/* (L10) Cookie同意バナー */}
       <CookieConsent lang={lang} />
       {/* (Phase 15.S28) PWA インストール誘導バナー — beforeinstallprompt をキャッチ */}
       <PWAInstallBanner lang={lang} />
+      {/* (初回導線) プッシュ通知の事前案内＋機種別ホーム画面追加ガイド */}
+      <NotifOnboarding lang={lang} />
+      {/* (初回導線) テスト通知タップ後の歓迎表示 → マイページ */}
+      <PushWelcomeOverlay lang={lang} />
       {/* オープニング画面 (上下カーテン)。最後に描画 = 一番手前 */}
       {openingPhase !== 'gone' && (
         <OpeningCurtain phase={openingPhase} settings={siteSettings} lang={lang} />
@@ -28754,16 +29385,20 @@ function PWAInstallBanner({ lang }) {
     const handler = (e) => {
       e.preventDefault();
       setDeferredPrompt(e);
-      // 8 秒後に表示 (即座にだとうるさい)
-      setTimeout(() => setShow(true), 8000);
+      // 8 秒後に表示 (即座にだとうるさい)。 ただし通知オンボーディングが出ていれば出さない (重複制御)
+      setTimeout(() => { if (__notifOnbShown) return; setShow(true); }, 8000);
     };
     window.addEventListener('beforeinstallprompt', handler);
     // インストール完了時に閉じる
     const installedHandler = () => { setShow(false); setDeferredPrompt(null); };
     window.addEventListener('appinstalled', installedHandler);
+    // (重複制御) 通知オンボーディングが表示されたらインストールバナーは引っ込める
+    const onbHandler = () => setShow(false);
+    window.addEventListener('cca:notifOnbShown', onbHandler);
     return () => {
       window.removeEventListener('beforeinstallprompt', handler);
       window.removeEventListener('appinstalled', installedHandler);
+      window.removeEventListener('cca:notifOnbShown', onbHandler);
     };
   }, [dismissed]);
 
