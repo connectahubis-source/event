@@ -1501,7 +1501,7 @@ button:hover .cta-arrow {
 
 <!-- (Phase 17.S-fix) ローディング デバッグ補助 — 8秒で fallback メッセージ更新 + 進捗ログ -->
 <script>
-  try { window.__APP_BUILD = '2026-06-07 P3o'; } catch (e) {}
+  try { window.__APP_BUILD = '2026-06-08 P3p'; } catch (e) {}
   console.log('[Phase 17.S-fix] Boot sequence started:', new Date().toISOString());
   setTimeout(function() {
     var fallback = document.getElementById('fallback');
@@ -23325,6 +23325,41 @@ function PageMyPage({ lang, t, events }) {
     })();
     return () => { cancelled = true; };
   }, [auth.user]);
+
+  // (ディープリンク) #/mypage?memento=<sessionId> で該当の参加記念モーダルを自動で開く
+  //   = 記念写真公開プッシュ / お知らせの「記念写真を見る」を押した状態で着地させる
+  //   サーベイの #/mypage?survey= と同じ作法。 reg が未到着なら ref に保留し、 到着時に開く。
+  const pendingMementoRef = React.useRef(null);
+  const openMementoFromHash = React.useCallback(() => {
+    try {
+      const h = window.location.hash || '';
+      const qi = h.indexOf('?');
+      if (qi < 0) return;
+      const sid = new URLSearchParams(h.substring(qi + 1)).get('memento');
+      if (!sid) return;
+      pendingMementoRef.current = String(sid);
+      // 再オープン防止のためパラメータを除去 (実際のオープンは reg 到着後の effect で行う)
+      try { history.replaceState(null, '', h.substring(0, qi)); } catch (e) { window.location.hash = h.substring(0, qi); }
+    } catch (e) {}
+  }, []);
+  React.useEffect(() => { openMementoFromHash(); }, [openMementoFromHash]);
+  React.useEffect(() => {
+    const fn = () => openMementoFromHash();
+    window.addEventListener('hashchange', fn);
+    return () => window.removeEventListener('hashchange', fn);
+  }, [openMementoFromHash]);
+  // reg 到着 / 更新時に、 保留中の memento があれば開く (公開直後のキャッシュ未反映でも背景更新で開く)
+  React.useEffect(() => {
+    const sid = pendingMementoRef.current;
+    if (!sid || mementoReg) return;
+    const match = (myRegistrations || []).find(function(r) {
+      return r && r.event && String(r.sessionId) === sid && r.status !== 'キャンセル';
+    });
+    if (match) {
+      pendingMementoRef.current = null;
+      setMementoReg(match);
+    }
+  }, [myRegistrations, mementoReg]);
 
   // キャンセル処理 (マイページから)
   const handleCancel = async (reg) => {
