@@ -1501,7 +1501,7 @@ button:hover .cta-arrow {
 
 <!-- (Phase 17.S-fix) ローディング デバッグ補助 — 8秒で fallback メッセージ更新 + 進捗ログ -->
 <script>
-  try { window.__APP_BUILD = '2026-06-07 P3m'; } catch (e) {}
+  try { window.__APP_BUILD = '2026-06-07 P3o'; } catch (e) {}
   console.log('[Phase 17.S-fix] Boot sequence started:', new Date().toISOString());
   setTimeout(function() {
     var fallback = document.getElementById('fallback');
@@ -4332,6 +4332,23 @@ function NotificationBell({ lang }) {
                 {lang === 'en' ? '✓ Push notifications on' : '✓ プッシュ通知 オン'}
               </div>
             )}
+            {pushState !== 'on' && (() => {
+              // iPhone の Safari タブでは通知を有効化できない。 先にホーム画面へ追加する図解ガイドへ誘導。
+              const _ua = (typeof navigator !== 'undefined' && navigator.userAgent) || '';
+              const _isIOS = /iphone|ipad|ipod/i.test(_ua) || (typeof navigator !== 'undefined' && navigator.platform === 'MacIntel' && (navigator.maxTouchPoints || 0) > 1);
+              const _standalone = (typeof window !== 'undefined' && window.matchMedia && window.matchMedia('(display-mode: standalone)').matches) || (typeof navigator !== 'undefined' && navigator.standalone === true);
+              if (!(_isIOS && !_standalone)) return null;
+              return (
+                <div style={{ padding: '10px 12px', borderBottom: '1px solid #eef2f7' }}>
+                  <div style={{ fontFamily: 'var(--jp)', fontSize: 11.5, color: '#48506a', lineHeight: 1.5, marginBottom: 8 }}>
+                    {lang === 'en' ? 'On iPhone, add this app to your Home Screen first to receive notifications.' : lang === 'easy' ? 'iPhoneは、まず ホームに ついかすると お知らせを うけとれます。' : 'iPhoneは、先にホーム画面に追加すると通知を受け取れます。'}
+                  </div>
+                  <button onClick={() => { setOpen(false); if (window.__openHomeScreenGuide) window.__openHomeScreenGuide(); }} style={{ width: '100%', padding: '10px 12px', borderRadius: 10, border: '1px solid #d6e6fb', background: '#fff', color: '#0a2960', fontFamily: 'var(--jp)', fontWeight: 800, fontSize: 12.5, cursor: 'pointer' }}>
+                    {lang === 'en' ? '📱 How to add to Home Screen' : lang === 'easy' ? '📱 ホームに ついかする ほうほう' : '📱 ホーム画面に追加する方法'}
+                  </button>
+                </div>
+              );
+            })()}
             {!loaded && <div style={{ padding: 20, textAlign: 'center', color: '#9ca3af', fontSize: 13 }}>...</div>}
             {loaded && items.length === 0 && (
               <div style={{ padding: '24px 16px', textAlign: 'center', color: '#9ca3af', fontSize: 13, fontFamily: 'var(--jp)' }}>
@@ -29268,6 +29285,16 @@ function NotifOnboarding({ lang }) {
     return () => { if (window.__triggerNotifOnboarding === triggerShow) window.__triggerNotifOnboarding = null; };
   }, [triggerShow]);
 
+  // (オンデマンド) 設定や通知センターから、 ガイドを直接開く。 表示ガード(一度きり)に関係なく開く。
+  React.useEffect(() => {
+    window.__openHomeScreenGuide = function() {
+      markShown();
+      setView(isIOS ? 'ios_install' : 'guide');
+      requestAnimationFrame(() => setVisible(true));
+    };
+    return () => { if (window.__openHomeScreenGuide) window.__openHomeScreenGuide = null; };
+  }, [isIOS]);
+
   function persist(val) { try { localStorage.setItem('connecta_notif_onboard_v1', val); } catch (e) {} }
   function close(markDismissed) {
     setVisible(false);
@@ -29303,10 +29330,75 @@ function NotifOnboarding({ lang }) {
   const steps = isIOS ? L.ios_steps : L.android_steps;
   const deniedBody = isIOS ? L.denied_body_ios : (/android/i.test(ua) ? L.denied_body_android : L.denied_body_other);
   const navy = '#0a2960';
+  // (図解) 各手順のイラスト。 言語非依存のアイコンで、 iOS / Android を出し分け。
+  const stepArt = (ios, i) => {
+    const muted = '#aab2c6', line = '#dfe4ee', bg = '#f3f6fc', hi = navy, hiBg = '#e9f0fc', label = '#cfd7e6';
+    const wrap = (ch) => (<svg viewBox="0 0 240 112" width="100%" style={{maxWidth:230,height:'auto',display:'block'}} role="img" aria-hidden="true">{ch}</svg>);
+    const tap = (cx, cy) => (<circle cx={cx} cy={cy} r="19" fill="none" stroke={hi} strokeWidth="2" opacity="0.4"/>);
+    const homeGrid = (<g>
+      <rect x="40" y="9" width="160" height="94" rx="18" fill={bg} stroke={line}/>
+      {[0,1,2,3].map(function(k){ var col=k%2, rw=Math.floor(k/2); var x=70+col*60, y=26+rw*40; var on=(k===0); return (<g key={k}><rect x={x} y={y} width="34" height="34" rx="9" fill={on?hi:'#dfe4ee'}/>{on?(<text x={x+17} y={y+22} textAnchor="middle" fontSize="13" fontWeight="700" fill="#fff">c+</text>):null}</g>); })}
+      {tap(87,43)}
+    </g>);
+    if (ios) {
+      if (i === 0) return wrap(<g>
+        <rect x="24" y="9" width="192" height="94" rx="16" fill="#fff" stroke={line}/>
+        <rect x="36" y="22" width="120" height="9" rx="4.5" fill={label}/>
+        <rect x="36" y="40" width="168" height="7" rx="3.5" fill="#e8ecf4"/>
+        <rect x="36" y="52" width="150" height="7" rx="3.5" fill="#e8ecf4"/>
+        <rect x="24" y="74" width="192" height="29" rx="10" fill={bg}/>
+        <path d="M54 83 l-7 5 7 5" fill="none" stroke={muted} strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"/>
+        <path d="M84 83 l7 5 -7 5" fill="none" stroke={muted} strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"/>
+        <g transform="translate(120,88)">
+          <rect x="-16" y="-15" width="32" height="32" rx="9" fill={hiBg} stroke={hi} strokeWidth="1.6"/>
+          <path d="M0 -8 l5 5 h-3.4 v9 h-3.2 v-9 h-3.4 z" fill={hi}/>
+          <path d="M-7 2 v6 a2.5 2.5 0 0 0 2.5 2.5 h9 a2.5 2.5 0 0 0 2.5 -2.5 v-6" fill="none" stroke={hi} strokeWidth="2.2" strokeLinecap="round"/>
+        </g>
+        {tap(120,88)}
+        <path d="M150 84 h30 M150 92 h22" stroke={muted} strokeWidth="2.5" strokeLinecap="round"/>
+      </g>);
+      if (i === 1) return wrap(<g>
+        <rect x="20" y="10" width="200" height="92" rx="16" fill="#fff" stroke={line}/>
+        <rect x="34" y="22" width="90" height="8" rx="4" fill={label}/>
+        <rect x="34" y="42" width="120" height="8" rx="4" fill="#e8ecf4"/>
+        <rect x="176" y="36" width="22" height="22" rx="6" fill="none" stroke={muted} strokeWidth="2"/>
+        <rect x="28" y="60" width="184" height="34" rx="10" fill={hiBg} stroke={hi} strokeWidth="1.6"/>
+        <rect x="40" y="73" width="110" height="8" rx="4" fill={hi} opacity="0.55"/>
+        <g transform="translate(188,77)">
+          <rect x="-11" y="-11" width="22" height="22" rx="6" fill="none" stroke={hi} strokeWidth="2"/>
+          <path d="M0 -6 v12 M-6 0 h12" stroke={hi} strokeWidth="2.2" strokeLinecap="round"/>
+        </g>
+      </g>);
+      return wrap(homeGrid);
+    }
+    if (i === 0) return wrap(<g>
+      <rect x="24" y="9" width="192" height="94" rx="14" fill="#fff" stroke={line}/>
+      <rect x="24" y="9" width="192" height="28" rx="14" fill={bg}/>
+      <rect x="40" y="19" width="90" height="8" rx="4" fill={label}/>
+      <g transform="translate(196,23)">
+        <circle cx="0" cy="-7" r="2.4" fill={hi}/><circle cx="0" cy="0" r="2.4" fill={hi}/><circle cx="0" cy="7" r="2.4" fill={hi}/>
+        <circle cx="0" cy="0" r="16" fill="none" stroke={hi} strokeWidth="2" opacity="0.4"/>
+      </g>
+      <rect x="40" y="52" width="150" height="7" rx="3.5" fill="#e8ecf4"/>
+      <rect x="40" y="66" width="120" height="7" rx="3.5" fill="#e8ecf4"/>
+    </g>);
+    if (i === 1) return wrap(<g>
+      <rect x="70" y="8" width="150" height="96" rx="12" fill="#fff" stroke={line}/>
+      <rect x="84" y="22" width="100" height="8" rx="4" fill="#e8ecf4"/>
+      <rect x="78" y="40" width="136" height="30" rx="9" fill={hiBg} stroke={hi} strokeWidth="1.6"/>
+      <g transform="translate(96,55)"><rect x="-9" y="-9" width="18" height="18" rx="5" fill="none" stroke={hi} strokeWidth="2"/><path d="M0 -5 v10 M-5 0 h10" stroke={hi} strokeWidth="2.2" strokeLinecap="round"/></g>
+      <rect x="116" y="51" width="84" height="8" rx="4" fill={hi} opacity="0.55"/>
+      <rect x="84" y="80" width="110" height="8" rx="4" fill="#e8ecf4"/>
+    </g>);
+    return wrap(homeGrid);
+  };
   const stepRow = (s, i) => (
-    <div key={i} style={{display:'flex',alignItems:'flex-start',gap:10}}>
-      <div style={{flex:'0 0 24px',width:24,height:24,borderRadius:'50%',background:navy,color:'#fff',fontSize:13,fontWeight:700,display:'flex',alignItems:'center',justifyContent:'center'}}>{i + 1}</div>
-      <div style={{fontSize:13.5,color:'#2a3050',lineHeight:1.5,paddingTop:2}}>{s}</div>
+    <div key={i} style={{padding:'12px',borderRadius:14,background:'#f7f9fd',border:'1px solid #e7ebf3'}}>
+      <div style={{display:'flex',alignItems:'flex-start',gap:10}}>
+        <div style={{flex:'0 0 24px',width:24,height:24,borderRadius:'50%',background:navy,color:'#fff',fontSize:13,fontWeight:700,display:'flex',alignItems:'center',justifyContent:'center'}}>{i + 1}</div>
+        <div style={{fontSize:13.5,color:'#2a3050',lineHeight:1.5,paddingTop:2}}>{s}</div>
+      </div>
+      <div style={{marginTop:8,display:'flex',justifyContent:'center'}}>{stepArt(isIOS, i)}</div>
     </div>
   );
   const primaryBtn = (label, onClick, extra) => (
