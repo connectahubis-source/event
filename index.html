@@ -1501,7 +1501,7 @@ button:hover .cta-arrow {
 
 <!-- (Phase 17.S-fix) ローディング デバッグ補助 — 8秒で fallback メッセージ更新 + 進捗ログ -->
 <script>
-  try { window.__APP_BUILD = '2026-06-07 P3k'; } catch (e) {}
+  try { window.__APP_BUILD = '2026-06-07 P3m'; } catch (e) {}
   console.log('[Phase 17.S-fix] Boot sequence started:', new Date().toISOString());
   setTimeout(function() {
     var fallback = document.getElementById('fallback');
@@ -11106,8 +11106,12 @@ function HomeQuickActions({ lang }) {
       const regs = (result.registrations || []).filter(r => r.event && (r.status === '申込済み' || r.status === '決済済み' || r.status === '確定' || r.status === 'チェックイン済' || r.status === 'チェックイン保留'));
       const today = regs.find(r => (r.sessionDate || r.event.date) === ts);
       if (today) return today;
-      // (テスター限定プレビュー) 当日でなくても、直近の確定登録でQRチケットUIを確認できるようにする
-      if (isPreviewUser() && regs.length) return regs[0];
+      // (テスター限定プレビュー) 当日でなくても、当日以降の直近の確定登録でQRチケットUIを確認できるようにする。 過去日のイベントは表示しない (開催日を過ぎたらチケットは出さない)。
+      if (isPreviewUser()) {
+        const up = regs.filter(function(r){ var d = r.sessionDate || r.event.date; return d && d >= ts; })
+          .sort(function(a,b){ return String(a.sessionDate||a.event.date).localeCompare(String(b.sessionDate||b.event.date)); });
+        if (up.length) return up[0];
+      }
       return null;
     };
     (async () => {
@@ -23345,9 +23349,9 @@ function PageMyPage({ lang, t, events }) {
   const isActive = (r) => r.status !== 'キャンセル' && r.status !== '返金' && r.status !== '返金待ち';
 
   const upcomingEventsRaw = allRegsWithEvent.filter(function(r) {
-    if (!isActive(r)) return false;  // アクティブ reg のみ
-    // (R5) 公開を終了したイベントは参加予定から除外 (申込状態に関わらず)。 過去日なら参加履歴に残り、 記念写真はコレクションで閲覧可。
+    // (R5) 公開を終了したイベントは、 申込ステータス(申込済み/決済済み/確定/チェックイン済/チェックイン保留/キャンセル/返金/返金待ち 等)に関わらず、 最優先で参加予定から除外。 過去日なら参加履歴に残り、 記念写真はコレクションで閲覧可。
     if (r.event.status === '終了' || r.event.status === 'アーカイブ' || r.event.status === '非公開') return false;
+    if (!isActive(r)) return false;  // アクティブ reg のみ (キャンセル/返金/返金待ちは元々参加予定に出さない)
     const endStr = r.event.endDate || r.event.date;
     if (!endStr) return true;
     const endDate = new Date(String(endStr) + 'T23:59:59');
@@ -29052,7 +29056,12 @@ function QrQuickFab({ lang }) {
       const regs = (result.registrations || []).filter(r => r.event && (r.status === '申込済み' || r.status === '決済済み' || r.status === '確定' || r.status === 'チェックイン保留'));
       const today = regs.find(r => (r.sessionDate || r.event.date) === ts);
       if (today) return today;
-      if (isPreviewUser() && regs.length) return regs[0]; // テスターは当日でなくても確認可
+      // テスターは当日でなくても確認可。 ただし当日以降の直近のみ (過去日のイベントは表示しない)。
+      if (isPreviewUser()) {
+        const up = regs.filter(function(r){ var d = r.sessionDate || r.event.date; return d && d >= ts; })
+          .sort(function(a,b){ return String(a.sessionDate||a.event.date).localeCompare(String(b.sessionDate||b.event.date)); });
+        if (up.length) return up[0];
+      }
       return null;
     };
     const load = async (force) => {
