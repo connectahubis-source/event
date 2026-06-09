@@ -1501,7 +1501,7 @@ button:hover .cta-arrow {
 
 <!-- (Phase 17.S-fix) ローディング デバッグ補助 — 8秒で fallback メッセージ更新 + 進捗ログ -->
 <script>
-  try { window.__APP_BUILD = '2026-06-08 P3p'; } catch (e) {}
+  try { window.__APP_BUILD = '2026-06-08 P3s'; } catch (e) {}
   console.log('[Phase 17.S-fix] Boot sequence started:', new Date().toISOString());
   setTimeout(function() {
     var fallback = document.getElementById('fallback');
@@ -1865,6 +1865,24 @@ async function postToGAS(action, payload, retryCount) {
     }
     throw err;
   }
+}
+
+/**
+ * (Phase 18.B2) 参加者行動ログの極軽量記録。 fire-and-forget・非ブロッキング・例外を出さない。
+ *   未ログイン時は何もしない。 sendBeacon 優先 (ページ離脱でも送信)、無ければ keepalive fetch。
+ *   type は backend 側の許可リストに沿う: ticket_view / memento_view / notif_open / survey_open / survey_submit / event_view など。
+ */
+function logAction(type, targetId, meta) {
+  try {
+    var token = (typeof authStore !== 'undefined' && authStore && authStore.getToken) ? authStore.getToken() : null;
+    if (!token || !type) return;
+    var body = JSON.stringify({ action: 'logAction', payload: { sessionToken: token, type: type, targetId: targetId || '', meta: meta || null } });
+    if (navigator && navigator.sendBeacon) {
+      navigator.sendBeacon(CONFIG.GAS_URL, new Blob([body], { type: 'text/plain;charset=utf-8' }));
+    } else {
+      fetch(CONFIG.GAS_URL, { method: 'POST', headers: { 'Content-Type': 'text/plain;charset=utf-8' }, body: body, keepalive: true }).catch(function () {});
+    }
+  } catch (e) { /* ログは決して画面を止めない */ }
 }
 
 /**
@@ -11175,6 +11193,7 @@ function HomeQuickActions({ lang }) {
 
   // サーベイが 1 件なら即モーダル、 複数ならホーム上のピッカーで選択
   const openSurvey = () => {
+    try { if (typeof logAction === 'function') logAction('survey_open', (unanswered[0] && (unanswered[0].surveyId || unanswered[0].id)) || ''); } catch (e) {}
     if (unanswered.length === 1) setActiveSurvey(unanswered[0]);
     else setPickerOpen(true);
   };
@@ -14091,6 +14110,11 @@ function MovieStyleSessionList({
 
 function PageEventDetail({ lang, t, eventId }) {
   const [ev, setEv] = useState(null);
+
+  // (Phase 18.B2b) 行動ログ: イベント詳細の閲覧 (eventId 単位で1回)
+  React.useEffect(() => {
+    try { if (typeof logAction === 'function' && eventId) logAction('event_view', String(eventId)); } catch (e) {}
+  }, [eventId]);
   const [sessions, setSessions] = useState([]);
   const [activities, setActivities] = useState([]);  // (Phase 17.M-B3) タイムテーブル公開
   const [loading, setLoading] = useState(true);
@@ -23071,6 +23095,12 @@ function PageMyPage({ lang, t, events }) {
   const [editing, setEditing] = React.useState(false);
   const [mementoReg, setMementoReg] = React.useState(null);  // (構成) 参加記念モーダル
 
+  // (Phase 18.B2b) 行動ログ: 参加記念モーダルの表示 (ディープリンク/アプリ内いずれの経路も網羅)
+  React.useEffect(() => {
+    if (!mementoReg) return;
+    try { if (typeof logAction === 'function') logAction('memento_view', mementoReg.sessionId || (mementoReg.event && mementoReg.event.id) || ''); } catch (e) {}
+  }, [mementoReg]);
+
   // (Phase A) 自分の参加申込一覧 — (Phase 15.S105) キャッシュ即表示
   const [myRegistrations, setMyRegistrations] = React.useState(() => {
     const cached = readRegsCache();
@@ -23338,6 +23368,8 @@ function PageMyPage({ lang, t, events }) {
       const sid = new URLSearchParams(h.substring(qi + 1)).get('memento');
       if (!sid) return;
       pendingMementoRef.current = String(sid);
+      // (Phase 18.B2b) 行動ログ: 通知/お知らせのディープリンクから着地 (= 通知開封)
+      try { if (typeof logAction === 'function') logAction('notif_open', String(sid), { via: 'memento' }); } catch (e) {}
       // 再オープン防止のためパラメータを除去 (実際のオープンは reg 到着後の effect で行う)
       try { history.replaceState(null, '', h.substring(0, qi)); } catch (e) { window.location.hash = h.substring(0, qi); }
     } catch (e) {}
@@ -25167,6 +25199,11 @@ function QRTicketModal({ registration, lang, onClose, isTodayQuick, allRegs, ses
     const prevOverflow = document.body.style.overflow;
     document.body.style.overflow = 'hidden';
     return () => { document.body.style.overflow = prevOverflow; };
+  }, []);
+
+  // (Phase 18.B2) 行動ログ: QRチケット表示 (マウント時に1回)
+  React.useEffect(() => {
+    try { if (typeof logAction === 'function') logAction('ticket_view', (registration && (registration.eventId || registration.EventID)) || ''); } catch (e) {}
   }, []);
 
   // (Phase 17.L) QR 表示中は ポーリング頻度を上げる (= 2秒)
