@@ -1,17 +1,56 @@
-/* connec+a Service Worker (P2: PWA + Web Push)
+/* connec+a Service Worker (P2: PWA + Web Push + near-0s shell)
  * 配置: participants-index.html と同じディレクトリ (例: リポジトリ直下) に置く。
  * 登録: navigator.serviceWorker.register('./sw.js')  ← 相対指定で GitHub Pages のサブパスでも動作。
+ *
+ * v4 (統合): 旧 v3 の「静的アセット cache-first(裏更新) + Web Push」に、
+ *   (1) ナビゲーションHTML の network-first — オンラインは常に最新HTML、圏外時のみ最後に成功したHTMLで起動
+ *   (2) activate 時の旧バージョンキャッシュ掃除 (v3 以前の cca-cache-* も回収)
+ *   を追加。GAS API (script.google.com / googleusercontent.com) は従来どおり一切キャッシュしない。
  */
-const CACHE_NAME = 'cca-cache-v3';
+const VERSION = 'v4';
+const CACHE_NAME = 'cca-cache-' + VERSION;   // 静的アセット (cache-first + 裏更新)
+const HTML_CACHE = 'cca-html-' + VERSION;    // ナビゲーションHTML (network-first / 圏外フォールバック専用)
 
 self.addEventListener('install', (e) => { self.skipWaiting(); });
-self.addEventListener('activate', (e) => { e.waitUntil(self.clients.claim()); });
 
-// 静的アセットのみ cache-first。HTML / GAS API はキャッシュしない (常に最新)。
+self.addEventListener('activate', (e) => {
+  e.waitUntil((async () => {
+    // 旧バージョンの cca-* キャッシュを掃除 (v3 の 'cca-cache-v3' なども対象)
+    const keys = await caches.keys();
+    await Promise.all(keys
+      .filter((k) => k.indexOf('cca-') === 0 && k !== CACHE_NAME && k !== HTML_CACHE)
+      .map((k) => caches.delete(k)));
+    await self.clients.claim();
+  })());
+});
+
+// HTML = network-first (圏外時のみキャッシュ)。静的アセットのみ cache-first(裏更新)。GAS API はキャッシュしない (常に最新)。
 self.addEventListener('fetch', (e) => {
   if (e.request.url.indexOf('script.google.com') >= 0) return;
   if (e.request.url.indexOf('googleusercontent.com') >= 0) return;
   if (e.request.method !== 'GET') return;
+
+  // (v4) ナビゲーション(HTML) → network-first。オンラインなら常に最新、失敗(圏外)時のみ最後の成功HTML。
+  //   古いHTMLが固定表示される事故は構造上起きない。
+  if (e.request.mode === 'navigate') {
+    e.respondWith((async () => {
+      try {
+        const fresh = await fetch(e.request);
+        if (fresh && fresh.ok) {
+          const cache = await caches.open(HTML_CACHE);
+          cache.put(e.request, fresh.clone());
+        }
+        return fresh;
+      } catch (err) {
+        const cache = await caches.open(HTML_CACHE);
+        const hit = await cache.match(e.request, { ignoreSearch: true });
+        if (hit) return hit;
+        throw err;
+      }
+    })());
+    return;
+  }
+
   const url = new URL(e.request.url);
   const isStatic = /\.(woff2?|ttf|otf|png|jpg|jpeg|gif|svg|webp|ico|css|js)(\?|$)/i.test(url.pathname);
   if (!isStatic) return;
