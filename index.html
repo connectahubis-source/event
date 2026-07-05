@@ -1610,7 +1610,7 @@ const CONFIG = {
 // ============================================================================
 const I18N = {
   ja: {
-    nav: { events: 'イベント', about: '私たちについて', news: 'ニュース', contact: 'お問い合わせ', login: 'ログイン', signup: '会員登録' },
+    nav: { events: 'イベント', about: '私たちについて', news: 'ニュース', contact: 'お問い合わせ', life: '生活情報', login: 'ログイン', signup: '会員登録' },
     hero: {
       eyebrow: '一般社団法人 connec+a',
       title: '出会いが、\nまちを変えていく。',
@@ -1686,7 +1686,7 @@ const I18N = {
     },
   },
   easy: {
-    nav: { events: 'イベント', about: 'わたしたちのこと', news: 'おしらせ', contact: 'といあわせ', login: 'ログイン', signup: 'とうろく' },
+    nav: { events: 'イベント', about: 'わたしたちのこと', news: 'おしらせ', contact: 'といあわせ', life: 'せいかつ じょうほう', login: 'ログイン', signup: 'とうろく' },
     hero: {
       eyebrow: 'connec+a（コネクタ）',
       title: 'であいで、\nまちが かわる。',
@@ -1762,7 +1762,7 @@ const I18N = {
     },
   },
   en: {
-    nav: { events: 'Events', about: 'About', news: 'News', contact: 'Contact', login: 'Log in', signup: 'Sign up' },
+    nav: { events: 'Events', about: 'About', news: 'News', contact: 'Contact', life: 'Living in Japan', login: 'Log in', signup: 'Sign up' },
     hero: {
       eyebrow: 'connec+a · Tokyo NPO',
       title: 'Where meetings\nreshape the city.',
@@ -2900,6 +2900,27 @@ async function fetchFrontNews() {
     if (err && err.name === 'AbortError') return [];
     console.error('[Participants] fetchFrontNews error:', err);
     return [];
+  }
+}
+
+// (生活情報) 管理コンソールで編集された生活情報ドキュメントを取得。
+// 保存前 (null) やエラー時は null を返し、呼び出し側は内蔵デフォルトを使う。
+async function fetchLifeInfo() {
+  const controller = new AbortController();
+  const timeoutId = setTimeout(() => controller.abort(), 15000);
+  try {
+    const url = `${CONFIG.GAS_URL}?action=getLifeInfo`;
+    const res = await fetch(url, { signal: controller.signal });
+    clearTimeout(timeoutId);
+    if (!res.ok) return null;
+    const json = await res.json();
+    if (json && json.ok && json.data && typeof json.data === 'object') return json.data;
+    return null;   // 未保存 (data:null) / エラー封筒 → 内蔵デフォルトにフォールバック
+  } catch (err) {
+    clearTimeout(timeoutId);
+    if (err && err.name === 'AbortError') return null;
+    console.error('[Participants] fetchLifeInfo error:', err);
+    return null;
   }
 }
 
@@ -4654,6 +4675,7 @@ function Nav({ lang, setLang, t, transparent, menuOpen: externalMenuOpen, setMen
             <a href="#/events" style={{ color: 'var(--ink-2)', fontSize: 14, fontWeight: 500, fontFamily: 'var(--jp)', textDecoration:'none', letterSpacing: '0.04em' }}>{t.nav.events}</a>
             <a href="#/about" style={{ color: 'var(--ink-2)', fontSize: 14, fontWeight: 500, fontFamily: 'var(--jp)', textDecoration:'none', letterSpacing: '0.04em' }}>{t.nav.about}</a>
             <a href="#/news" style={{ color: 'var(--ink-2)', fontSize: 14, fontWeight: 500, fontFamily: 'var(--jp)', textDecoration:'none', letterSpacing: '0.04em' }}>{t.nav.news}</a>
+            <a href="#/life" style={{ color: 'var(--ink-2)', fontSize: 14, fontWeight: 500, fontFamily: 'var(--jp)', textDecoration:'none', letterSpacing: '0.04em' }}>{t.nav.life}</a>
             <a href="#/contact" style={{ color: 'var(--ink-2)', fontSize: 14, fontWeight: 500, fontFamily: 'var(--jp)', textDecoration:'none', letterSpacing: '0.04em' }}>{t.nav.contact}</a>
 
             {/* (Phase 15.S104) 当日 QR クイックアクセス ラベル */}
@@ -4805,10 +4827,11 @@ function Nav({ lang, setLang, t, transparent, menuOpen: externalMenuOpen, setMen
               gap: 0,
             }}>
               {[
-                { href: '#/events',  ja: 'イベント',     en: 'Events',      easy: 'イベント',       eyebrow: '01' },
-                { href: '#/about',   ja: '私たちのこと', en: 'About',       easy: 'わたしたち',     eyebrow: '02' },
-                { href: '#/news',    ja: 'ニュース',     en: 'News',        easy: 'ニュース',       eyebrow: '03' },
-                { href: '#/contact', ja: 'お問い合わせ', en: 'Contact',     easy: 'おといあわせ',   eyebrow: '04' },
+                { href: '#/events',  ja: 'イベント',     en: 'Events',           easy: 'イベント',           eyebrow: '01' },
+                { href: '#/about',   ja: '私たちのこと', en: 'About',            easy: 'わたしたち',         eyebrow: '02' },
+                { href: '#/news',    ja: 'ニュース',     en: 'News',             easy: 'ニュース',           eyebrow: '03' },
+                { href: '#/life',    ja: '生活情報',     en: 'Living in Japan',  easy: 'せいかつじょうほう', eyebrow: '04' },
+                { href: '#/contact', ja: 'お問い合わせ', en: 'Contact',          easy: 'おといあわせ',       eyebrow: '05' },
               ].map((item, idx) => {
                 const label = lang === 'en' ? item.en : lang === 'easy' ? item.easy : item.ja;
                 return (
@@ -13696,8 +13719,12 @@ function MovieStyleSessionList({
     : (isPaid || isAlreadyRegistered);                   // 単発: 既存ロジック
   // (Phase 15.S120) 一律料金モード判定 — 既定は uniform、 per_session 指定時のみ個別料金
   const feeMode = ev.feeMode || 'uniform';
-  const isUniformFee = feeMode === 'uniform';
   const totalEventFee = Number(ev.fee) || 0;
+  // (料金誤表示ガード) uniform 扱いでもイベント参加費が 0 のままセッション側に有料設定が残っている場合は、
+  //   「全セッション無料」と断言せずセッション個別料金の表示に落とす。
+  //   (管理側の保存不整合・料金モード未保存などのデータ不整合時に、参加者へ誤って無料と案内しない防御)
+  const sessionMaxFee = isMulti ? (sessions || []).reduce((m, s) => Math.max(m, Number(s && s.fee) || 0), 0) : 0;
+  const isUniformFee = feeMode === 'uniform' && !(totalEventFee === 0 && sessionMaxFee > 0);
 
   // (Phase 15.S122) 地域フィルタ — multi イベントで複数地域が存在する場合のみ表示
   const [regionFilter, setRegionFilter] = React.useState('all');
@@ -28985,9 +29012,10 @@ function Footer({ lang, t, siteSettings }) {
             }}>EXPLORE</div>
             <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
               {[
-                { href: '#/events',  ja: 'イベント',     en: 'Events',   easy: 'イベント' },
-                { href: '#/news',    ja: 'ニュース',     en: 'News',     easy: 'ニュース' },
-                { href: '#/about',   ja: '私たちのこと', en: 'About us', easy: 'わたしたち' },
+                { href: '#/events',  ja: 'イベント',     en: 'Events',          easy: 'イベント' },
+                { href: '#/news',    ja: 'ニュース',     en: 'News',            easy: 'ニュース' },
+                { href: '#/life',    ja: '生活情報',     en: 'Living in Japan', easy: 'せいかつじょうほう' },
+                { href: '#/about',   ja: '私たちのこと', en: 'About us',        easy: 'わたしたち' },
               ].map(item => (
                 <a key={item.href} href={item.href}
                   className="footer-link"
@@ -29850,6 +29878,911 @@ function PushWelcomeOverlay({ lang }) {
 }
 window.PushWelcomeOverlay = PushWelcomeOverlay;
 
+// ============================================================================
+// (生活情報) 日本で暮らすための大切な情報 — 参加者向け 生活情報ハブ
+// Essential Information for Living in Japan
+// ----------------------------------------------------------------------------
+// 方針: connec+a は制度を断定せず、公的機関の情報を「わかりやすく整理」し
+//       公式サイトへの確認導線を必ず用意する 情報ハブ。
+// - すべてのカテゴリに 公式参照リンク (label + organization + type) を付与
+// - やさしい日本語を基本 / titleJa・titleEn・summaryJa・summaryEn で多言語拡張可能
+// - importance / targetUsers / relatedKeywords で 絞り込み・検索・おすすめ拡張可能
+// - region フィールドで 地域別表示に拡張可能 (既定は 'national' / 一部 'tokyo')
+// - newsItems (LIFE_NEWS_ITEMS) は後から追加・管理画面編集できる別データ構造
+// ※ 参照 URL は 2026-07-04 時点で 公的ドメインの生存を確認済み。制度は変わるため
+//    利用者には必ず公式サイトでの確認を促す。
+// ============================================================================
+
+// 生活情報の 最終確認日 (全カテゴリ共通)。制度は変わるため 定期的に見直す。
+const LIFE_LAST_REVIEWED = '2026-07-04';
+
+// --- 表示文言の言語選択ヘルパ (easy は ja へフォールバック = 本文は やさしい日本語) ---
+function lifeText(lang, val) {
+  if (val == null) return '';
+  if (typeof val === 'string') return val;
+  if (lang === 'en') return val.en || val.ja || '';
+  if (lang === 'easy') return val.easy || val.ja || '';
+  return val.ja || '';
+}
+
+// --- 多言語フィールド選択 (titleJa/titleEasy/titleEn 形式)。Participants の 3 言語(ja/easy/en)に対応。
+//     easy/en が未設定なら ja にフォールバックする。 ---
+function lifeField(obj, base, lang) {
+  if (!obj) return '';
+  if (lang === 'en') return obj[base + 'En'] || obj[base + 'Ja'] || '';
+  if (lang === 'easy') return obj[base + 'Easy'] || obj[base + 'Ja'] || '';
+  return obj[base + 'Ja'] || '';
+}
+
+// --- 公式参照リンク レジストリ (再利用可能な 参照元データ) ---
+// type: government | municipality | tourismAgency | publicFoundation | labor | medical | emergency | education
+const LIFE_SOURCES = {
+  isaPortal: {
+    id: 'isaPortal',
+    label: { ja: '外国人生活支援ポータル', en: 'Support Portal for Foreign Residents', easy: '外国人 生活しえん ポータル' },
+    organization: { ja: '法務省 出入国在留管理庁', en: 'MOJ Immigration Services Agency' },
+    url: 'https://www.moj.go.jp/isa/support/portal/',
+    type: 'government',
+  },
+  isaGuidebook: {
+    id: 'isaGuidebook',
+    label: { ja: '生活・就労ガイドブック', en: 'Guidebook for Living and Working', easy: '生活・しゅうろう ガイドブック' },
+    organization: { ja: '法務省 出入国在留管理庁', en: 'MOJ Immigration Services Agency' },
+    url: 'https://www.moj.go.jp/isa/support/portal/guidebook_all.html',
+    type: 'government',
+  },
+  isaTop: {
+    id: 'isaTop',
+    label: { ja: '出入国在留管理庁', en: 'Immigration Services Agency', easy: 'しゅつにゅうこく ざいりゅう かんりちょう' },
+    organization: { ja: '法務省 出入国在留管理庁', en: 'MOJ Immigration Services Agency' },
+    url: 'https://www.moj.go.jp/isa/',
+    type: 'government',
+  },
+  safetyTips: {
+    id: 'safetyTips',
+    label: { ja: '防災アプリ Safety tips', en: 'Safety tips disaster alert app', easy: 'ぼうさいアプリ Safety tips' },
+    organization: { ja: '観光庁 監修 / 日本政府観光局(JNTO)', en: 'Japan Tourism Agency / JNTO' },
+    url: 'https://www.jnto.go.jp/safety-tips/eng/app.html',
+    type: 'tourismAgency',
+  },
+  jntoEmergency: {
+    id: 'jntoEmergency',
+    label: { ja: '緊急・防災情報 (Safe Travel)', en: 'Emergency & Safe Travel Information', easy: 'きんきゅう・ぼうさい じょうほう' },
+    organization: { ja: '日本政府観光局(JNTO)', en: 'JNTO' },
+    url: 'https://www.japan.travel/en/plan/emergencies/',
+    type: 'tourismAgency',
+  },
+  tsunagari: {
+    id: 'tsunagari',
+    label: { ja: '東京都つながり創生財団', en: 'Tokyo Metropolitan Foundation Tsunagari Sosei', easy: '東京都つながり そうせい ざいだん' },
+    organization: { ja: '東京都つながり創生財団 多文化共生課', en: 'Tokyo Tsunagari Sosei Foundation' },
+    url: 'https://www.tokyo-tsunagari.or.jp/',
+    type: 'publicFoundation',
+  },
+  tips: {
+    id: 'tips',
+    label: { ja: 'TIPS 外国人のための生活ガイド', en: 'TIPS Living Guide for Foreign Residents', easy: 'TIPS 外国人のための せいかつガイド' },
+    organization: { ja: '東京都つながり創生財団 多文化共生課', en: 'Tokyo Tsunagari Sosei Foundation' },
+    url: 'https://tabunka.tokyo-tsunagari.or.jp/',
+    type: 'publicFoundation',
+  },
+  tipsSoudan: {
+    id: 'tipsSoudan',
+    label: { ja: 'TIPS 多言語相談ナビ', en: 'TIPS Multilingual Consultation Navigator', easy: 'TIPS たげんご そうだんナビ' },
+    organization: { ja: '東京都つながり創生財団 多文化共生課', en: 'Tokyo Tsunagari Sosei Foundation' },
+    url: 'https://tabunka.tokyo-tsunagari.or.jp/soudan/navi.html',
+    type: 'publicFoundation',
+  },
+  mhlwForeign: {
+    id: 'mhlwForeign',
+    label: { ja: '外国人労働者向け情報 (外国人雇用対策)', en: 'Information for Foreign Workers', easy: '外国人 ろうどうしゃ むけ じょうほう' },
+    organization: { ja: '厚生労働省', en: 'Ministry of Health, Labour and Welfare' },
+    url: 'https://www.mhlw.go.jp/stf/seisakunitsuite/bunya/koyou_roudou/koyou/gaikokujin/index.html',
+    type: 'labor',
+  },
+  tokyoLabor: {
+    id: 'tokyoLabor',
+    label: { ja: '外国人労働者相談コーナー', en: 'Foreign Worker Consultation Corner', easy: '外国人 ろうどうしゃ そうだん コーナー' },
+    organization: { ja: '東京労働局', en: 'Tokyo Labour Bureau' },
+    url: 'https://jsite.mhlw.go.jp/tokyo-roudoukyoku/news_topics/kyoku_oshirase/roudou_kijun/newpage_00845.html',
+    type: 'labor',
+  },
+  jmaBosai: {
+    id: 'jmaBosai',
+    label: { ja: '防災情報 (気象・警報)', en: 'Disaster Prevention Information', easy: 'ぼうさい じょうほう (きしょう・けいほう)' },
+    organization: { ja: '気象庁', en: 'Japan Meteorological Agency' },
+    url: 'https://www.jma.go.jp/bosai/',
+    type: 'emergency',
+  },
+  fdma: {
+    id: 'fdma',
+    label: { ja: '防災情報', en: 'Fire and Disaster Management', easy: 'ぼうさい じょうほう' },
+    organization: { ja: '総務省消防庁', en: 'Fire and Disaster Management Agency' },
+    url: 'https://www.fdma.go.jp/',
+    type: 'emergency',
+  },
+  npaTraffic: {
+    id: 'npaTraffic',
+    label: { ja: '交通安全のための情報', en: 'Traffic Safety Information', easy: 'こうつう あんぜん の じょうほう' },
+    organization: { ja: '警察庁', en: 'National Police Agency' },
+    url: 'https://www.npa.go.jp/bureau/traffic/koutsuuannzennjyouhou.html',
+    type: 'government',
+  },
+  mextEdu: {
+    id: 'mextEdu',
+    label: { ja: '外国人児童生徒等への教育情報', en: 'Education Information for Foreign Children/Students', easy: '外国人の 子どもへの きょういく じょうほう' },
+    organization: { ja: '文部科学省', en: 'MEXT' },
+    url: 'https://www.mext.go.jp/a_menu/shotou/clarinet/003.htm',
+    type: 'education',
+  },
+  // url なし = リンクではなく「公式サイトで確認」の案内チップとして表示 (地域ごとに異なるため)
+  municipality: {
+    id: 'municipality',
+    label: { ja: 'お住まいの市区町村の窓口', en: 'Your city / ward / town office', easy: 'すんでいる 市区町村 の まどぐち' },
+    organization: { ja: '自治体', en: 'Local municipality' },
+    url: null,
+    type: 'municipality',
+  },
+};
+
+// --- 重要度 ---
+const LIFE_IMPORTANCE = {
+  high: { key: 'high', label: { ja: '高', en: 'High', easy: 'たかい' }, color: '#b23b2e', bg: '#fdecea', border: '#f3c7c1' },
+  mid:  { key: 'mid',  label: { ja: '中', en: 'Medium', easy: 'ふつう' }, color: '#96701a', bg: '#fbf3df', border: '#ecdcb2' },
+  low:  { key: 'low',  label: { ja: '低', en: 'Low', easy: 'ひくい' }, color: '#1a73d4', bg: '#e8f1fc', border: '#c7ddf7' },
+};
+
+// --- 対象者 (絞り込み) ---
+const LIFE_TARGETS = [
+  { key: 'all',      label: { ja: 'すべての人', en: 'Everyone', easy: 'みんな' } },
+  { key: 'student',  label: { ja: '留学生', en: 'Students', easy: 'りゅうがくせい' } },
+  { key: 'worker',   label: { ja: '働いている人', en: 'Workers', easy: 'はたらいている人' } },
+  { key: 'tokyo',    label: { ja: '東京周辺に住む人', en: 'Tokyo-area residents', easy: '東京の ちかくに 住む人' } },
+  { key: 'mover',    label: { ja: '引っ越す人', en: 'People moving home', easy: 'ひっこしする人' } },
+  { key: 'patient',  label: { ja: '病院に行きたい人', en: 'People who need a hospital', easy: 'びょういんに 行きたい人' } },
+  { key: 'disaster', label: { ja: '災害時に困っている人', en: 'People affected by a disaster', easy: 'さいがいで こまっている人' } },
+];
+const LIFE_TARGET_LABELS = LIFE_TARGETS.reduce((m, t) => { m[t.key] = t.label; return m; }, {});
+
+// --- 参照元 種別ラベル ---
+const LIFE_SOURCE_TYPE_LABELS = {
+  government:       { ja: '国の機関', en: 'Government' },
+  municipality:     { ja: '自治体', en: 'Municipality' },
+  tourismAgency:    { ja: '観光庁', en: 'Tourism Agency' },
+  publicFoundation: { ja: '公的財団', en: 'Public Foundation' },
+  labor:            { ja: '労働', en: 'Labor' },
+  medical:          { ja: '医療', en: 'Medical' },
+  emergency:        { ja: '防災・緊急', en: 'Emergency' },
+  education:        { ja: '教育', en: 'Education' },
+};
+
+// --- 各カテゴリ共通の 最終確認メッセージ ---
+const LIFE_FINAL_MESSAGE = {
+  ja: '人によって必要な手続きが違うことがあります。詳しい手続きは、必ず公式サイトで確認してください。',
+  en: 'The steps you need can be different for each person. Always confirm the details on the official website.',
+  easy: '人によって ひつような てつづきが ちがうことが あります。かならず こうしきサイトで かくにんしてください。',
+};
+
+// --- 緊急時 固定表示データ ---
+const LIFE_EMERGENCY = {
+  title: { ja: '緊急のとき', en: 'In an Emergency', easy: 'きんきゅうの とき' },
+  lines: [
+    { ja: '事件や事故は 110番（警察）', en: 'Crime or accident: call 110 (Police)', easy: 'じけん・じこは 110ばん（けいさつ）' },
+    { ja: '火事・急病・けがは 119番（消防・救急）', en: 'Fire, sudden illness or injury: call 119 (Fire / Ambulance)', easy: 'かじ・きゅうびょう・けがは 119ばん（しょうぼう・きゅうきゅう）' },
+    { ja: '地震・津波・台風などの災害情報は Safety tips や自治体の情報を確認してください', en: 'For earthquakes, tsunamis, typhoons and other disasters, check the Safety tips app and your local government.', easy: 'じしん・つなみ・たいふう の ときは Safety tips や じちたい の じょうほうを 見てください' },
+    { ja: '命の危険があるときは、すぐに安全な場所へ避難してください', en: 'If your life is in danger, move to a safe place right away.', easy: 'あぶない ときは、すぐ あんぜんな ところへ にげてください' },
+  ],
+  sources: ['safetyTips', 'municipality', 'fdma', 'jmaBosai'],
+};
+
+// --- 12 カテゴリ (初期表示の優先順に並べる) ---
+const LIFE_INFO_CATEGORIES = [
+  {
+    id: 'first-steps', region: 'national', importance: 'high', targetUsers: ['all', 'student', 'worker', 'mover'],
+    titleJa: '最初にやる手続き', titleEn: 'First Steps After Arriving',
+    summaryJa: '日本で生活を始めるときに、最初に確認する手続きです。',
+    summaryEn: 'The first procedures to check when you begin living in Japan.',
+    checkItems: ['在留カードを持っているか', '住所登録をしたか', 'マイナンバーの案内を確認したか', '国民健康保険に入る必要があるか', '年金の手続きが必要か', '銀行口座を作ったか', '携帯電話を契約したか', '電気・ガス・水道を使えるようにしたか', '緊急連絡先を登録したか'],
+    whatToDo: ['住んでいる市区町村の窓口に相談する', '学校や勤務先の担当者に相談する', '出入国在留管理庁の生活支援情報を確認する'],
+    caution: '',
+    sourceLinks: ['isaPortal', 'isaGuidebook', 'tips', 'municipality'],
+    relatedKeywords: ['在留カード', '住所登録', 'マイナンバー', '保険', '年金', '銀行', '銀行口座', '携帯電話', 'ライフライン', '電気', 'ガス', '水道'],
+  },
+  {
+    id: 'residence', region: 'national', importance: 'high', targetUsers: ['all', 'student', 'worker'],
+    titleJa: '在留資格と在留カード', titleEn: 'Residence Status & Residence Card',
+    summaryJa: '日本に住むために必要な在留資格、在留期間、在留カードに関する情報です。',
+    summaryEn: 'About the residence status, period of stay, and residence card you need to live in Japan.',
+    checkItems: ['自分の在留資格', '在留期間の満了日', '在留カードの住所が正しいか', '在留期間更新の時期', '資格外活動許可が必要か', '学校を辞めたときの手続き', '仕事を辞めたときの手続き', '引っ越しをしたときの届出', '在留カードをなくしたときの対応'],
+    whatToDo: ['出入国在留管理庁の公式情報を確認する', '学校・勤務先・行政窓口に相談する', '不安な場合は専門の相談窓口に相談する'],
+    caution: '在留資格に関する情報は、個人の状況によって変わります。必ず公式情報を確認してください。',
+    sourceLinks: ['isaTop', 'isaPortal', 'isaGuidebook'],
+    relatedKeywords: ['在留カード', '在留資格', '在留期間', '更新', '資格外活動', '届出', 'ビザ', '在留期間更新'],
+  },
+  {
+    id: 'medical', region: 'national', importance: 'high', targetUsers: ['all', 'patient'],
+    titleJa: '医療と病院', titleEn: 'Medical Care & Hospitals',
+    summaryJa: '病気やけがをしたとき、病院に行くときに必要な情報です。',
+    summaryEn: 'Information for when you are sick or injured, or need to visit a hospital.',
+    checkItems: ['健康保険証の使い方', '病院とクリニックの違い', '受診の流れ', '薬局の使い方', '夜間・休日診療', '救急車を呼ぶとき', '119番の使い方', '多言語対応の病院', '心の健康相談', '医療費が高いときの相談'],
+    whatToDo: ['緊急時は119番に電話する', '近くの病院や自治体の医療相談を確認する', '言葉が不安な場合は多言語相談窓口を使う'],
+    caution: '医療の判断は自分でせず、心配なときは必ず医師や公式の相談窓口に相談してください。',
+    sourceLinks: ['tips', 'tipsSoudan', 'isaGuidebook', 'municipality'],
+    relatedKeywords: ['病院', 'クリニック', '健康保険証', '保険', '救急車', '119', '薬局', '多言語', '医療費', '夜間', '休日'],
+  },
+  {
+    id: 'work', region: 'national', importance: 'high', targetUsers: ['worker', 'student'],
+    titleJa: '仕事とアルバイト', titleEn: 'Work & Part-time Jobs',
+    summaryJa: '日本で働くとき、アルバイトをするときに必要なルールです。',
+    summaryEn: 'The rules you need when working or doing a part-time job in Japan.',
+    checkItems: ['自分の在留資格で働けるか', '資格外活動許可が必要か', '留学生の労働時間', '雇用契約書', '最低賃金', '給料未払い', '残業代', '有給休暇', '解雇されたとき', '労働相談窓口'],
+    whatToDo: ['勤務先に確認する', '労働相談窓口に相談する', '出入国在留管理庁の情報を確認する', '労働条件で困った場合は厚生労働省や労働局の情報を確認する'],
+    caution: '働ける条件は在留資格によって異なります。働く前に必ず確認してください。',
+    sourceLinks: ['isaGuidebook', 'mhlwForeign', 'tokyoLabor', 'municipality'],
+    relatedKeywords: ['アルバイト', '仕事', '資格外活動', '労働時間', '雇用契約', '最低賃金', '給料', '残業', '有給', '解雇', '労働相談'],
+  },
+  {
+    id: 'consultation', region: 'national', importance: 'high', targetUsers: ['all', 'tokyo'],
+    titleJa: '相談窓口', titleEn: 'Where to Get Help',
+    summaryJa: '生活で困ったときに相談できる場所です。',
+    summaryEn: 'Places you can turn to when you have trouble in daily life.',
+    checkItems: ['生活相談', '在留資格相談', '法律相談', '労働相談', '医療相談', '教育相談', '消費者トラブル', 'DV相談', '差別やいじめ', '多言語相談'],
+    whatToDo: ['まず自治体の外国人相談窓口を確認する', '東京周辺の場合は TIPS 多言語相談ナビを確認する', '緊急の場合は110番または119番を使う'],
+    caution: '',
+    sourceLinks: ['tipsSoudan', 'tips', 'isaPortal', 'municipality'],
+    relatedKeywords: ['相談', '相談窓口', '多言語', '法律', '労働', 'DV', '差別', 'いじめ', '消費者', '在留資格'],
+  },
+  {
+    id: 'disaster', region: 'national', importance: 'high', targetUsers: ['all', 'disaster'],
+    titleJa: '災害と緊急時', titleEn: 'Disasters & Emergencies',
+    summaryJa: '地震、台風、大雨、津波などの災害や緊急時に必要な情報です。',
+    summaryEn: 'Information for disasters and emergencies such as earthquakes, typhoons, heavy rain and tsunamis.',
+    checkItems: ['Safety tips を使えるようにする', '地震が起きたときの行動', '津波警報が出たときの行動', '台風や大雨の注意', '避難所の探し方', '非常用持ち出し品', '110番', '119番', '安否確認', '大使館への連絡'],
+    whatToDo: ['命の危険があるときはすぐ避難する', '火事や急病は119番', '事件や事故は110番', '災害情報は Safety tips や自治体の情報を確認する'],
+    caution: '観光庁監修の Safety tips は、地震・津波・気象警報などを多言語で知らせるアプリです。日本で暮らす人は、前もって必ず確認してください。',
+    sourceLinks: ['safetyTips', 'jntoEmergency', 'jmaBosai', 'fdma', 'tips', 'municipality'],
+    relatedKeywords: ['地震', '津波', '台風', '大雨', '避難', '避難所', 'Safety tips', '110', '119', '防災', '安否確認'],
+  },
+  {
+    id: 'housing', region: 'national', importance: 'mid', targetUsers: ['all', 'mover'],
+    titleJa: '住まいと生活ルール', titleEn: 'Housing & Daily Rules',
+    summaryJa: '部屋を借りるとき、住むとき、近所とトラブルにならないための情報です。',
+    summaryEn: 'Information for renting a room, living there, and getting along with neighbors.',
+    checkItems: ['賃貸契約の流れ', '敷金・礼金・保証会社', '契約時に必要な書類', '退去時の注意', 'ごみ出しの曜日と分別', '騒音に注意する時間', '電気・ガス・水道の開始', 'インターネット契約', '近所との関係', '管理会社への連絡方法'],
+    whatToDo: ['管理会社や大家に連絡する', '市区町村の生活相談窓口を確認する', 'TIPS の生活ガイドを確認する'],
+    caution: '',
+    sourceLinks: ['tips', 'municipality', 'isaGuidebook'],
+    relatedKeywords: ['住まい', '賃貸', '敷金', '礼金', '保証会社', 'ごみ', 'ごみ出し', '分別', '騒音', 'ライフライン', 'インターネット', '管理会社'],
+  },
+  {
+    id: 'money', region: 'national', importance: 'mid', targetUsers: ['all', 'worker'],
+    titleJa: 'お金・税金・保険', titleEn: 'Money, Tax & Insurance',
+    summaryJa: '日本で生活するために必要なお金、税金、保険の基本情報です。',
+    summaryEn: 'The basics of money, tax and insurance you need to live in Japan.',
+    checkItems: ['銀行口座の作り方', 'ATMの使い方', '給料の受け取り', '海外送金', '所得税', '住民税', '国民健康保険料', '年金', '支払いが難しいときの相談', '詐欺や高額請求への注意'],
+    whatToDo: ['市区町村の窓口に相談する', '勤務先に相談する', '公式情報を確認する', '不審な請求はすぐ払わず相談する'],
+    caution: '',
+    sourceLinks: ['isaGuidebook', 'municipality', 'tips'],
+    relatedKeywords: ['お金', '税金', '保険', '銀行', '銀行口座', 'ATM', '送金', '海外送金', '所得税', '住民税', '国民健康保険', '年金', '詐欺'],
+  },
+  {
+    id: 'school', region: 'national', importance: 'mid', targetUsers: ['student', 'all'],
+    titleJa: '学校と日本語学習', titleEn: 'School & Learning Japanese',
+    summaryJa: '学校生活、日本語学習、進学に関する情報です。',
+    summaryEn: 'Information about school life, learning Japanese, and moving on to further study.',
+    checkItems: ['学校の出席率', '在留資格と学校の関係', '進学相談', '学費の支払い', '奨学金', '日本語学習サイト', '専門学校や大学の手続き', '学校を変えるとき', '子どもの教育制度', '学習支援イベント'],
+    whatToDo: ['学校の先生や事務局に相談する', '自治体の教育相談を確認する', 'TIPS や出入国在留管理庁の情報を確認する'],
+    caution: '',
+    sourceLinks: ['isaGuidebook', 'tips', 'mextEdu', 'municipality'],
+    relatedKeywords: ['学校', '日本語', '出席率', '進学', '学費', '奨学金', '教育', '子ども', '専門学校', '大学'],
+  },
+  {
+    id: 'transport', region: 'national', importance: 'low', targetUsers: ['all', 'tokyo'],
+    titleJa: '交通と移動', titleEn: 'Transport & Getting Around',
+    summaryJa: '電車、バス、自転車、交通事故などに関する情報です。',
+    summaryEn: 'Information about trains, buses, bicycles and traffic accidents.',
+    checkItems: ['電車の乗り方', 'バスの乗り方', 'ICカード', '定期券', '自転車の交通ルール', '自転車保険', '交通事故にあったとき', '落とし物', '終電を逃したとき', '災害時の交通情報'],
+    whatToDo: ['駅員や警察に相談する', '交通事故は110番に連絡する', '自治体や警察の交通ルール情報を確認する'],
+    caution: '',
+    sourceLinks: ['tips', 'npaTraffic', 'municipality'],
+    relatedKeywords: ['交通', '電車', 'バス', 'ICカード', '定期券', '自転車', '交通事故', '110', '落とし物', '終電'],
+  },
+  {
+    id: 'trouble', region: 'national', importance: 'mid', targetUsers: ['all'],
+    titleJa: '生活トラブルの予防', titleEn: 'Avoiding Everyday Trouble',
+    summaryJa: '日本で生活するときに起きやすいトラブルを防ぐための情報です。',
+    summaryEn: 'Information to help you avoid common troubles when living in Japan.',
+    checkItems: ['ごみ出し', '騒音', '喫煙ルール', '飲酒ルール', '契約トラブル', '悪質商法', 'SNSトラブル', '落とし物', '警察への相談', '地域コミュニティとの関係'],
+    whatToDo: ['すぐにお金を払わない', '契約書を確認する', '学校・勤務先・自治体・相談窓口に相談する', '緊急時は警察に相談する'],
+    caution: '',
+    sourceLinks: ['isaGuidebook', 'tips', 'npaTraffic', 'municipality'],
+    relatedKeywords: ['トラブル', 'ごみ', '騒音', '喫煙', '飲酒', '契約', '悪質商法', 'SNS', '落とし物', '警察', '消費生活'],
+  },
+  {
+    id: 'news', region: 'national', importance: 'mid', targetUsers: ['all'], kind: 'news',
+    titleJa: 'お知らせと重要情報', titleEn: 'Notices & Important Information',
+    summaryJa: '生活に関する大切なお知らせをまとめるエリアです。最新情報は必ず公式サイトで確認してください。',
+    summaryEn: 'A place that gathers important notices about daily life. Always check the official websites for the latest information.',
+    checkItems: ['在留制度の変更', '災害注意情報', '熱中症注意', '感染症情報', '自治体からのお知らせ', '相談会情報', '日本語学習イベント', 'connec+aイベント', '生活支援情報', '緊急時の特設案内'],
+    whatToDo: ['最新の情報は各公式サイトで確認する', 'connec+a のお知らせも確認する'],
+    caution: 'ここに表示されるお知らせは、手動で更新される案内です。制度や状況は変わるため、詳細は必ず公式サイトで確認してください。',
+    sourceLinks: ['isaPortal', 'tips', 'safetyTips', 'municipality'],
+    relatedKeywords: ['お知らせ', '重要情報', '制度変更', '熱中症', '感染症', 'イベント', '生活支援'],
+  },
+];
+
+// --- お知らせ・ニュース (別データ構造。将来 管理画面から追加・編集・公開/非公開に拡張可能) ---
+// 初期実装は 手動更新の 静的サンプル。断定的な速報ではなく、公式確認を促す 恒常的な案内。
+const LIFE_NEWS_ITEMS = [
+  {
+    id: 'news-safety-tips', importance: 'high', targetUsers: ['all', 'disaster'],
+    published: true, publishedAt: '2026-07-04', region: 'national',
+    titleJa: '災害に備えて Safety tips を入れましょう', titleEn: 'Install Safety tips to prepare for disasters',
+    summaryJa: 'Safety tips は、地震・津波・気象警報などを多言語で知らせる 観光庁監修のアプリです。日本で暮らす人は、前もって入れておくと安心です。',
+    summaryEn: 'Safety tips is a multilingual app (supervised by the Japan Tourism Agency) that alerts you to earthquakes, tsunamis and weather warnings. Installing it in advance gives peace of mind.',
+    sourceLinks: ['safetyTips', 'jmaBosai'],
+  },
+  {
+    id: 'news-residence-change', importance: 'high', targetUsers: ['all', 'student', 'worker'],
+    published: true, publishedAt: '2026-07-04', region: 'national',
+    titleJa: '在留制度は変わることがあります', titleEn: 'Residence rules can change',
+    summaryJa: '在留資格や手続きのルールは変わることがあります。更新や届出の前に、出入国在留管理庁の公式情報を確認してください。',
+    summaryEn: 'Rules for residence status and procedures can change. Before renewing or filing, check the official Immigration Services Agency information.',
+    sourceLinks: ['isaTop', 'isaPortal'],
+  },
+  {
+    id: 'news-heatstroke', importance: 'mid', targetUsers: ['all'],
+    published: true, publishedAt: '2026-07-04', region: 'national',
+    titleJa: '夏は熱中症に気をつけましょう', titleEn: 'Take care to avoid heatstroke in summer',
+    summaryJa: '夏は気温が高くなります。水分をとり、涼しい場所で休みましょう。体調が悪いときは、無理をせず相談窓口や病院に相談してください。',
+    summaryEn: 'Summers get very hot. Drink water and rest in a cool place. If you feel unwell, do not push yourself and consult a help desk or hospital.',
+    sourceLinks: ['tips', 'municipality'],
+  },
+  {
+    id: 'news-consult', importance: 'mid', targetUsers: ['all', 'tokyo'],
+    published: true, publishedAt: '2026-07-04', region: 'tokyo',
+    titleJa: '困ったときは多言語で相談できます', titleEn: 'You can get help in many languages',
+    summaryJa: '生活・在留・労働・医療などで困ったときは、TIPS 多言語相談ナビや、お住まいの自治体の外国人相談窓口に相談できます。',
+    summaryEn: 'For trouble with daily life, residence, work or medical care, you can consult the TIPS Multilingual Consultation Navigator or your local foreign-resident help desk.',
+    sourceLinks: ['tipsSoudan', 'municipality'],
+  },
+];
+
+// (生活情報) 参照リンク チップ — url があれば安全な外部リンク、なければ「公式サイトで確認」案内チップ
+// sources: サーバ編集分を含むマージ済みレジストリ (省略時は内蔵 LIFE_SOURCES)
+function LifeSourceChip({ srcId, lang, sources }) {
+  const registry = sources || LIFE_SOURCES;
+  const src = registry[srcId];
+  if (!src) return null;
+  const label = lifeText(lang, src.label);
+  const org = lifeText(lang, src.organization);
+  const typeLabel = lifeText(lang, LIFE_SOURCE_TYPE_LABELS[src.type] || { ja: '', en: '' });
+  const badge = (
+    <span style={{
+      fontFamily: 'var(--mono)', fontSize: 9.5, fontWeight: 700, letterSpacing: '0.08em',
+      color: 'var(--brand-blue-dark)', background: 'var(--brand-blue-soft)',
+      borderRadius: 5, padding: '2px 6px', whiteSpace: 'nowrap', flexShrink: 0,
+    }}>{typeLabel}</span>
+  );
+  const inner = (
+    <React.Fragment>
+      {badge}
+      <span style={{ display: 'flex', flexDirection: 'column', gap: 1, minWidth: 0 }}>
+        <span style={{ fontFamily: 'var(--jp)', fontSize: 13, fontWeight: 700, color: 'var(--ink-2)', lineHeight: 1.35 }}>{label}</span>
+        <span style={{ fontFamily: 'var(--jp)', fontSize: 11, color: 'var(--ink-4)', lineHeight: 1.3 }}>{org}</span>
+      </span>
+    </React.Fragment>
+  );
+  const baseStyle = {
+    display: 'flex', alignItems: 'center', gap: 8,
+    padding: '9px 12px', borderRadius: 10,
+    border: '1px solid var(--brand-line)', background: 'var(--paper-1)',
+    textDecoration: 'none', minWidth: 0,
+  };
+  if (src.url) {
+    return (
+      <a href={src.url} target="_blank" rel="noopener noreferrer"
+         style={{ ...baseStyle, transition: 'border-color .15s, box-shadow .15s' }}
+         onMouseEnter={(e) => { e.currentTarget.style.borderColor = 'var(--brand-blue)'; e.currentTarget.style.boxShadow = '0 2px 10px rgba(26,115,212,0.10)'; }}
+         onMouseLeave={(e) => { e.currentTarget.style.borderColor = 'var(--brand-line)'; e.currentTarget.style.boxShadow = 'none'; }}
+         title={lang === 'en' ? 'Opens the official site in a new tab' : '公式サイトを新しいタブで開きます'}>
+        {inner}
+        <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="var(--ink-4)" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" style={{ marginLeft: 'auto', flexShrink: 0 }} aria-hidden="true">
+          <path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6"/>
+          <path d="M15 3h6v6"/><path d="M10 14 21 3"/>
+        </svg>
+      </a>
+    );
+  }
+  // url なし: リンクにせず「公式サイトで確認」の案内チップ
+  return (
+    <div style={{ ...baseStyle, background: 'var(--paper-3)' }}
+         title={lang === 'en' ? 'Check your local city/ward office website' : 'お住まいの自治体の公式サイトで確認してください'}>
+      {inner}
+      <span style={{ marginLeft: 'auto', flexShrink: 0, fontFamily: 'var(--jp)', fontSize: 10.5, color: 'var(--ink-4)', whiteSpace: 'nowrap' }}>
+        {lang === 'en' ? 'Check official site' : '公式サイトで確認'}
+      </span>
+    </div>
+  );
+}
+
+// (生活情報) メイン画面
+function PageLifeInfo({ lang, t, siteSettings }) {
+  const [query, setQuery] = React.useState('');
+  const [importanceFilter, setImportanceFilter] = React.useState('all');
+  const [targetFilter, setTargetFilter] = React.useState('all');
+  const [categoryFilter, setCategoryFilter] = React.useState('all');
+  const [openIds, setOpenIds] = React.useState(() => ({ 'first-steps': true }));
+
+  // (生活情報) 管理コンソールで編集されたデータをサーバから取得。
+  //   カテゴリが1件以上ある正当なドキュメントが返れば それを使う。無ければ 内蔵デフォルト (オフラインでも動く)。
+  const [serverDoc, setServerDoc] = React.useState(null);
+  React.useEffect(() => {
+    let cancelled = false;
+    fetchLifeInfo().then((d) => {
+      if (!cancelled && d && Array.isArray(d.categories) && d.categories.length > 0) setServerDoc(d);
+    }).catch(() => {});
+    return () => { cancelled = true; };
+  }, []);
+
+  const usingServer = !!serverDoc;
+  const categoriesAll = usingServer ? serverDoc.categories : LIFE_INFO_CATEGORIES;
+  const newsAll = (usingServer && Array.isArray(serverDoc.news)) ? serverDoc.news : LIFE_NEWS_ITEMS;
+  // 参照元レジストリ: 内蔵 + サーバ定義をマージ (サーバが優先)
+  const sources = (usingServer && serverDoc.sources && typeof serverDoc.sources === 'object')
+    ? Object.assign({}, LIFE_SOURCES, serverDoc.sources) : LIFE_SOURCES;
+  // 参加者に見せるのは 公開(published !== false) カテゴリのみ
+  const categories = (categoriesAll || []).filter((c) => c && c.published !== false);
+  const publishedNews = (newsAll || []).filter((n) => n && n.published !== false);
+
+  const toggleOpen = (id) => setOpenIds((prev) => ({ ...prev, [id]: !prev[id] }));
+
+  const normalize = (s) => (s || '').toString().toLowerCase();
+
+  // カテゴリの検索対象テキスト (タイトル・説明・確認項目・対象者・キーワード・行動) — ja/easy/en 横断
+  const categoryHaystack = (cat) => {
+    const targetLabels = (cat.targetUsers || []).map((k) => {
+      const l = LIFE_TARGET_LABELS[k] || {};
+      return [l.ja, l.en, l.easy].join(' ');
+    }).join(' ');
+    return normalize([
+      cat.titleJa, cat.titleEasy, cat.titleEn, cat.summaryJa, cat.summaryEasy, cat.summaryEn,
+      (cat.checkItems || []).join(' '), (cat.whatToDo || []).join(' '),
+      (cat.relatedKeywords || []).join(' '), cat.caution, targetLabels,
+    ].join(' '));
+  };
+
+  const q = normalize(query.trim());
+  const filtered = categories.filter((cat) => {
+    if (importanceFilter !== 'all' && cat.importance !== importanceFilter) return false;
+    // 対象者は厳密一致で絞り込む (すべて選択時のみ全件)。各カテゴリは そのオーディエンスに
+    // 関連する targetUsers を明示的に持つ。'all' は「すべての人」ピル表示用で、
+    // フィルタ='all'(すべて)のときだけ全件表示となる (all タグでは他フィルタを素通りさせない)。
+    if (targetFilter !== 'all' && !(cat.targetUsers || []).includes(targetFilter)) return false;
+    if (categoryFilter !== 'all' && cat.id !== categoryFilter) return false;
+    if (q && !categoryHaystack(cat).includes(q)) return false;
+    return true;
+  });
+
+  const anyFilterActive = importanceFilter !== 'all' || targetFilter !== 'all' || categoryFilter !== 'all' || q !== '';
+  const clearFilters = () => { setImportanceFilter('all'); setTargetFilter('all'); setCategoryFilter('all'); setQuery(''); };
+
+  const title = { ja: '日本で暮らすための大切な情報', en: 'Essential Information for Living in Japan', easy: '日本で くらすための 大切な じょうほう' };
+  const subtitle = { ja: '生活情報', en: 'Living in Japan', easy: 'せいかつ じょうほう' };
+  const intro = {
+    ja: '日本で生活するときに大切な手続き、病院、仕事、災害、相談先などをまとめています。詳しい情報は、必ず公式サイトで確認してください。',
+    en: 'A guide to the key procedures, hospitals, work, disasters and support contacts for living in Japan. Always check the official websites for details.',
+    easy: '日本で くらすときに 大切な てつづき、びょういん、しごと、さいがい、そうだんできる ところを まとめています。くわしいことは、かならず こうしきサイトで かくにんしてください。',
+  };
+
+  const labelText = {
+    search: { ja: 'キーワードで探す', en: 'Search by keyword', easy: 'ことばで さがす' },
+    searchPlaceholder: { ja: '例: 在留カード / 病院 / 地震 / アルバイト', en: 'e.g. residence card / hospital / earthquake / part-time job', easy: 'れい: 在留カード / びょういん / じしん' },
+    importance: { ja: '重要度', en: 'Importance', easy: 'たいせつさ' },
+    target: { ja: '対象者', en: 'Who is this for', easy: 'だれ むけ' },
+    category: { ja: 'カテゴリ', en: 'Category', easy: 'カテゴリ' },
+    allCategories: { ja: 'すべてのカテゴリ', en: 'All categories', easy: 'すべての カテゴリ' },
+    all: { ja: 'すべて', en: 'All', easy: 'すべて' },
+    clear: { ja: '絞り込みを消す', en: 'Clear filters', easy: 'しぼりこみを けす' },
+    check: { ja: '確認すること', en: 'What to check', easy: 'かくにん すること' },
+    doWhat: { ja: '困ったときの行動', en: 'What to do if you need help', easy: 'こまった ときの こうどう' },
+    note: { ja: '気をつけること', en: 'Please note', easy: 'きを つけること' },
+    sources: { ja: '参照元・公式リンク', en: 'Official sources', easy: 'さんこうにする こうしきサイト' },
+    lastReviewed: { ja: '最終確認日', en: 'Last reviewed', easy: 'さいごに かくにんした日' },
+    resultCount: { ja: '件を表示', en: 'shown', easy: 'けん ひょうじ' },
+    noResult: { ja: '条件に合う情報が見つかりませんでした。絞り込みを消すか、別のことばで探してください。', en: 'No information matched your filters. Clear the filters or try another keyword.', easy: 'みつかりませんでした。しぼりこみを けすか、べつの ことばで さがしてください。' },
+    open: { ja: '開く', en: 'Open', easy: 'ひらく' },
+    close: { ja: '閉じる', en: 'Close', easy: 'とじる' },
+  };
+
+  const importancePill = (impKey) => {
+    const imp = LIFE_IMPORTANCE[impKey];
+    if (!imp) return null;
+    return (
+      <span style={{
+        fontFamily: 'var(--jp)', fontSize: 11, fontWeight: 700, whiteSpace: 'nowrap',
+        color: imp.color, background: imp.bg, border: '1px solid ' + imp.border,
+        borderRadius: 999, padding: '2px 10px',
+      }}>{lifeText(lang, labelText.importance)}: {lifeText(lang, imp.label)}</span>
+    );
+  };
+
+  // 対象者チップ
+  const targetPills = (keys) => (keys || []).map((k) => (
+    <span key={k} style={{
+      fontFamily: 'var(--jp)', fontSize: 11, fontWeight: 600, color: 'var(--ink-3)',
+      background: 'var(--paper-3)', border: '1px solid var(--brand-line)',
+      borderRadius: 999, padding: '2px 10px', whiteSpace: 'nowrap',
+    }}>{lifeText(lang, LIFE_TARGET_LABELS[k] || {})}</span>
+  ));
+
+  const sectionLabel = (txt) => (
+    <div style={{
+      fontFamily: 'var(--mono)', fontSize: 10.5, letterSpacing: '0.14em', fontWeight: 700,
+      color: 'var(--brand-blue-dark)', marginBottom: 10, textTransform: 'none',
+    }}>{txt}</div>
+  );
+
+  const chipButton = (active, onClick, children, key) => (
+    <button key={key} type="button" onClick={onClick} style={{
+      fontFamily: 'var(--jp)', fontSize: 12.5, fontWeight: active ? 700 : 500,
+      color: active ? 'var(--paper-1)' : 'var(--ink-3)',
+      background: active ? 'var(--brand-blue-dark)' : 'var(--paper-1)',
+      border: '1px solid ' + (active ? 'var(--brand-blue-dark)' : 'var(--brand-line-mid)'),
+      borderRadius: 999, padding: '7px 14px', cursor: 'pointer', minHeight: 36,
+      transition: 'all .15s', whiteSpace: 'nowrap',
+    }}>{children}</button>
+  );
+
+  return (
+    <div style={{ background: 'var(--paper-2)', minHeight: '100dvh' }}>
+      {/* === HERO === */}
+      <section style={{
+        position: 'relative',
+        background: 'linear-gradient(135deg, #0a1628 0%, #1a3a7a 50%, #0a2960 100%)',
+        color: 'var(--paper)',
+        padding: 'clamp(110px, 16vh, 180px) clamp(20px, 6vw, 80px) clamp(48px, 8vh, 80px)',
+      }}>
+        <div style={{ maxWidth: 980, margin: '0 auto' }}>
+          <div style={{
+            fontFamily: 'var(--mono)', fontSize: 11, letterSpacing: '0.22em',
+            color: 'rgba(255,255,255,0.65)', fontWeight: 600, marginBottom: 'var(--space-4)',
+          }}>LIFE IN JAPAN · {lifeText(lang, subtitle).toUpperCase()}</div>
+          <h1 style={{
+            fontFamily: 'var(--jp)', fontSize: 'clamp(26px, 5vw, 46px)', lineHeight: 1.25,
+            fontWeight: 800, letterSpacing: '-0.01em', margin: '0 0 6px', color: 'var(--paper)',
+          }}>{lifeText(lang, title)}</h1>
+          <div style={{
+            fontFamily: 'var(--serif)', fontSize: 'clamp(13px, 1.6vw, 16px)', fontWeight: 400,
+            color: 'rgba(255,255,255,0.7)', margin: '0 0 var(--space-5)', letterSpacing: '0.02em',
+          }}>Essential Information for Living in Japan</div>
+          <p style={{
+            fontFamily: 'var(--jp)', fontSize: 'clamp(14px, 1.8vw, 16px)', lineHeight: 1.9,
+            color: 'rgba(255,255,255,0.9)', margin: 0, maxWidth: 720, letterSpacing: '0.01em',
+          }}>{lifeText(lang, intro)}</p>
+        </div>
+      </section>
+
+      <div style={{ maxWidth: 980, margin: '0 auto', padding: 'clamp(24px, 4vw, 44px) clamp(16px, 5vw, 40px) 100px' }}>
+
+        {/* === 緊急時 固定表示 === */}
+        <section aria-label={lifeText(lang, LIFE_EMERGENCY.title)} style={{
+          background: 'var(--paper-1)', border: '1px solid ' + LIFE_IMPORTANCE.high.border,
+          borderLeft: '5px solid ' + LIFE_IMPORTANCE.high.color,
+          borderRadius: 14, padding: 'clamp(18px, 3vw, 26px)', marginBottom: 28,
+          boxShadow: '0 4px 24px rgba(178,59,46,0.08)',
+        }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 14 }}>
+            <span style={{
+              display: 'inline-flex', alignItems: 'center', justifyContent: 'center',
+              width: 34, height: 34, borderRadius: 9, background: LIFE_IMPORTANCE.high.bg, flexShrink: 0,
+            }}>
+              <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke={LIFE_IMPORTANCE.high.color} strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+                <path d="M10.29 3.86 1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"/>
+                <line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/>
+              </svg>
+            </span>
+            <h2 style={{
+              fontFamily: 'var(--jp)', fontSize: 'clamp(18px, 2.6vw, 22px)', fontWeight: 800,
+              color: LIFE_IMPORTANCE.high.color, margin: 0, letterSpacing: '0.01em',
+            }}>{lifeText(lang, LIFE_EMERGENCY.title)}</h2>
+          </div>
+
+          {/* 110 / 119 大ボタン */}
+          <div style={{ display: 'flex', flexWrap: 'wrap', gap: 12, marginBottom: 16 }}>
+            {[{ num: '110', label: { ja: '事件・事故（警察）', en: 'Crime / accident (Police)', easy: 'じけん・じこ（けいさつ）' } },
+              { num: '119', label: { ja: '火事・救急（消防）', en: 'Fire / ambulance', easy: 'かじ・きゅうきゅう（しょうぼう）' } }].map((b) => (
+              <a key={b.num} href={'tel:' + b.num} style={{
+                flex: '1 1 200px', display: 'flex', alignItems: 'center', gap: 12,
+                textDecoration: 'none', background: LIFE_IMPORTANCE.high.color, color: '#fff',
+                borderRadius: 12, padding: '12px 18px', minHeight: 56,
+              }}>
+                <span style={{ fontFamily: 'var(--mono)', fontSize: 30, fontWeight: 800, lineHeight: 1 }}>{b.num}</span>
+                <span style={{ fontFamily: 'var(--jp)', fontSize: 13, fontWeight: 700, lineHeight: 1.35 }}>{lifeText(lang, b.label)}</span>
+              </a>
+            ))}
+          </div>
+
+          <ul style={{ margin: '0 0 16px', padding: 0, listStyle: 'none', display: 'flex', flexDirection: 'column', gap: 8 }}>
+            {LIFE_EMERGENCY.lines.map((line, i) => (
+              <li key={i} style={{ display: 'flex', gap: 8, fontFamily: 'var(--jp)', fontSize: 14, lineHeight: 1.7, color: 'var(--ink-2)' }}>
+                <span style={{ color: LIFE_IMPORTANCE.high.color, fontWeight: 800, flexShrink: 0 }}>・</span>
+                <span>{lifeText(lang, line)}</span>
+              </li>
+            ))}
+          </ul>
+
+          <div style={{ display: 'flex', flexWrap: 'wrap', gap: 8 }}>
+            {LIFE_EMERGENCY.sources.map((s) => (<LifeSourceChip key={s} srcId={s} lang={lang} sources={sources} />))}
+          </div>
+        </section>
+
+        {/* === 検索・絞り込み === */}
+        <section aria-label={lifeText(lang, labelText.search)} style={{
+          background: 'var(--paper-1)', border: '1px solid var(--brand-line)', borderRadius: 14,
+          padding: 'clamp(16px, 3vw, 22px)', marginBottom: 24,
+        }}>
+          {/* 検索ボックス */}
+          <div style={{ position: 'relative', marginBottom: 18 }}>
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="var(--ink-4)" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"
+                 style={{ position: 'absolute', left: 14, top: '50%', transform: 'translateY(-50%)', pointerEvents: 'none' }} aria-hidden="true">
+              <circle cx="11" cy="11" r="8"/><path d="m21 21-4.35-4.35"/>
+            </svg>
+            <input
+              type="search"
+              value={query}
+              onChange={(e) => setQuery(e.target.value)}
+              aria-label={lifeText(lang, labelText.search)}
+              placeholder={lifeText(lang, labelText.searchPlaceholder)}
+              style={{
+                width: '100%', boxSizing: 'border-box', padding: '13px 44px 13px 42px',
+                fontFamily: 'var(--jp)', fontSize: 15, color: 'var(--ink-1)',
+                border: '1px solid var(--brand-line-mid)', borderRadius: 11, background: 'var(--paper-2)',
+                outline: 'none', minHeight: 50,
+              }}
+              onFocus={(e) => { e.currentTarget.style.borderColor = 'var(--brand-blue)'; e.currentTarget.style.background = 'var(--paper-1)'; }}
+              onBlur={(e) => { e.currentTarget.style.borderColor = 'var(--brand-line-mid)'; e.currentTarget.style.background = 'var(--paper-2)'; }}
+            />
+            {query && (
+              <button type="button" onClick={() => setQuery('')} aria-label={lang === 'en' ? 'Clear' : '消す'} style={{
+                position: 'absolute', right: 10, top: '50%', transform: 'translateY(-50%)',
+                width: 28, height: 28, borderRadius: '50%', border: 'none', cursor: 'pointer',
+                background: 'var(--paper-4)', color: 'var(--ink-3)', fontSize: 15, lineHeight: 1,
+              }}>×</button>
+            )}
+          </div>
+
+          {/* 重要度 */}
+          <div style={{ marginBottom: 14 }}>
+            {sectionLabel(lifeText(lang, labelText.importance))}
+            <div style={{ display: 'flex', flexWrap: 'wrap', gap: 8 }}>
+              {chipButton(importanceFilter === 'all', () => setImportanceFilter('all'), lifeText(lang, labelText.all), 'imp-all')}
+              {['high', 'mid', 'low'].map((k) => chipButton(importanceFilter === k, () => setImportanceFilter(k), lifeText(lang, LIFE_IMPORTANCE[k].label), 'imp-' + k))}
+            </div>
+          </div>
+
+          {/* 対象者 */}
+          <div style={{ marginBottom: 14 }}>
+            {sectionLabel(lifeText(lang, labelText.target))}
+            <div style={{ display: 'flex', flexWrap: 'wrap', gap: 8 }}>
+              {chipButton(targetFilter === 'all', () => setTargetFilter('all'), lifeText(lang, labelText.all), 'tgt-all')}
+              {LIFE_TARGETS.filter((tg) => tg.key !== 'all').map((tg) => chipButton(targetFilter === tg.key, () => setTargetFilter(tg.key), lifeText(lang, tg.label), 'tgt-' + tg.key))}
+            </div>
+          </div>
+
+          {/* カテゴリ + クリア */}
+          <div style={{ display: 'flex', flexWrap: 'wrap', gap: 14, alignItems: 'flex-end', justifyContent: 'space-between' }}>
+            <div style={{ flex: '1 1 240px', minWidth: 200 }}>
+              {sectionLabel(lifeText(lang, labelText.category))}
+              <select value={categoryFilter} onChange={(e) => setCategoryFilter(e.target.value)}
+                aria-label={lifeText(lang, labelText.category)}
+                style={{
+                  width: '100%', boxSizing: 'border-box', padding: '11px 14px', minHeight: 46,
+                  fontFamily: 'var(--jp)', fontSize: 14, color: 'var(--ink-1)',
+                  border: '1px solid var(--brand-line-mid)', borderRadius: 10, background: 'var(--paper-1)', cursor: 'pointer',
+                }}>
+                <option value="all">{lifeText(lang, labelText.allCategories)}</option>
+                {categories.map((cat) => (
+                  <option key={cat.id} value={cat.id}>{lifeField(cat, 'title', lang)}</option>
+                ))}
+              </select>
+            </div>
+            {anyFilterActive && (
+              <button type="button" onClick={clearFilters} style={{
+                fontFamily: 'var(--jp)', fontSize: 13, fontWeight: 600, color: 'var(--brand-blue-dark)',
+                background: 'transparent', border: 'none', cursor: 'pointer', padding: '11px 4px', minHeight: 46,
+                textDecoration: 'underline', whiteSpace: 'nowrap',
+              }}>{lifeText(lang, labelText.clear)}</button>
+            )}
+          </div>
+
+          {/* 件数 */}
+          <div style={{ marginTop: 14, fontFamily: 'var(--jp)', fontSize: 12.5, color: 'var(--ink-4)' }}>
+            {categories.length} {lang === 'en' ? 'categories' : 'カテゴリ'} · {filtered.length} {lifeText(lang, labelText.resultCount)}
+          </div>
+        </section>
+
+        {/* === カテゴリ カード (アコーディオン) === */}
+        {filtered.length === 0 ? (
+          <div style={{
+            fontFamily: 'var(--jp)', fontSize: 15, lineHeight: 1.8, color: 'var(--ink-3)',
+            background: 'var(--paper-1)', border: '1px solid var(--brand-line)', borderRadius: 14,
+            padding: 'clamp(28px, 5vw, 44px)', textAlign: 'center',
+          }}>{lifeText(lang, labelText.noResult)}</div>
+        ) : (
+          <div style={{ display: 'flex', flexDirection: 'column', gap: 14 }}>
+            {filtered.map((cat) => {
+              const isOpen = !!openIds[cat.id];
+              const catTitle = lifeField(cat, 'title', lang);
+              const catSummary = lifeField(cat, 'summary', lang);
+              const panelId = 'life-panel-' + cat.id;
+              const btnId = 'life-btn-' + cat.id;
+              return (
+                <section key={cat.id} style={{
+                  background: 'var(--paper-1)', border: '1px solid var(--brand-line)', borderRadius: 14,
+                  overflow: 'hidden', boxShadow: isOpen ? '0 6px 28px rgba(10,41,96,0.07)' : 'none', transition: 'box-shadow .2s',
+                }}>
+                  {/* ヘッダー (トグル) — WAI-ARIA アコーディオン: 見出し(h3)内にボタン。
+                      button の中身は phrasing content (span) のみで妥当な入れ子にする。 */}
+                  <h3 style={{ margin: 0 }}>
+                    <button type="button" id={btnId} onClick={() => toggleOpen(cat.id)}
+                      aria-expanded={isOpen} aria-controls={panelId}
+                      style={{
+                        width: '100%', boxSizing: 'border-box', textAlign: 'left', cursor: 'pointer',
+                        background: 'transparent', border: 'none', padding: 'clamp(16px, 3vw, 22px)',
+                        display: 'flex', gap: 14, alignItems: 'flex-start', font: 'inherit', color: 'inherit',
+                      }}>
+                      <span style={{ flex: 1, minWidth: 0, display: 'block' }}>
+                        <span style={{ display: 'flex', flexWrap: 'wrap', gap: 8, alignItems: 'center', marginBottom: 8 }}>
+                          {importancePill(cat.importance)}
+                          {targetPills(cat.targetUsers)}
+                        </span>
+                        <span style={{
+                          display: 'block', fontFamily: 'var(--jp)', fontSize: 'clamp(17px, 2.4vw, 20px)', fontWeight: 800,
+                          color: 'var(--ink-1)', margin: '0 0 4px', letterSpacing: '-0.01em', lineHeight: 1.35,
+                        }}>{catTitle}</span>
+                        <span style={{ display: 'block', fontFamily: 'var(--jp)', fontSize: 13.5, lineHeight: 1.7, color: 'var(--ink-3)', fontWeight: 400 }}>{catSummary}</span>
+                      </span>
+                      <span style={{
+                        flexShrink: 0, width: 34, height: 34, borderRadius: '50%', marginTop: 2,
+                        display: 'inline-flex', alignItems: 'center', justifyContent: 'center',
+                        background: isOpen ? 'var(--brand-blue-dark)' : 'var(--paper-3)',
+                        transition: 'background .2s',
+                      }} aria-hidden="true">
+                        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke={isOpen ? '#fff' : 'var(--ink-3)'} strokeWidth="2.4" strokeLinecap="round" strokeLinejoin="round"
+                          style={{ transform: isOpen ? 'rotate(180deg)' : 'none', transition: 'transform .2s' }}>
+                          <path d="m6 9 6 6 6-6"/>
+                        </svg>
+                      </span>
+                    </button>
+                  </h3>
+
+                  {/* 本文 */}
+                  {isOpen && (
+                    <div id={panelId} role="region" aria-labelledby={btnId}
+                      style={{ padding: '0 clamp(16px, 3vw, 22px) clamp(20px, 3vw, 26px)', borderTop: '1px solid var(--brand-line)' }}>
+
+                      {cat.kind === 'news' ? (
+                        // お知らせ・重要情報: newsItems を一覧表示
+                        <div style={{ paddingTop: 18 }}>
+                          <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
+                            {publishedNews.map((n) => (
+                              <article key={n.id} style={{
+                                border: '1px solid var(--brand-line)', borderRadius: 12, padding: 16, background: 'var(--paper-2)',
+                              }}>
+                                <div style={{ display: 'flex', flexWrap: 'wrap', gap: 8, alignItems: 'center', marginBottom: 8 }}>
+                                  {importancePill(n.importance)}
+                                  <span style={{ fontFamily: 'var(--mono)', fontSize: 11, color: 'var(--ink-4)' }}>{n.publishedAt}</span>
+                                  {targetPills(n.targetUsers)}
+                                </div>
+                                <h4 style={{ fontFamily: 'var(--jp)', fontSize: 15.5, fontWeight: 700, color: 'var(--ink-1)', margin: '0 0 6px', lineHeight: 1.4 }}>
+                                  {lifeField(n, 'title', lang)}
+                                </h4>
+                                <p style={{ fontFamily: 'var(--jp)', fontSize: 13.5, lineHeight: 1.75, color: 'var(--ink-2)', margin: '0 0 12px' }}>
+                                  {lifeField(n, 'summary', lang)}
+                                </p>
+                                <div style={{ display: 'flex', flexWrap: 'wrap', gap: 8 }}>
+                                  {(n.sourceLinks || []).map((s) => (<LifeSourceChip key={s} srcId={s} lang={lang} sources={sources} />))}
+                                </div>
+                              </article>
+                            ))}
+                          </div>
+                        </div>
+                      ) : (
+                        <React.Fragment>
+                          {/* 確認すること */}
+                          {cat.checkItems && cat.checkItems.length > 0 && (
+                            <div style={{ paddingTop: 18 }}>
+                              {sectionLabel(lifeText(lang, labelText.check))}
+                              <ul style={{ margin: 0, padding: 0, listStyle: 'none', display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(230px, 1fr))', gap: '6px 16px' }}>
+                                {cat.checkItems.map((it, i) => (
+                                  <li key={i} style={{ display: 'flex', gap: 8, fontFamily: 'var(--jp)', fontSize: 13.5, lineHeight: 1.65, color: 'var(--ink-2)' }}>
+                                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="var(--brand-blue)" strokeWidth="2.4" strokeLinecap="round" strokeLinejoin="round" style={{ flexShrink: 0, marginTop: 2 }} aria-hidden="true"><path d="M20 6 9 17l-5-5"/></svg>
+                                    <span>{it}</span>
+                                  </li>
+                                ))}
+                              </ul>
+                            </div>
+                          )}
+
+                          {/* 困ったときの行動 */}
+                          {cat.whatToDo && cat.whatToDo.length > 0 && (
+                            <div style={{ marginTop: 20 }}>
+                              {sectionLabel(lifeText(lang, labelText.doWhat))}
+                              <ul style={{ margin: 0, padding: 0, listStyle: 'none', display: 'flex', flexDirection: 'column', gap: 7 }}>
+                                {cat.whatToDo.map((it, i) => (
+                                  <li key={i} style={{ display: 'flex', gap: 9, fontFamily: 'var(--jp)', fontSize: 13.5, lineHeight: 1.7, color: 'var(--ink-2)' }}>
+                                    <span style={{
+                                      flexShrink: 0, width: 20, height: 20, borderRadius: '50%', marginTop: 1,
+                                      background: 'var(--brand-blue-soft)', color: 'var(--brand-blue-dark)',
+                                      fontFamily: 'var(--mono)', fontSize: 11, fontWeight: 700,
+                                      display: 'inline-flex', alignItems: 'center', justifyContent: 'center',
+                                    }}>{i + 1}</span>
+                                    <span>{it}</span>
+                                  </li>
+                                ))}
+                              </ul>
+                            </div>
+                          )}
+                        </React.Fragment>
+                      )}
+
+                      {/* 気をつけること (caution) */}
+                      {cat.caution && (
+                        <div style={{
+                          marginTop: 20, display: 'flex', gap: 10, alignItems: 'flex-start',
+                          background: LIFE_IMPORTANCE.mid.bg, border: '1px solid ' + LIFE_IMPORTANCE.mid.border,
+                          borderRadius: 11, padding: '12px 14px',
+                        }}>
+                          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke={LIFE_IMPORTANCE.mid.color} strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" style={{ flexShrink: 0, marginTop: 1 }} aria-hidden="true">
+                            <circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/>
+                          </svg>
+                          <div>
+                            <div style={{ fontFamily: 'var(--jp)', fontSize: 11.5, fontWeight: 700, color: LIFE_IMPORTANCE.mid.color, marginBottom: 3 }}>{lifeText(lang, labelText.note)}</div>
+                            <p style={{ fontFamily: 'var(--jp)', fontSize: 13, lineHeight: 1.7, color: 'var(--ink-2)', margin: 0 }}>{cat.caution}</p>
+                          </div>
+                        </div>
+                      )}
+
+                      {/* 参照元・公式リンク */}
+                      <div style={{ marginTop: 22 }}>
+                        {sectionLabel(lifeText(lang, labelText.sources))}
+                        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(260px, 1fr))', gap: 10 }}>
+                          {(cat.sourceLinks || []).map((s) => (<LifeSourceChip key={s} srcId={s} lang={lang} sources={sources} />))}
+                        </div>
+                      </div>
+
+                      {/* 最終確認メッセージ + 最終確認日 */}
+                      <div style={{ marginTop: 20, paddingTop: 16, borderTop: '1px dashed var(--brand-line-mid)' }}>
+                        <p style={{ fontFamily: 'var(--jp)', fontSize: 12.5, lineHeight: 1.7, color: 'var(--ink-4)', margin: '0 0 6px' }}>
+                          {lifeText(lang, LIFE_FINAL_MESSAGE)}
+                        </p>
+                        <div style={{ fontFamily: 'var(--mono)', fontSize: 11, color: 'var(--ink-5)' }}>
+                          {lifeText(lang, labelText.lastReviewed)}: {LIFE_LAST_REVIEWED}
+                        </div>
+                      </div>
+                    </div>
+                  )}
+                </section>
+              );
+            })}
+          </div>
+        )}
+
+        {/* 画面末尾の 全体注意 */}
+        <p style={{
+          marginTop: 28, fontFamily: 'var(--jp)', fontSize: 12.5, lineHeight: 1.85, color: 'var(--ink-4)',
+          textAlign: 'center', maxWidth: 680, marginLeft: 'auto', marginRight: 'auto',
+        }}>
+          {lang === 'en'
+            ? 'This page organizes public information to help you. It does not decide legal, residence or medical matters. Rules can change, so always confirm the details on the official websites.'
+            : 'このページは、公的な情報をわかりやすく整理したものです。制度の可否や医療の判断を行うものではありません。制度は変わることがあるため、詳しくは必ず公式サイトで確認してください。'}
+        </p>
+      </div>
+    </div>
+  );
+}
+
 function App() {
   const [lang, setLang] = useLang();
   const route = useRoute();
@@ -30098,6 +31031,8 @@ function App() {
     Page = <PageNewsDetail lang={lang} t={t} newsId={matchNews[1]} frontNews={frontNews} loading={loading} />;
   } else if (routePath === '/contact') {
     Page = <PageContact lang={lang} t={t} />;
+  } else if (routePath === '/life') {
+    Page = <PageLifeInfo lang={lang} t={t} siteSettings={siteSettings} />;
   } else if (routePath === '/privacy') {
     Page = <PagePolicyDoc lang={lang} t={t} kind="privacy" siteSettings={siteSettings} />;
   } else if (routePath === '/terms') {
